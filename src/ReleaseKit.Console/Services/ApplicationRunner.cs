@@ -49,19 +49,11 @@ public class ApplicationRunner
         var taskType = parseResult.TaskType.Value;
         _logger.LogInformation("準備執行任務: {TaskType}", taskType);
 
-        try
-        {
-            // 使用工廠模式建立任務並執行
-            var task = _taskFactory.CreateTask(taskType);
-            await task.ExecuteAsync();
-            
-            _logger.LogInformation("任務執行完成");
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "任務執行失敗");
-            Environment.ExitCode = 1;
-        }
-
+        // 使用工廠模式建立任務並執行
+        var task = _taskFactory.CreateTask(taskType);
+        await task.ExecuteAsync();
+        
+        _logger.LogInformation("任務執行完成");
         await Log.CloseAndFlushAsync();
     }
 }
