@@ -21,8 +21,8 @@ public class ConfigurationTests
         
         // Assert
         Assert.NotNull(configuration);
-        Assert.Equal("Information", configuration["Logging:LogLevel:Default"]);
-        Assert.Equal("Warning", configuration["Logging:LogLevel:Microsoft"]);
+        Assert.Equal("Information", configuration["Serilog:MinimumLevel:Default"]);
+        Assert.Equal("Warning", configuration["Serilog:MinimumLevel:Override:Microsoft"]);
     }
     
     [Theory]
@@ -43,7 +43,7 @@ public class ConfigurationTests
         
         // Assert
         Assert.NotNull(configuration);
-        Assert.Equal(expectedLogLevel, configuration["Logging:LogLevel:Default"]);
+        Assert.Equal(expectedLogLevel, configuration["Serilog:MinimumLevel:Default"]);
     }
     
     [Fact]
@@ -51,7 +51,7 @@ public class ConfigurationTests
     {
         // Arrange
         var basePath = GetProjectBasePath();
-        Environment.SetEnvironmentVariable("Logging__LogLevel__TestValue", "TestFromEnvVar");
+        Environment.SetEnvironmentVariable("Serilog__MinimumLevel__Override__TestValue", "TestFromEnvVar");
         
         // Act
         var configuration = new ConfigurationBuilder()
@@ -61,10 +61,10 @@ public class ConfigurationTests
             .Build();
         
         // Assert
-        Assert.Equal("TestFromEnvVar", configuration["Logging:LogLevel:TestValue"]);
+        Assert.Equal("TestFromEnvVar", configuration["Serilog:MinimumLevel:Override:TestValue"]);
         
         // Cleanup
-        Environment.SetEnvironmentVariable("Logging__LogLevel__TestValue", null);
+        Environment.SetEnvironmentVariable("Serilog__MinimumLevel__Override__TestValue", null);
     }
     
     [Fact]
@@ -72,7 +72,7 @@ public class ConfigurationTests
     {
         // Arrange
         var basePath = GetProjectBasePath();
-        Environment.SetEnvironmentVariable("Logging__LogLevel__Default", "Critical");
+        Environment.SetEnvironmentVariable("Serilog__MinimumLevel__Default", "Critical");
         
         // Act
         var configuration = new ConfigurationBuilder()
@@ -82,10 +82,10 @@ public class ConfigurationTests
             .Build();
         
         // Assert
-        Assert.Equal("Critical", configuration["Logging:LogLevel:Default"]);
+        Assert.Equal("Critical", configuration["Serilog:MinimumLevel:Default"]);
         
         // Cleanup
-        Environment.SetEnvironmentVariable("Logging__LogLevel__Default", null);
+        Environment.SetEnvironmentVariable("Serilog__MinimumLevel__Default", null);
     }
     
     /// <summary>

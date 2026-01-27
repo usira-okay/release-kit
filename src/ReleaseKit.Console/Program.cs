@@ -39,7 +39,7 @@ var host = Host.CreateDefaultBuilder(args)
     .UseSerilog((context, services, configuration) =>
     {
         configuration
-            .MinimumLevel.Is(LogLevelConstants.DefaultMinimumLevel)
+            .ReadFrom.Configuration(context.Configuration)
             .Enrich.FromLogContext()
             .WriteTo.Console();
 
