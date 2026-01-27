@@ -28,7 +28,7 @@ public class RedisService : IRedisService
     /// <summary>
     /// 設定快取值
     /// </summary>
-    public async Task<bool> SetAsync(string key, string value, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
+    public async Task<bool> SetAsync(string key, string value, TimeSpan? expiry = null)
     {
         var fullKey = GetFullKey(key);
         var result = await _database.StringSetAsync(fullKey, value, expiry);
@@ -39,7 +39,7 @@ public class RedisService : IRedisService
     /// <summary>
     /// 取得快取值
     /// </summary>
-    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<string?> GetAsync(string key)
     {
         var fullKey = GetFullKey(key);
         var value = await _database.StringGetAsync(fullKey);
@@ -50,7 +50,7 @@ public class RedisService : IRedisService
     /// <summary>
     /// 刪除快取值
     /// </summary>
-    public async Task<bool> DeleteAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string key)
     {
         var fullKey = GetFullKey(key);
         var result = await _database.KeyDeleteAsync(fullKey);
@@ -61,7 +61,7 @@ public class RedisService : IRedisService
     /// <summary>
     /// 檢查快取鍵值是否存在
     /// </summary>
-    public async Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsAsync(string key)
     {
         var fullKey = GetFullKey(key);
         var result = await _database.KeyExistsAsync(fullKey);

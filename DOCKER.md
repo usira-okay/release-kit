@@ -42,11 +42,7 @@ docker-compose logs -f release-kit
 
 ### 3. 停止服務
 
-```bash
-docker-compose down
-```
-
-保留資料卷（Redis 與 Seq 資料）：
+停止服務並保留資料卷（Redis 與 Seq 資料）：
 ```bash
 docker-compose down
 ```
@@ -55,6 +51,8 @@ docker-compose down
 ```bash
 docker-compose down -v
 ```
+
+> **注意**：`docker-compose down` 預設會保留 volumes，只有加上 `-v` 參數才會刪除資料卷。
 
 ## 服務說明
 
@@ -257,11 +255,11 @@ environment:
 
 ## 疑難排解
 
-啟用詳細日誌：
+啟用詳細日誌（Serilog 設定）：
 
 ```yaml
 environment:
-  - Logging__LogLevel__Default=Debug
+  - Serilog__MinimumLevel__Default=Debug
 ```
 
 進入容器進行偵錯：

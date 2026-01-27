@@ -24,9 +24,13 @@ public static class ServiceCollectionExtensions
         var redisInstanceName = configuration["Redis:InstanceName"] 
             ?? throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
 
-        // 直接註冊 IConnectionMultiplexer
+        // 註冊 IConnectionMultiplexer，使用 AbortOnConnectFail=false 避免啟動時連線失敗
         services.AddSingleton<IConnectionMultiplexer>(sp =>
-            ConnectionMultiplexer.Connect(redisConnectionString));
+        {
+            var configOptions = ConfigurationOptions.Parse(redisConnectionString);
+            configOptions.AbortOnConnectFail = false; // 允許應用程式啟動即使 Redis 尚未就緒
+            return ConnectionMultiplexer.Connect(configOptions);
+        });
 
         // 註冊 Redis 服務
         services.AddSingleton<IRedisService>(sp =>
