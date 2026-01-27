@@ -2,6 +2,8 @@ using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ReleaseKit.Application.Tasks;
+using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Redis;
@@ -53,6 +55,18 @@ public static class ServiceCollectionExtensions
     {
         // 註冊時間服務
         services.AddSingleton<INow, SystemNow>();
+        
+        // 註冊任務
+        services.AddTransient<FetchGitLabPullRequestsTask>();
+        services.AddTransient<FetchBitbucketPullRequestsTask>();
+        services.AddTransient<FetchAzureDevOpsWorkItemsTask>();
+        services.AddTransient<UpdateGoogleSheetsTask>();
+        
+        // 註冊任務工廠
+        services.AddSingleton<Application.Tasks.TaskFactory>();
+        
+        // 註冊命令列解析器
+        services.AddSingleton<CommandLineParser>();
         
         // 註冊應用程式服務
         services.AddTransient<AppStartupService>();

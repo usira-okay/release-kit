@@ -32,8 +32,29 @@ docker-compose up -d
 
 ```bash
 cd src/ReleaseKit.Console
-dotnet run
+dotnet build
+dotnet run -- <task-name>
 ```
+
+#### 可用任務
+
+執行應用程式時需指定任務名稱：
+
+```bash
+# 拉取 GitLab PR 資訊
+dotnet run -- fetch-gitlab-pr
+
+# 拉取 Bitbucket PR 資訊
+dotnet run -- fetch-bitbucket-pr
+
+# 拉取 Azure DevOps Work Item 資訊
+dotnet run -- fetch-azure-workitems
+
+# 更新 Google Sheets 資訊
+dotnet run -- update-googlesheet
+```
+
+詳細說明請參考 [Console 使用指南](src/ReleaseKit.Console/README.md)
 
 ## 專案結構
 
@@ -105,6 +126,7 @@ dotnet test src/release-kit.sln
 
 ## 文件
 
+- [Console 使用指南](src/ReleaseKit.Console/README.md) - 命令列參數與組態設定
 - [Docker 使用指南](DOCKER.md) - Docker Compose 執行說明
 - [開發憲法](.specify/memory/constitution.md) - 專案開發規範
 

@@ -1,8 +1,69 @@
-# ReleaseKit Configuration Guide
+# ReleaseKit Console 使用指南
 
 ## 概述
 
-ReleaseKit Console 應用程式支援透過 `appsettings.json` 設定檔與環境變數來管理組態設定。
+ReleaseKit Console 應用程式支援命令列參數執行不同的任務，並透過 `appsettings.json` 設定檔與環境變數來管理組態設定。
+
+## 命令列使用方式
+
+### 基本語法
+
+```bash
+dotnet run -- <task-name>
+```
+
+或者在編譯後直接執行：
+
+```bash
+./ReleaseKit.Console <task-name>
+```
+
+### 可用的任務
+
+1. **fetch-gitlab-pr** - 拉取 GitLab Pull Request 資訊
+2. **fetch-bitbucket-pr** - 拉取 Bitbucket Pull Request 資訊
+3. **fetch-azure-workitems** - 拉取 Azure DevOps Work Item 資訊
+4. **update-googlesheet** - 更新 Google Sheets 資訊
+
+### 使用範例
+
+```bash
+# 拉取 GitLab PR 資訊
+dotnet run -- fetch-gitlab-pr
+
+# 拉取 Bitbucket PR 資訊
+dotnet run -- fetch-bitbucket-pr
+
+# 拉取 Azure DevOps Work Item 資訊
+dotnet run -- fetch-azure-workitems
+
+# 更新 Google Sheets 資訊
+dotnet run -- update-googlesheet
+```
+
+### 限制
+
+- 每次只能執行**單一任務**
+- 任務名稱**不區分大小寫**
+- 若未提供任務名稱或提供無效的任務名稱，將顯示錯誤訊息
+
+### 錯誤處理
+
+```bash
+# 未提供任務名稱
+$ dotnet run
+錯誤: 請指定要執行的任務。使用方式: ReleaseKit.Console <task-name>
+
+# 提供無效的任務名稱
+$ dotnet run -- invalid-task
+錯誤: 不支援的任務: 'invalid-task'。有效的任務: fetch-gitlab-pr, fetch-bitbucket-pr, fetch-azure-workitems, update-googlesheet
+
+# 提供多個參數
+$ dotnet run -- fetch-gitlab-pr extra-arg
+錯誤: 每次只允許執行單一任務。使用方式: ReleaseKit.Console <task-name>
+```
+
+## 組態設定
 
 ## 設定檔架構
 

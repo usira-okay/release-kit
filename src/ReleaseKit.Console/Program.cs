@@ -56,5 +56,5 @@ var host = Host.CreateDefaultBuilder(args)
 
 // 從 DI 容器取得應用程式執行器並執行
 var runner = host.Services.GetRequiredService<ApplicationRunner>();
-await runner.RunAsync();
+await runner.RunAsync(args);
 
