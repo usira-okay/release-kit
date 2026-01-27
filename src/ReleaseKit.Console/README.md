@@ -2,7 +2,7 @@
 
 ## 概述
 
-ReleaseKit Console 應用程式支援透過 `appsettings.json` 設定檔與環境變數來管理組態設定。
+ReleaseKit Console 應用程式支援透過 `appsettings.json` 設定檔、`.env` 檔案與環境變數來管理組態設定。
 
 ## 設定檔架構
 
@@ -13,18 +13,40 @@ ReleaseKit Console 應用程式支援透過 `appsettings.json` 設定檔與環�
 - **appsettings.Qa.json**: QA 測試環境專用設定
 - **appsettings.Production.json**: 正式環境專用設定
 
+### .env 檔案
+
+- **.env**: 預設環境變數設定（應提交至版本控制）
+- **.env.local**: 本機專屬環境變數設定（不應提交至版本控制）
+
 ### 載入優先順序
 
 設定值的載入順序（後者會覆蓋前者）：
 
-1. `appsettings.json`（基礎設定）
-2. `appsettings.{Environment}.json`（環境特定設定）
-3. 環境變數
-4. User Secrets（僅開發環境）
+1. `.env`（預設環境變數）
+2. `.env.local`（本機環境變數，會覆寫 .env）
+3. `appsettings.json`（基礎設定）
+4. `appsettings.{Environment}.json`（環境特定設定）
+5. 系統環境變數
+6. User Secrets（僅開發環境）
 
 ## 使用方式
 
-### 1. 切換環境
+### 1. 使用 .env 檔案
+
+建立 `.env` 或 `.env.local` 檔案來設定環境變數：
+
+```bash
+# .env.local 範例
+ASPNETCORE_ENVIRONMENT=Development
+Logging__LogLevel__Default=Debug
+```
+
+**重要提醒：**
+- `.env` 可以提交至版本控制，用於預設設定
+- `.env.local` 不應提交至版本控制（已加入 .gitignore），用於本機專屬設定
+- `.env.local` 的設定會覆寫 `.env` 的設定
+
+### 2. 切換環境
 
 透過設定 `ASPNETCORE_ENVIRONMENT` 環境變數來切換環境：
 
@@ -37,21 +59,26 @@ ASPNETCORE_ENVIRONMENT=Development ./ReleaseKit.Console
 
 # 使用 Qa 環境
 ASPNETCORE_ENVIRONMENT=Qa ./ReleaseKit.Console
+
+# 或在 .env.local 中設定
+echo "ASPNETCORE_ENVIRONMENT=Development" > .env.local
+./ReleaseKit.Console
 ```
 
-### 2. 使用環境變數覆寫設定
+### 3. 使用環境變數覆寫設定
 
 環境變數使用雙底線 `__` 作為階層分隔符號：
 
 ```bash
-# 覆寫 Application:Name 設定
-Application__Name="Custom Name" ./ReleaseKit.Console
-
-# 覆寫 Logging:LogLevel:Default 設定
+# 透過命令列覆寫 Logging:LogLevel:Default 設定
 Logging__LogLevel__Default="Debug" ./ReleaseKit.Console
+
+# 或在 .env.local 中設定
+echo 'Logging__LogLevel__Default=Debug' >> .env.local
+./ReleaseKit.Console
 ```
 
-### 3. 使用 User Secrets（僅開發環境）
+### 4. 使用 User Secrets（僅開發環境）
 
 User Secrets 適合儲存敏感資訊（如 API Token、密碼等），這些資料不會被提交至版本控制系統。
 

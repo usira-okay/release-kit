@@ -4,6 +4,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Console.Services;
 
+// 載入 .env 檔案（如果存在）
+// 載入順序：.env -> .env.local（後者會覆寫前者）
+DotNetEnv.Env.Load();
+DotNetEnv.Env.Load(".env.local");
+
 // 建立 Host Builder 以使用 DI 容器
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((context, config) =>
