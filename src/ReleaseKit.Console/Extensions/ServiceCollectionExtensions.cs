@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
         
         // 註冊應用程式服務
         services.AddTransient<AppStartupService>();
+        services.AddTransient<ApplicationRunner>();
 
         return services;
     }

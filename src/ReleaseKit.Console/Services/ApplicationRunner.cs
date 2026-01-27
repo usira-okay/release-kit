@@ -1,5 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace ReleaseKit.Console.Services;
@@ -9,11 +8,15 @@ namespace ReleaseKit.Console.Services;
 /// </summary>
 public class ApplicationRunner
 {
-    private readonly IHost _host;
+    private readonly AppStartupService _appStartupService;
+    private readonly ILogger<ApplicationRunner> _logger;
 
-    public ApplicationRunner(IHost host)
+    public ApplicationRunner(
+        AppStartupService appStartupService,
+        ILogger<ApplicationRunner> logger)
     {
-        _host = host ?? throw new ArgumentNullException(nameof(host));
+        _appStartupService = appStartupService ?? throw new ArgumentNullException(nameof(appStartupService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -21,11 +24,9 @@ public class ApplicationRunner
     /// </summary>
     public async Task RunAsync()
     {
-        // 取得應用程式啟動服務並執行
-        var appStartupService = _host.Services.GetRequiredService<AppStartupService>();
-        appStartupService.Run();
+        _appStartupService.Run();
 
-        Log.Information("應用程式執行完成");
+        _logger.LogInformation("應用程式執行完成");
         await Log.CloseAndFlushAsync();
     }
 }
