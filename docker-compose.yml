@@ -1,0 +1,66 @@
+services:
+  # Seq 日誌服務
+  seq:
+    image: datalust/seq:2024.1
+    container_name: release-kit-seq
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - "5341:80"
+    volumes:
+      - seq-data:/data
+    networks:
+      - release-kit-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/api/events/signal"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Redis 快取服務
+  redis:
+    image: redis:7-alpine
+    container_name: release-kit-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - release-kit-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Release-Kit Console 應用程式
+  release-kit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: release-kit-app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Redis__ConnectionString=redis:6379
+      - Seq__ServerUrl=http://seq:80
+    depends_on:
+      seq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - release-kit-network
+    volumes:
+      - ./appsettings.docker.json:/app/appsettings.Development.json:ro
+
+networks:
+  release-kit-network:
+    driver: bridge
+
+volumes:
+  seq-data:
+  redis-data:

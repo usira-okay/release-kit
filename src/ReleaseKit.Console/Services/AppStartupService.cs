@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReleaseKit.Console.Constants;
 
 namespace ReleaseKit.Console.Services;
 
@@ -13,7 +14,7 @@ public class AppStartupService
     public AppStartupService(ILogger<AppStartupService> logger)
     {
         _logger = logger;
-        _environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        _environment = Environment.GetEnvironmentVariable(EnvironmentVariableNames.AspNetCoreEnvironment) ?? EnvironmentNames.Development;
     }
 
     /// <summary>

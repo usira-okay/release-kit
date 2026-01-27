@@ -1,14 +1,25 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using ReleaseKit.Console.Constants;
+using ReleaseKit.Console.Extensions;
 using ReleaseKit.Console.Services;
+using Serilog;
+
+// 設定 Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Is(LogLevelConstants.DefaultMinimumLevel)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+Log.Information("正在啟動 Release-Kit 應用程式...");
 
 // 建立 Host Builder 以使用 DI 容器
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((context, config) =>
     {
-        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var env = Environment.GetEnvironmentVariable(EnvironmentVariableNames.AspNetCoreEnvironment) ?? EnvironmentNames.Development;
         
         config
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -19,18 +30,31 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((context, services) =>
     {
+        // 註冊 Redis 服務
+        services.AddRedisServices(context.Configuration);
+
         // 註冊應用程式服務
-        services.AddTransient<AppStartupService>();
+        services.AddApplicationServices();
     })
-    .ConfigureLogging((context, logging) =>
+    .UseSerilog((context, services, configuration) =>
     {
-        logging.ClearProviders();
-        logging.AddConfiguration(context.Configuration.GetSection("Logging"));
-        logging.AddConsole();
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console();
+
+        var seqServerUrl = context.Configuration["Seq:ServerUrl"];
+        var seqApiKey = context.Configuration["Seq:ApiKey"];
+
+        if (!string.IsNullOrEmpty(seqServerUrl))
+        {
+            configuration.WriteTo.Seq(seqServerUrl, apiKey: seqApiKey);
+            Log.Information("Seq 日誌已啟用: {SeqUrl}", seqServerUrl);
+        }
     })
     .Build();
 
-// 使用 DI 容器取得服務並執行
-var app = host.Services.GetRequiredService<AppStartupService>();
-app.Run();
+// 從 DI 容器取得應用程式執行器並執行
+var runner = host.Services.GetRequiredService<ApplicationRunner>();
+await runner.RunAsync();
 
