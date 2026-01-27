@@ -32,34 +32,7 @@ public static class ServiceCollectionExtensions
             var configOptions = ConfigurationOptions.Parse(redisConnectionString);
             configOptions.AbortOnConnectFail = false; // 允許應用程式啟動即使 Redis 尚未就緒
 
-            const int maxRetries = 5;
-            var baseDelay = TimeSpan.FromSeconds(1);
-
-            for (int attempt = 0; attempt <= maxRetries; attempt++)
-            {
-                if (attempt > 0)
-                {
-                    var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
-                    logger.LogWarning("Redis 連線失敗，等待 {Delay}ms 後重試 (嘗試 {Attempt}/{MaxRetries})", 
-                        delay.TotalMilliseconds, attempt, maxRetries);
-                    Thread.Sleep(delay);
-                }
-
-                var connection = ConnectionMultiplexer.Connect(configOptions);
-                if (connection.IsConnected)
-                {
-                    logger.LogInformation("Redis 連線成功 (嘗試 {Attempt}/{MaxRetries})", attempt + 1, maxRetries + 1);
-                    return connection;
-                }
-
-                if (attempt < maxRetries)
-                {
-                    logger.LogWarning("Redis 連線未就緒，準備重試");
-                }
-            }
-
-            logger.LogError("Redis 連線失敗，已達最大重試次數 {MaxRetries}", maxRetries);
-            throw new InvalidOperationException($"無法連線至 Redis，已重試 {maxRetries} 次");
+            return ConnectionMultiplexerExtensions.ConnectWithRetry(configOptions, logger);
         });
 
         // 註冊 Redis 服務
