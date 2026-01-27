@@ -24,9 +24,12 @@ Console.WriteLine("========================================");
 Console.WriteLine();
 
 // 顯示設定檔載入狀態
+var environmentConfigPath = Path.Combine(Directory.GetCurrentDirectory(), $"appsettings.{environment}.json");
+var environmentConfigExists = File.Exists(environmentConfigPath);
+
 Console.WriteLine("組態載入完成:");
 Console.WriteLine($"- appsettings.json: 已載入");
-Console.WriteLine($"- appsettings.{environment}.json: {(File.Exists(Path.Combine(Directory.GetCurrentDirectory(), $"appsettings.{environment}.json")) ? "已載入" : "未找到")}");
+Console.WriteLine($"- appsettings.{environment}.json: {(environmentConfigExists ? "已載入" : "未找到")}");
 Console.WriteLine($"- 環境變數: 已啟用");
 Console.WriteLine($"- User Secrets: 已啟用");
 Console.WriteLine();

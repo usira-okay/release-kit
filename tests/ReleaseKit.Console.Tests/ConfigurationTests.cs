@@ -93,9 +93,20 @@ public class ConfigurationTests
     /// </summary>
     private static string GetProjectBasePath()
     {
-        // 從測試專案目錄向上找到 src/ReleaseKit.Console 目錄
-        var currentDirectory = Directory.GetCurrentDirectory();
-        var projectPath = Path.GetFullPath(Path.Combine(currentDirectory, "..", "..", "..", "..", "..", "src", "ReleaseKit.Console"));
+        // 從測試專案目錄向上找到包含 src 目錄的根目錄
+        var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        
+        while (currentDirectory != null && !Directory.Exists(Path.Combine(currentDirectory.FullName, "src")))
+        {
+            currentDirectory = currentDirectory.Parent;
+        }
+        
+        if (currentDirectory == null)
+        {
+            throw new DirectoryNotFoundException("找不到包含 src 目錄的專案根目錄");
+        }
+        
+        var projectPath = Path.Combine(currentDirectory.FullName, "src", "ReleaseKit.Console");
         
         if (!Directory.Exists(projectPath))
         {
