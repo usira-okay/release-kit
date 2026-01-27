@@ -24,7 +24,7 @@ public class OptionsValidationTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddConfigurationOptions(configuration);
+        services.AddConfigurationOption(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert
@@ -50,7 +50,7 @@ public class OptionsValidationTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddConfigurationOptions(configuration);
+        services.AddConfigurationOption(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert
@@ -76,7 +76,7 @@ public class OptionsValidationTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddConfigurationOptions(configuration);
+        services.AddConfigurationOption(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert
@@ -102,7 +102,7 @@ public class OptionsValidationTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddConfigurationOptions(configuration);
+        services.AddConfigurationOption(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert
@@ -128,7 +128,7 @@ public class OptionsValidationTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddConfigurationOptions(configuration);
+        services.AddConfigurationOption(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert
@@ -154,7 +154,7 @@ public class OptionsValidationTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddConfigurationOptions(configuration);
+        services.AddConfigurationOption(configuration);
         var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert

@@ -80,7 +80,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 註冊組態設定
     /// </summary>
-    public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddConfigurationOption(this IServiceCollection services, IConfiguration configuration)
     {
         // 註冊 GitLab 設定並驗證必要欄位
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));

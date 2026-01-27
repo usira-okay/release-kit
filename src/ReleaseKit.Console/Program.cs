@@ -31,7 +31,7 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         // 註冊組態設定
-        services.AddConfigurationOptions(context.Configuration);
+        services.AddConfigurationOption(context.Configuration);
 
         // 註冊 Redis 服務
         services.AddRedisServices(context.Configuration);
