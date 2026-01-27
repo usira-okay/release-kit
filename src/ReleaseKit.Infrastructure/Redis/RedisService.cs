@@ -30,18 +30,10 @@ public class RedisService : IRedisService
     /// </summary>
     public async Task<bool> SetAsync(string key, string value, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var fullKey = GetFullKey(key);
-            var result = await _database.StringSetAsync(fullKey, value, expiry);
-            _logger.LogDebug("Redis SET: {Key} = {Value}, Expiry: {Expiry}, Result: {Result}", fullKey, value, expiry, result);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "設定 Redis 快取失敗: {Key}", key);
-            return false;
-        }
+        var fullKey = GetFullKey(key);
+        var result = await _database.StringSetAsync(fullKey, value, expiry);
+        _logger.LogDebug("Redis SET: {Key} = {Value}, Expiry: {Expiry}, Result: {Result}", fullKey, value, expiry, result);
+        return result;
     }
 
     /// <summary>
@@ -49,18 +41,10 @@ public class RedisService : IRedisService
     /// </summary>
     public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var fullKey = GetFullKey(key);
-            var value = await _database.StringGetAsync(fullKey);
-            _logger.LogDebug("Redis GET: {Key} = {Value}", fullKey, value.HasValue ? value.ToString() : "(null)");
-            return value.HasValue ? value.ToString() : null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "取得 Redis 快取失敗: {Key}", key);
-            return null;
-        }
+        var fullKey = GetFullKey(key);
+        var value = await _database.StringGetAsync(fullKey);
+        _logger.LogDebug("Redis GET: {Key} = {Value}", fullKey, value.HasValue ? value.ToString() : "(null)");
+        return value.HasValue ? value.ToString() : null;
     }
 
     /// <summary>
@@ -68,18 +52,10 @@ public class RedisService : IRedisService
     /// </summary>
     public async Task<bool> DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var fullKey = GetFullKey(key);
-            var result = await _database.KeyDeleteAsync(fullKey);
-            _logger.LogDebug("Redis DELETE: {Key}, Result: {Result}", fullKey, result);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "刪除 Redis 快取失敗: {Key}", key);
-            return false;
-        }
+        var fullKey = GetFullKey(key);
+        var result = await _database.KeyDeleteAsync(fullKey);
+        _logger.LogDebug("Redis DELETE: {Key}, Result: {Result}", fullKey, result);
+        return result;
     }
 
     /// <summary>
@@ -87,18 +63,10 @@ public class RedisService : IRedisService
     /// </summary>
     public async Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var fullKey = GetFullKey(key);
-            var result = await _database.KeyExistsAsync(fullKey);
-            _logger.LogDebug("Redis EXISTS: {Key} = {Result}", fullKey, result);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "檢查 Redis 快取是否存在失敗: {Key}", key);
-            return false;
-        }
+        var fullKey = GetFullKey(key);
+        var result = await _database.KeyExistsAsync(fullKey);
+        _logger.LogDebug("Redis EXISTS: {Key} = {Result}", fullKey, result);
+        return result;
     }
 
     /// <summary>
