@@ -22,17 +22,6 @@ using var loggerFactory = LoggerFactory.Create(builder =>
 
 var logger = loggerFactory.CreateLogger<Program>();
 
-// 顯示應用程式資訊
-var appName = configuration["Application:Name"];
-var appVersion = configuration["Application:Version"];
-var appEnvironment = configuration["Application:Environment"] ?? environment;
-
-logger.LogInformation("========================================");
-logger.LogInformation("應用程式: {AppName}", appName);
-logger.LogInformation("版本: {AppVersion}", appVersion);
-logger.LogInformation("環境: {AppEnvironment}", appEnvironment);
-logger.LogInformation("========================================");
-
 // 顯示設定檔載入狀態
 var environmentConfigPath = Path.Combine(Directory.GetCurrentDirectory(), $"appsettings.{environment}.json");
 var environmentConfigExists = File.Exists(environmentConfigPath);

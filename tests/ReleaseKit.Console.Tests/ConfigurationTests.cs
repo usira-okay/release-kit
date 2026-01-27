@@ -21,15 +21,15 @@ public class ConfigurationTests
         
         // Assert
         Assert.NotNull(configuration);
-        Assert.Equal("ReleaseKit", configuration["Application:Name"]);
-        Assert.Equal("1.0.0", configuration["Application:Version"]);
+        Assert.Equal("Information", configuration["Logging:LogLevel:Default"]);
+        Assert.Equal("Warning", configuration["Logging:LogLevel:Microsoft"]);
     }
     
     [Theory]
-    [InlineData("Development")]
-    [InlineData("Qa")]
-    [InlineData("Production")]
-    public void Configuration_ShouldLoad_EnvironmentSpecificSettings(string environment)
+    [InlineData("Development", "Debug")]
+    [InlineData("Qa", "Information")]
+    [InlineData("Production", "Information")]
+    public void Configuration_ShouldLoad_EnvironmentSpecificSettings(string environment, string expectedLogLevel)
     {
         // Arrange
         var basePath = GetProjectBasePath();
@@ -43,7 +43,7 @@ public class ConfigurationTests
         
         // Assert
         Assert.NotNull(configuration);
-        Assert.Equal(environment, configuration["Application:Environment"]);
+        Assert.Equal(expectedLogLevel, configuration["Logging:LogLevel:Default"]);
     }
     
     [Fact]
@@ -51,7 +51,7 @@ public class ConfigurationTests
     {
         // Arrange
         var basePath = GetProjectBasePath();
-        Environment.SetEnvironmentVariable("Application__TestValue", "TestFromEnvVar");
+        Environment.SetEnvironmentVariable("Logging__LogLevel__TestValue", "TestFromEnvVar");
         
         // Act
         var configuration = new ConfigurationBuilder()
@@ -61,10 +61,10 @@ public class ConfigurationTests
             .Build();
         
         // Assert
-        Assert.Equal("TestFromEnvVar", configuration["Application:TestValue"]);
+        Assert.Equal("TestFromEnvVar", configuration["Logging:LogLevel:TestValue"]);
         
         // Cleanup
-        Environment.SetEnvironmentVariable("Application__TestValue", null);
+        Environment.SetEnvironmentVariable("Logging__LogLevel__TestValue", null);
     }
     
     [Fact]
@@ -72,7 +72,7 @@ public class ConfigurationTests
     {
         // Arrange
         var basePath = GetProjectBasePath();
-        Environment.SetEnvironmentVariable("Application__Name", "OverriddenName");
+        Environment.SetEnvironmentVariable("Logging__LogLevel__Default", "Critical");
         
         // Act
         var configuration = new ConfigurationBuilder()
@@ -82,10 +82,10 @@ public class ConfigurationTests
             .Build();
         
         // Assert
-        Assert.Equal("OverriddenName", configuration["Application:Name"]);
+        Assert.Equal("Critical", configuration["Logging:LogLevel:Default"]);
         
         // Cleanup
-        Environment.SetEnvironmentVariable("Application__Name", null);
+        Environment.SetEnvironmentVariable("Logging__LogLevel__Default", null);
     }
     
     /// <summary>
