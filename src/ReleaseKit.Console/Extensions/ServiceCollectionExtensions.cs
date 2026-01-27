@@ -6,6 +6,7 @@ using ReleaseKit.Application.Tasks;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.ValueObjects;
 using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.SourceControl.GitLab;
 using ReleaseKit.Infrastructure.Time;
@@ -54,16 +55,35 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddGitLabServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var gitLabDomain = configuration["GitLab:Domain"] 
-            ?? throw new InvalidOperationException("GitLab:Domain 組態設定不得為空");
-        var gitLabAccessToken = configuration["GitLab:AccessToken"] 
-            ?? throw new InvalidOperationException("GitLab:AccessToken 組態設定不得為空");
+        // 綁定 GitLab 設定
+        var gitLabSettings = new GitLabSettings
+        {
+            Domain = configuration["GitLab:Domain"] 
+                ?? throw new InvalidOperationException("GitLab:Domain 組態設定不得為空"),
+            AccessToken = configuration["GitLab:AccessToken"] 
+                ?? throw new InvalidOperationException("GitLab:AccessToken 組態設定不得為空")
+        };
+        
+        // 讀取專案列表
+        var projectsSection = configuration.GetSection("GitLab:Projects");
+        if (projectsSection.Exists())
+        {
+            gitLabSettings = new GitLabSettings
+            {
+                Domain = gitLabSettings.Domain,
+                AccessToken = gitLabSettings.AccessToken,
+                Projects = projectsSection.Get<List<GitLabProjectSettings>>() ?? new List<GitLabProjectSettings>()
+            };
+        }
+        
+        // 註冊設定為單例
+        services.AddSingleton(gitLabSettings);
 
         // 註冊 GitLab HttpClient
         services.AddHttpClient<IGitLabRepository, GitLabRepository>(client =>
         {
-            client.BaseAddress = new Uri(gitLabDomain);
-            client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", gitLabAccessToken);
+            client.BaseAddress = new Uri(gitLabSettings.Domain);
+            client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", gitLabSettings.AccessToken);
         });
 
         return services;

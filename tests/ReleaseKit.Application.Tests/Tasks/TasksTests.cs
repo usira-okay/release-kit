@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
@@ -15,39 +17,39 @@ public class TasksTests
         // Arrange
         var mockGitLabRepository = new Mock<IGitLabRepository>();
         var mockNow = new Mock<INow>();
+        var mockLogger = new Mock<ILogger<FetchGitLabPullRequestsTask>>();
         mockNow.Setup(x => x.UtcNow).Returns(new DateTimeOffset(2024, 1, 15, 10, 0, 0, TimeSpan.Zero));
         
-        mockGitLabRepository
-            .Setup(x => x.FetchMergeRequestsByTimeRangeAsync(
-                It.IsAny<string>(),
-                It.IsAny<DateTimeOffset>(),
-                It.IsAny<DateTimeOffset>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(new List<Domain.Entities.MergeRequest>());
+        var gitLabSettings = new GitLabSettings
+        {
+            Domain = "https://gitlab.com",
+            AccessToken = "test-token",
+            Projects = new List<GitLabProjectSettings>
+            {
+                new GitLabProjectSettings
+                {
+                    ProjectId = "test/project",
+                    TargetBranch = "main"
+                }
+            }
+        };
         
         mockGitLabRepository
-            .Setup(x => x.FetchMergeRequestsByBranchComparisonAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
+            .Setup(x => x.FetchMergeRequestsAsync(It.IsAny<IGitLabFetchRequest>()))
             .ReturnsAsync(new List<Domain.Entities.MergeRequest>());
 
-        var task = new FetchGitLabPullRequestsTask(mockGitLabRepository.Object, mockNow.Object);
+        var task = new FetchGitLabPullRequestsTask(
+            mockGitLabRepository.Object, 
+            mockNow.Object, 
+            gitLabSettings,
+            mockLogger.Object);
 
         // Act
         await task.ExecuteAsync();
 
         // Assert
-        mockGitLabRepository.Verify(x => x.FetchMergeRequestsByTimeRangeAsync(
-            It.IsAny<string>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>()), Times.Once);
-        
-        mockGitLabRepository.Verify(x => x.FetchMergeRequestsByBranchComparisonAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Once);
+        mockGitLabRepository.Verify(x => x.FetchMergeRequestsAsync(
+            It.IsAny<IGitLabFetchRequest>()), Times.Exactly(2));
     }
 
     [Fact]

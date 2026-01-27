@@ -21,6 +21,7 @@ public class MergeRequestTests
             TargetBranch = "main",
             State = "merged",
             Author = "test-user",
+            AuthorId = 789,
             CreatedAt = new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 1, 2, 10, 0, 0, TimeSpan.Zero),
             MergedAt = new DateTimeOffset(2024, 1, 2, 12, 0, 0, TimeSpan.Zero),
@@ -36,6 +37,7 @@ public class MergeRequestTests
         Assert.Equal("main", mergeRequest.TargetBranch);
         Assert.Equal("merged", mergeRequest.State);
         Assert.Equal("test-user", mergeRequest.Author);
+        Assert.Equal(789, mergeRequest.AuthorId);
         Assert.Equal(new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero), mergeRequest.CreatedAt);
         Assert.Equal(new DateTimeOffset(2024, 1, 2, 10, 0, 0, TimeSpan.Zero), mergeRequest.UpdatedAt);
         Assert.Equal(new DateTimeOffset(2024, 1, 2, 12, 0, 0, TimeSpan.Zero), mergeRequest.MergedAt);
@@ -56,6 +58,7 @@ public class MergeRequestTests
             TargetBranch = "main",
             State = "opened",
             Author = "test-user",
+            AuthorId = 789,
             CreatedAt = new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 1, 2, 10, 0, 0, TimeSpan.Zero),
             MergedAt = null,

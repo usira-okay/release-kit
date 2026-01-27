@@ -46,6 +46,11 @@ public class MergeRequest
     public required string Author { get; init; }
     
     /// <summary>
+    /// 作者使用者 ID
+    /// </summary>
+    public required long AuthorId { get; init; }
+    
+    /// <summary>
     /// 建立時間
     /// </summary>
     public required DateTimeOffset CreatedAt { get; init; }

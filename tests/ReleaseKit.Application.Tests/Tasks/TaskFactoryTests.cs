@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.ValueObjects;
 using AppTaskFactory = ReleaseKit.Application.Tasks.TaskFactory;
 
 namespace ReleaseKit.Application.Tests.Tasks;
@@ -24,8 +26,17 @@ public class TaskFactoryTests
         var mockNow = new Mock<INow>();
         mockNow.Setup(x => x.UtcNow).Returns(new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero));
         
+        var gitLabSettings = new GitLabSettings
+        {
+            Domain = "https://gitlab.com",
+            AccessToken = "test-token",
+            Projects = new List<GitLabProjectSettings>()
+        };
+        
         services.AddSingleton(mockGitLabRepository.Object);
         services.AddSingleton(mockNow.Object);
+        services.AddSingleton(gitLabSettings);
+        services.AddSingleton(Mock.Of<ILogger<FetchGitLabPullRequestsTask>>());
         
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();

@@ -1,4 +1,5 @@
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Domain.Abstractions;
 
@@ -7,6 +8,13 @@ namespace ReleaseKit.Domain.Abstractions;
 /// </summary>
 public interface IGitLabRepository
 {
+    /// <summary>
+    /// 根據請求拉取 Merge Request 資訊
+    /// </summary>
+    /// <param name="request">GitLab 拉取請求</param>
+    /// <returns>Merge Request 列表</returns>
+    Task<IReadOnlyList<MergeRequest>> FetchMergeRequestsAsync(IGitLabFetchRequest request);
+    
     /// <summary>
     /// 根據時間區間拉取 Merge Request 資訊
     /// </summary>

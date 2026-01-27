@@ -5,6 +5,7 @@ using System.Web;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
 
@@ -32,6 +33,21 @@ public class GitLabRepository : IGitLabRepository
     }
 
     /// <summary>
+    /// 根據請求拉取 Merge Request 資訊
+    /// </summary>
+    public async Task<IReadOnlyList<MergeRequest>> FetchMergeRequestsAsync(IGitLabFetchRequest request)
+    {
+        request.Validate();
+
+        return request.FetchMode switch
+        {
+            GitLabFetchMode.DateTimeRange => await FetchByDateTimeRangeAsync((DateTimeRangeFetchRequest)request),
+            GitLabFetchMode.BranchDiff => await FetchByBranchDiffAsync((BranchDiffFetchRequest)request),
+            _ => throw new ArgumentException($"不支援的拉取模式: {request.FetchMode}")
+        };
+    }
+
+    /// <summary>
     /// 根據時間區間拉取 Merge Request 資訊
     /// </summary>
     public async Task<IReadOnlyList<MergeRequest>> FetchMergeRequestsByTimeRangeAsync(
@@ -40,27 +56,57 @@ public class GitLabRepository : IGitLabRepository
         DateTimeOffset endTime,
         string? state = null)
     {
-        if (string.IsNullOrWhiteSpace(projectId))
-            throw new ArgumentException("專案 ID 不得為空", nameof(projectId));
-        
-        if (startTime > endTime)
-            throw new ArgumentException("開始時間不得大於結束時間");
+        var request = new DateTimeRangeFetchRequest
+        {
+            ProjectId = projectId,
+            StartDateTime = startTime,
+            EndDateTime = endTime,
+            State = state
+        };
+
+        return await FetchByDateTimeRangeAsync(request);
+    }
+
+    /// <summary>
+    /// 比較兩個分支之間的 commit 差異，並取得相關的 Merge Request
+    /// </summary>
+    public async Task<IReadOnlyList<MergeRequest>> FetchMergeRequestsByBranchComparisonAsync(
+        string projectId,
+        string sourceBranch,
+        string targetBranch)
+    {
+        var request = new BranchDiffFetchRequest
+        {
+            ProjectId = projectId,
+            SourceBranch = sourceBranch,
+            TargetBranch = targetBranch
+        };
+
+        return await FetchByBranchDiffAsync(request);
+    }
+
+    /// <summary>
+    /// 根據時間區間拉取
+    /// </summary>
+    private async Task<IReadOnlyList<MergeRequest>> FetchByDateTimeRangeAsync(DateTimeRangeFetchRequest request)
+    {
+        request.Validate();
 
         _logger.LogInformation(
             "開始拉取 GitLab MR 資訊，專案: {ProjectId}, 時間區間: {StartTime} ~ {EndTime}, 狀態: {State}",
-            projectId, startTime, endTime, state ?? "all");
+            request.ProjectId, request.StartDateTime, request.EndDateTime, request.State ?? "all");
 
-        var encodedProjectId = HttpUtility.UrlEncode(projectId);
+        var encodedProjectId = HttpUtility.UrlEncode(request.ProjectId);
         var queryParams = new List<string>
         {
-            $"updated_after={startTime.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}",
-            $"updated_before={endTime.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}",
+            $"updated_after={request.StartDateTime.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}",
+            $"updated_before={request.EndDateTime.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}",
             "per_page=100"
         };
 
-        if (!string.IsNullOrWhiteSpace(state))
+        if (!string.IsNullOrWhiteSpace(request.State))
         {
-            queryParams.Add($"state={state}");
+            queryParams.Add($"state={request.State}");
         }
 
         var url = $"api/v4/projects/{encodedProjectId}/merge_requests?{string.Join("&", queryParams)}";
@@ -93,7 +139,19 @@ public class GitLabRepository : IGitLabRepository
                 break;
             }
 
-            mergeRequests.AddRange(dtos.Select(MapToMergeRequest));
+            // 以 merged_at 過濾時間區間
+            var filteredDtos = dtos.Where(dto => 
+            {
+                if (dto.MergedAt.HasValue)
+                {
+                    var mergedAt = new DateTimeOffset(dto.MergedAt.Value, TimeSpan.Zero);
+                    return mergedAt >= request.StartDateTime && mergedAt <= request.EndDateTime;
+                }
+                // 如果沒有 merged_at，使用 updated_at 判斷
+                return true;
+            }).ToList();
+
+            mergeRequests.AddRange(filteredDtos.Select(MapToMergeRequest));
             page++;
         }
 
@@ -102,29 +160,19 @@ public class GitLabRepository : IGitLabRepository
     }
 
     /// <summary>
-    /// 比較兩個分支之間的 commit 差異，並取得相關的 Merge Request
+    /// 根據分支差異拉取
     /// </summary>
-    public async Task<IReadOnlyList<MergeRequest>> FetchMergeRequestsByBranchComparisonAsync(
-        string projectId,
-        string sourceBranch,
-        string targetBranch)
+    private async Task<IReadOnlyList<MergeRequest>> FetchByBranchDiffAsync(BranchDiffFetchRequest request)
     {
-        if (string.IsNullOrWhiteSpace(projectId))
-            throw new ArgumentException("專案 ID 不得為空", nameof(projectId));
-        
-        if (string.IsNullOrWhiteSpace(sourceBranch))
-            throw new ArgumentException("來源分支不得為空", nameof(sourceBranch));
-        
-        if (string.IsNullOrWhiteSpace(targetBranch))
-            throw new ArgumentException("目標分支不得為空", nameof(targetBranch));
+        request.Validate();
 
         _logger.LogInformation(
             "開始比較分支差異並拉取相關 MR，專案: {ProjectId}, 來源分支: {SourceBranch}, 目標分支: {TargetBranch}",
-            projectId, sourceBranch, targetBranch);
+            request.ProjectId, request.SourceBranch, request.TargetBranch);
 
-        var encodedProjectId = HttpUtility.UrlEncode(projectId);
-        var encodedSourceBranch = HttpUtility.UrlEncode(sourceBranch);
-        var encodedTargetBranch = HttpUtility.UrlEncode(targetBranch);
+        var encodedProjectId = HttpUtility.UrlEncode(request.ProjectId);
+        var encodedSourceBranch = HttpUtility.UrlEncode(request.SourceBranch);
+        var encodedTargetBranch = HttpUtility.UrlEncode(request.TargetBranch);
         
         // 步驟 1: 取得兩個分支之間的 commit 差異
         var compareUrl = $"api/v4/projects/{encodedProjectId}/repository/compare?from={encodedTargetBranch}&to={encodedSourceBranch}";
@@ -142,16 +190,15 @@ public class GitLabRepository : IGitLabRepository
                 $"GitLab API 比較分支請求失敗，狀態碼: {compareResponse.StatusCode}");
         }
 
-        var compareResult = await compareResponse.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
-        var commits = compareResult.GetProperty("commits").Deserialize<List<GitLabCommitDto>>(_jsonOptions);
+        var compareResult = await compareResponse.Content.ReadFromJsonAsync<GitLabCompareResultDto>(_jsonOptions);
 
-        if (commits == null || commits.Count == 0)
+        if (compareResult == null || compareResult.Commits.Count == 0)
         {
             _logger.LogInformation("兩個分支之間沒有差異");
             return Array.Empty<MergeRequest>();
         }
 
-        _logger.LogInformation("發現 {Count} 個 commit 差異", commits.Count);
+        _logger.LogInformation("發現 {Count} 個 commit 差異", compareResult.Commits.Count);
 
         // 步驟 2: 取得這些 commit 相關的 MR
         // 使用 source_branch 和 target_branch 篩選 MR
@@ -195,16 +242,17 @@ public class GitLabRepository : IGitLabRepository
             Number = dto.Iid,
             Title = dto.Title,
             Description = dto.Description,
-            SourceBranch = dto.Source_Branch,
-            TargetBranch = dto.Target_Branch,
+            SourceBranch = dto.SourceBranch,
+            TargetBranch = dto.TargetBranch,
             State = dto.State,
             Author = dto.Author.Username,
-            CreatedAt = new DateTimeOffset(dto.Created_At, TimeSpan.Zero),
-            UpdatedAt = new DateTimeOffset(dto.Updated_At, TimeSpan.Zero),
-            MergedAt = dto.Merged_At.HasValue 
-                ? new DateTimeOffset(dto.Merged_At.Value, TimeSpan.Zero) 
+            AuthorId = dto.Author.Id,
+            CreatedAt = new DateTimeOffset(dto.CreatedAt, TimeSpan.Zero),
+            UpdatedAt = new DateTimeOffset(dto.UpdatedAt, TimeSpan.Zero),
+            MergedAt = dto.MergedAt.HasValue 
+                ? new DateTimeOffset(dto.MergedAt.Value, TimeSpan.Zero) 
                 : null,
-            WebUrl = dto.Web_Url
+            WebUrl = dto.WebUrl
         };
     }
 }

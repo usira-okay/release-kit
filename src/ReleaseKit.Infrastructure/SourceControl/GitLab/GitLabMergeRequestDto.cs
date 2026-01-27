@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
 
 /// <summary>
@@ -8,62 +10,74 @@ internal class GitLabMergeRequestDto
     /// <summary>
     /// MR 的唯一識別碼
     /// </summary>
+    [JsonPropertyName("id")]
     public required long Id { get; init; }
     
     /// <summary>
     /// MR 的內部編號（IID）
     /// </summary>
+    [JsonPropertyName("iid")]
     public required int Iid { get; init; }
     
     /// <summary>
     /// MR 標題
     /// </summary>
+    [JsonPropertyName("title")]
     public required string Title { get; init; }
     
     /// <summary>
     /// MR 描述
     /// </summary>
+    [JsonPropertyName("description")]
     public string? Description { get; init; }
     
     /// <summary>
     /// 來源分支名稱
     /// </summary>
-    public required string Source_Branch { get; init; }
+    [JsonPropertyName("source_branch")]
+    public required string SourceBranch { get; init; }
     
     /// <summary>
     /// 目標分支名稱
     /// </summary>
-    public required string Target_Branch { get; init; }
+    [JsonPropertyName("target_branch")]
+    public required string TargetBranch { get; init; }
     
     /// <summary>
     /// MR 狀態
     /// </summary>
+    [JsonPropertyName("state")]
     public required string State { get; init; }
     
     /// <summary>
     /// 作者資訊
     /// </summary>
+    [JsonPropertyName("author")]
     public required GitLabUserDto Author { get; init; }
     
     /// <summary>
     /// 建立時間
     /// </summary>
-    public required DateTime Created_At { get; init; }
+    [JsonPropertyName("created_at")]
+    public required DateTime CreatedAt { get; init; }
     
     /// <summary>
     /// 更新時間
     /// </summary>
-    public required DateTime Updated_At { get; init; }
+    [JsonPropertyName("updated_at")]
+    public required DateTime UpdatedAt { get; init; }
     
     /// <summary>
     /// 合併時間（如已合併）
     /// </summary>
-    public DateTime? Merged_At { get; init; }
+    [JsonPropertyName("merged_at")]
+    public DateTime? MergedAt { get; init; }
     
     /// <summary>
     /// MR 的網址
     /// </summary>
-    public required string Web_Url { get; init; }
+    [JsonPropertyName("web_url")]
+    public required string WebUrl { get; init; }
 }
 
 /// <summary>
@@ -72,7 +86,14 @@ internal class GitLabMergeRequestDto
 internal class GitLabUserDto
 {
     /// <summary>
+    /// 使用者 ID
+    /// </summary>
+    [JsonPropertyName("id")]
+    public required long Id { get; init; }
+    
+    /// <summary>
     /// 使用者名稱
     /// </summary>
+    [JsonPropertyName("username")]
     public required string Username { get; init; }
 }
