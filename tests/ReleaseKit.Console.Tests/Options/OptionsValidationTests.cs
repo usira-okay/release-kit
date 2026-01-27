@@ -113,4 +113,56 @@ public class OptionsValidationTests
 
         Assert.Contains("TargetBranch", exception.Message);
     }
+
+    [Fact]
+    public void BitbucketOptions_ShouldValidate_WhenProjectPathIsMissing()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Bitbucket:ApiUrl", "https://api.bitbucket.org/2.0" },
+                { "Bitbucket:Projects:0:ProjectPath", "" },
+                { "Bitbucket:Projects:0:TargetBranch", "main" }
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddConfigurationOptions(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act & Assert
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
+        });
+
+        Assert.Contains("ProjectPath", exception.Message);
+    }
+
+    [Fact]
+    public void BitbucketOptions_ShouldValidate_WhenTargetBranchIsMissing()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Bitbucket:ApiUrl", "https://api.bitbucket.org/2.0" },
+                { "Bitbucket:Projects:0:ProjectPath", "mygroup/myproject" },
+                { "Bitbucket:Projects:0:TargetBranch", "" }
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddConfigurationOptions(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Act & Assert
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
+        });
+
+        Assert.Contains("TargetBranch", exception.Message);
+    }
 }
