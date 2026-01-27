@@ -23,18 +23,10 @@ public class AppStartupService
     {
         var environmentConfigPath = Path.Combine(Directory.GetCurrentDirectory(), $"appsettings.{_environment}.json");
         var environmentConfigExists = File.Exists(environmentConfigPath);
-        
-        var envFilePath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-        var envFileExists = File.Exists(envFilePath);
-        
-        var envLocalFilePath = Path.Combine(Directory.GetCurrentDirectory(), ".env.local");
-        var envLocalFileExists = File.Exists(envLocalFilePath);
 
         _logger.LogInformation("組態載入完成:");
         _logger.LogInformation("- appsettings.json: 已載入");
         _logger.LogInformation("- appsettings.{Environment}.json: {Status}", _environment, environmentConfigExists ? "已載入" : "未找到");
-        _logger.LogInformation("- .env: {Status}", envFileExists ? "已載入" : "未找到");
-        _logger.LogInformation("- .env.local: {Status}", envLocalFileExists ? "已載入" : "未找到");
         _logger.LogInformation("- 環境變數: 已啟用");
         _logger.LogInformation("- User Secrets: 已啟用");
     }
