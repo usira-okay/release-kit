@@ -1,11 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ReleaseKit.Console.Extensions;
 using ReleaseKit.Console.Services;
-using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Infrastructure.Redis;
 using Serilog;
-using StackExchange.Redis;
 
 // 設定 Serilog
 Log.Logger = new LoggerConfiguration()
@@ -31,25 +29,11 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((context, services) =>
     {
-        var configuration = context.Configuration;
-
-        // 註冊 Redis 連線
-        var redisConnectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
-        var redisInstanceName = configuration["Redis:InstanceName"] ?? "ReleaseKit:";
-        
-        services.AddSingleton<IConnectionMultiplexer>(sp => 
-            ConnectionMultiplexer.Connect(redisConnectionString));
-        
-        services.AddSingleton<IRedisService>(sp =>
-        {
-            var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
-            return new RedisService(connectionMultiplexer, logger, redisInstanceName);
-        });
+        // 註冊 Redis 服務
+        services.AddRedisServices(context.Configuration);
 
         // 註冊應用程式服務
-        services.AddTransient<AppStartupService>();
-        services.AddTransient<RedisTestService>();
+        services.AddApplicationServices();
     })
     .UseSerilog((context, services, configuration) =>
     {
