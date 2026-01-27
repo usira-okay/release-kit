@@ -89,7 +89,7 @@ Console (依賴 Domain、Application、Infrastructure)
 
 | 目錄 | 職責 | 範例 |
 |------|------|------|
-| `Abstractions/` | 定義抽象介面 | `ISourceControlRepository`、`IWorkItemRepository` |
+| `Abstractions/` | 定義抽象介面 | `ISourceControlRepository`、`IWorkItemRepository`、`INow` |
 | `Entities/` | 領域實體與聚合根 | `WorkItem`（聚合根）、`MergeRequest` |
 | `ValueObjects/` | 不可變的值物件 | `WorkItemId`、`SourceControlPlatform` |
 | `Common/` | 共用基礎類別 | `Result<T>`、`Error` |
@@ -114,6 +114,7 @@ Console (依賴 Domain、Application、Infrastructure)
 | `SourceControl/Bitbucket/` | Bitbucket API 呼叫 | Bitbucket Cloud REST API 2.0 |
 | `AzureDevOps/` | Azure DevOps API 呼叫 | Azure DevOps REST API |
 | `GoogleSheets/` | Google Sheets 讀寫 | Google Sheets API v4 |
+| `Time/` | 時間服務 | SystemNow (實作 INow) |
 
 ### ReleaseKit.Console
 
@@ -149,6 +150,51 @@ Console 應用程式進入點，負責：
 - **SOLID**：遵循單一職責、開放封閉等原則
 - **Result Pattern**：使用結構化錯誤處理，禁止 try-catch
 - **繁體中文**：所有註解與文件使用繁體中文 (zh-tw)
+
+### 時間處理規範
+
+- **禁止直接使用 DateTime.Now 或 DateTime.UtcNow**：所有需要取得當前時間的程式碼必須透過 `INow` 介面
+- **使用 DateTimeOffset**：`INow.UtcNow` 回傳 `DateTimeOffset` 類型，確保時區資訊完整
+- **統一使用 UTC 時間**：所有時間戳記必須使用 UTC，避免時區轉換問題
+- **可測試性**：透過 DI 注入 `INow`，測試時可使用 Mock 或 Fake 實作
+
+**範例**：
+```csharp
+// ❌ 錯誤：直接使用 DateTime
+var timestamp = DateTime.UtcNow;
+
+// ✅ 正確：透過 INow 介面
+public class MyService
+{
+    private readonly INow _now;
+    
+    public MyService(INow now)
+    {
+        _now = now;
+    }
+    
+    public void DoSomething()
+    {
+        var timestamp = _now.UtcNow;
+    }
+}
+```
+
+### 組態設定規範
+
+- **必要組態不提供預設值**：所有必要的組態設定（如 Redis:ConnectionString）若未設定必須拋出 `InvalidOperationException`
+- **明確錯誤訊息**：錯誤訊息必須清楚指出缺少哪個組態鍵值
+- **組態驗證時機**：在應用程式啟動時進行組態驗證，避免執行時才發現問題
+
+**範例**：
+```csharp
+// ❌ 錯誤：提供預設值
+var connectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
+
+// ✅ 正確：缺少組態時拋出例外
+var connectionString = configuration["Redis:ConnectionString"] 
+    ?? throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
+```
 
 ## 組態管理
 

@@ -57,10 +57,6 @@ var host = Host.CreateDefaultBuilder(args)
 var app = host.Services.GetRequiredService<AppStartupService>();
 app.Run();
 
-// 執行 Redis 測試
-var redisTest = host.Services.GetRequiredService<RedisTestService>();
-await redisTest.RunTestAsync();
-
 Log.Information("應用程式執行完成");
 await Log.CloseAndFlushAsync();
 

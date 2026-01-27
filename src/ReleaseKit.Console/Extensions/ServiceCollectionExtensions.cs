@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Redis;
+using ReleaseKit.Infrastructure.Time;
 using StackExchange.Redis;
 
 namespace ReleaseKit.Console.Extensions;
@@ -18,18 +19,14 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddRedisServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var redisConnectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
-        var redisInstanceName = configuration["Redis:InstanceName"] ?? "ReleaseKit:";
+        var redisConnectionString = configuration["Redis:ConnectionString"] 
+            ?? throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
+        var redisInstanceName = configuration["Redis:InstanceName"] 
+            ?? throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
 
-        // 使用 Lazy 延遲初始化 Redis 連線，確保執行緒安全
-        services.AddSingleton<Lazy<IConnectionMultiplexer>>(sp =>
-            new Lazy<IConnectionMultiplexer>(
-                () => ConnectionMultiplexer.Connect(redisConnectionString),
-                LazyThreadSafetyMode.ExecutionAndPublication));
-
-        // 註冊 IConnectionMultiplexer，從 Lazy 取得實例
+        // 直接註冊 IConnectionMultiplexer
         services.AddSingleton<IConnectionMultiplexer>(sp =>
-            sp.GetRequiredService<Lazy<IConnectionMultiplexer>>().Value);
+            ConnectionMultiplexer.Connect(redisConnectionString));
 
         // 註冊 Redis 服務
         services.AddSingleton<IRedisService>(sp =>
@@ -47,8 +44,11 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        // 註冊時間服務
+        services.AddSingleton<INow, SystemNow>();
+        
+        // 註冊應用程式服務
         services.AddTransient<AppStartupService>();
-        services.AddTransient<RedisTestService>();
 
         return services;
     }
