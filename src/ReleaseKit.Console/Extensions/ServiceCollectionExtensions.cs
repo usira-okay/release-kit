@@ -20,10 +20,11 @@ public static class ServiceCollectionExtensions
         var redisConnectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
         var redisInstanceName = configuration["Redis:InstanceName"] ?? "ReleaseKit:";
 
-        // 使用 Lazy 延遲初始化 Redis 連線，避免啟動時立即連線
+        // 使用 Lazy 延遲初始化 Redis 連線，確保執行緒安全
         services.AddSingleton<Lazy<IConnectionMultiplexer>>(sp =>
-            new Lazy<IConnectionMultiplexer>(() =>
-                ConnectionMultiplexer.Connect(redisConnectionString)));
+            new Lazy<IConnectionMultiplexer>(
+                () => ConnectionMultiplexer.Connect(redisConnectionString),
+                LazyThreadSafetyMode.ExecutionAndPublication));
 
         // 註冊 IConnectionMultiplexer，從 Lazy 取得實例
         services.AddSingleton<IConnectionMultiplexer>(sp =>
