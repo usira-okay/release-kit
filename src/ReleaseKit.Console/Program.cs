@@ -1,13 +1,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ReleaseKit.Console.Constants;
 using ReleaseKit.Console.Extensions;
 using ReleaseKit.Console.Services;
 using Serilog;
 
 // 設定 Serilog
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
+    .MinimumLevel.Is(LogLevelConstants.DefaultMinimumLevel)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -18,7 +19,7 @@ Log.Information("正在啟動 Release-Kit 應用程式...");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((context, config) =>
     {
-        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var env = Environment.GetEnvironmentVariable(EnvironmentVariableNames.AspNetCoreEnvironment) ?? EnvironmentNames.Development;
         
         config
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -53,10 +54,7 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .Build();
 
-// 使用 DI 容器取得服務並執行
-var app = host.Services.GetRequiredService<AppStartupService>();
-app.Run();
-
-Log.Information("應用程式執行完成");
-await Log.CloseAndFlushAsync();
+// 建立應用程式執行器並執行
+var runner = new ApplicationRunner(host);
+await runner.RunAsync();
 
