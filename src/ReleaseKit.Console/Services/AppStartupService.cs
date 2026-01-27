@@ -13,7 +13,7 @@ public class AppStartupService
     public AppStartupService(ILogger<AppStartupService> logger)
     {
         _logger = logger;
-        _environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        _environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
     }
 
     /// <summary>

@@ -13,7 +13,7 @@ DotNetEnv.Env.Load(".env.local");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((context, config) =>
     {
-        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         
         config
             .SetBasePath(Directory.GetCurrentDirectory())
