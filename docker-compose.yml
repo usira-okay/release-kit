@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Seq 日誌服務
   seq:
