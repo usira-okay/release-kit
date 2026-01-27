@@ -108,7 +108,7 @@ public class ConfigurationTests
     }
     
     [Fact]
-    public void Configuration_ShouldLoad_BitBucketSettings()
+    public void Configuration_ShouldLoad_BitbucketSettings()
     {
         // Arrange
         var basePath = GetProjectBasePath();
@@ -120,11 +120,11 @@ public class ConfigurationTests
             .Build();
         
         // Assert
-        Assert.Equal("https://api.bitbucket.org/2.0", configuration["BitBucket:ApiUrl"]);
-        Assert.Equal("", configuration["BitBucket:Email"]);
-        Assert.Equal("", configuration["BitBucket:AccessToken"]);
-        Assert.Equal("mygroup/backend-api", configuration["BitBucket:Projects:0:ProjectPath"]);
-        Assert.Equal("main", configuration["BitBucket:Projects:0:TargetBranch"]);
+        Assert.Equal("https://api.bitbucket.org/2.0", configuration["Bitbucket:ApiUrl"]);
+        Assert.Equal("", configuration["Bitbucket:Email"]);
+        Assert.Equal("", configuration["Bitbucket:AccessToken"]);
+        Assert.Equal("mygroup/backend-api", configuration["Bitbucket:Projects:0:ProjectPath"]);
+        Assert.Equal("main", configuration["Bitbucket:Projects:0:TargetBranch"]);
     }
     
     [Fact]
@@ -141,10 +141,10 @@ public class ConfigurationTests
         
         // Assert
         Assert.Equal("john.doe", configuration["UserMapping:Mappings:0:GitLabUserId"]);
-        Assert.Equal("jdoe", configuration["UserMapping:Mappings:0:BitBucketUserId"]);
+        Assert.Equal("jdoe", configuration["UserMapping:Mappings:0:BitbucketUserId"]);
         Assert.Equal("John Doe", configuration["UserMapping:Mappings:0:DisplayName"]);
         Assert.Equal("jane.smith", configuration["UserMapping:Mappings:1:GitLabUserId"]);
-        Assert.Equal("jsmith", configuration["UserMapping:Mappings:1:BitBucketUserId"]);
+        Assert.Equal("jsmith", configuration["UserMapping:Mappings:1:BitbucketUserId"]);
         Assert.Equal("Jane Smith", configuration["UserMapping:Mappings:1:DisplayName"]);
     }
     

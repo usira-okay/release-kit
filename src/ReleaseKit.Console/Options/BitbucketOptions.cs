@@ -1,17 +1,17 @@
 namespace ReleaseKit.Console.Options;
 
 /// <summary>
-/// BitBucket 配置選項
+/// Bitbucket 配置選項
 /// </summary>
-public class BitBucketOptions
+public class BitbucketOptions
 {
     /// <summary>
     /// 組態區段名稱
     /// </summary>
-    public const string SectionName = "BitBucket";
+    public const string SectionName = "Bitbucket";
 
     /// <summary>
-    /// BitBucket API URL
+    /// Bitbucket API URL
     /// </summary>
     public string ApiUrl { get; set; } = string.Empty;
 

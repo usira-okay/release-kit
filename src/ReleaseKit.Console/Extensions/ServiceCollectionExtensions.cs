@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions
         
         // 註冊配置選項
         services.Configure<GitLabOptions>(configuration.GetSection(GitLabOptions.SectionName));
-        services.Configure<BitBucketOptions>(configuration.GetSection(BitBucketOptions.SectionName));
+        services.Configure<BitbucketOptions>(configuration.GetSection(BitbucketOptions.SectionName));
         services.Configure<UserMappingOptions>(configuration.GetSection(UserMappingOptions.SectionName));
         
         // 註冊任務

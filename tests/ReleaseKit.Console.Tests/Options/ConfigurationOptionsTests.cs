@@ -35,7 +35,7 @@ public class ConfigurationOptionsTests
     }
 
     [Fact]
-    public void BitBucketOptions_ShouldBind_FromConfiguration()
+    public void BitbucketOptions_ShouldBind_FromConfiguration()
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
@@ -43,11 +43,11 @@ public class ConfigurationOptionsTests
             .Build();
 
         var services = new ServiceCollection();
-        services.Configure<BitBucketOptions>(configuration.GetSection(BitBucketOptions.SectionName));
+        services.Configure<BitbucketOptions>(configuration.GetSection(BitbucketOptions.SectionName));
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
-        var options = serviceProvider.GetRequiredService<IOptions<BitBucketOptions>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
 
         // Assert
         Assert.NotNull(options);
@@ -80,11 +80,11 @@ public class ConfigurationOptionsTests
         Assert.Equal(2, options.Mappings.Count);
         
         Assert.Equal("john.doe", options.Mappings[0].GitLabUserId);
-        Assert.Equal("jdoe", options.Mappings[0].BitBucketUserId);
+        Assert.Equal("jdoe", options.Mappings[0].BitbucketUserId);
         Assert.Equal("John Doe", options.Mappings[0].DisplayName);
         
         Assert.Equal("jane.smith", options.Mappings[1].GitLabUserId);
-        Assert.Equal("jsmith", options.Mappings[1].BitBucketUserId);
+        Assert.Equal("jsmith", options.Mappings[1].BitbucketUserId);
         Assert.Equal("Jane Smith", options.Mappings[1].DisplayName);
     }
 

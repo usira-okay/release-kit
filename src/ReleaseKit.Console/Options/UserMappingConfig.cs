@@ -11,9 +11,9 @@ public class UserMappingConfig
     public string GitLabUserId { get; set; } = string.Empty;
 
     /// <summary>
-    /// BitBucket 使用者 ID
+    /// Bitbucket 使用者 ID
     /// </summary>
-    public string BitBucketUserId { get; set; } = string.Empty;
+    public string BitbucketUserId { get; set; } = string.Empty;
 
     /// <summary>
     /// 顯示名稱
