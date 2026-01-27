@@ -4,32 +4,6 @@ using ReleaseKit.Domain.Abstractions;
 namespace ReleaseKit.Application.Tasks;
 
 /// <summary>
-/// 任務類型列舉
-/// </summary>
-public enum TaskType
-{
-    /// <summary>
-    /// 拉取 GitLab Pull Request 資訊
-    /// </summary>
-    FetchGitLabPullRequests,
-    
-    /// <summary>
-    /// 拉取 Bitbucket Pull Request 資訊
-    /// </summary>
-    FetchBitbucketPullRequests,
-    
-    /// <summary>
-    /// 拉取 Azure DevOps Work Item 資訊
-    /// </summary>
-    FetchAzureDevOpsWorkItems,
-    
-    /// <summary>
-    /// 更新 Google Sheets 資訊
-    /// </summary>
-    UpdateGoogleSheets
-}
-
-/// <summary>
 /// 任務工廠，使用工廠模式建立任務實例
 /// </summary>
 public class TaskFactory
