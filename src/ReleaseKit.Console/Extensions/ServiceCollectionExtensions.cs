@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Parsers;
@@ -81,11 +82,13 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        // 註冊 GitLab 設定
+        // 註冊 GitLab 設定並驗證必要欄位
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
+        services.AddSingleton<IValidateOptions<GitLabOptions>, GitLabOptionsValidator>();
         
-        // 註冊 Bitbucket 設定
+        // 註冊 Bitbucket 設定並驗證必要欄位
         services.Configure<BitbucketOptions>(configuration.GetSection("Bitbucket"));
+        services.AddSingleton<IValidateOptions<BitbucketOptions>, BitbucketOptionsValidator>();
         
         // 註冊使用者對應設定
         services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));

@@ -5,6 +5,8 @@ namespace ReleaseKit.Console.Options;
 /// </summary>
 public class GitLabOptions
 {
+    private List<GitLabProjectOptions> _projects = new();
+
     /// <summary>
     /// GitLab API URL（例如：https://gitlab.com/api/v4）
     /// </summary>
@@ -18,5 +20,9 @@ public class GitLabOptions
     /// <summary>
     /// 專案清單
     /// </summary>
-    public List<GitLabProjectOptions> Projects { get; set; } = new();
+    public List<GitLabProjectOptions> Projects
+    {
+        get => _projects;
+        set => _projects = value ?? new();
+    }
 }

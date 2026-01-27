@@ -90,15 +90,50 @@ release-kit/
   "Seq": {
     "ServerUrl": "http://localhost:5341",
     "ApiKey": ""
+  },
+  "GitLab": {
+    "ApiUrl": "https://gitlab.com/api/v4",
+    "AccessToken": "",
+    "Projects": [
+      {
+        "ProjectPath": "mygroup/backend-api",
+        "TargetBranch": "main"
+      }
+    ]
+  },
+  "Bitbucket": {
+    "ApiUrl": "https://api.bitbucket.org/2.0",
+    "Email": "",
+    "AccessToken": "",
+    "Projects": [
+      {
+        "ProjectPath": "mygroup/backend-api",
+        "TargetBranch": "main"
+      }
+    ]
+  },
+  "UserMapping": {
+    "Mappings": [
+      {
+        "GitLabUserId": "john.doe",
+        "BitbucketUserId": "jdoe",
+        "DisplayName": "John Doe"
+      }
+    ]
   }
 }
 ```
+
+**重要提醒：** `AccessToken`、`Email` 等敏感資訊不應直接寫入 `appsettings.json`，請使用環境變數或 User Secrets 進行設定。
 
 環境變數可覆寫組態設定，例如：
 
 ```bash
 export Redis__ConnectionString="your-redis-host:6379"
 export Seq__ServerUrl="https://your-seq-server.com"
+export GitLab__AccessToken="your-gitlab-token"
+export Bitbucket__Email="your-email@example.com"
+export Bitbucket__AccessToken="your-bitbucket-token"
 ```
 
 ## 開發
