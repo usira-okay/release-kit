@@ -1,35 +1,36 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ReleaseKit.Console.Services;
 
-// 建立組態建構器
-var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables()
-    .AddUserSecrets<Program>(optional: true)
+// 建立 Host Builder 以使用 DI 容器
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration((context, config) =>
+    {
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        
+        config
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{env}.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .AddUserSecrets<Program>(optional: true);
+    })
+    .ConfigureServices((context, services) =>
+    {
+        // 註冊應用程式服務
+        services.AddTransient<AppStartupService>();
+    })
+    .ConfigureLogging((context, logging) =>
+    {
+        logging.ClearProviders();
+        logging.AddConfiguration(context.Configuration.GetSection("Logging"));
+        logging.AddConsole();
+    })
     .Build();
 
-// 建立 Logger Factory
-using var loggerFactory = LoggerFactory.Create(builder =>
-{
-    builder
-        .AddConfiguration(configuration.GetSection("Logging"))
-        .AddConsole();
-});
+// 使用 DI 容器取得服務並執行
+var app = host.Services.GetRequiredService<AppStartupService>();
+app.Run();
 
-var logger = loggerFactory.CreateLogger<Program>();
-
-// 顯示設定檔載入狀態
-var environmentConfigPath = Path.Combine(Directory.GetCurrentDirectory(), $"appsettings.{environment}.json");
-var environmentConfigExists = File.Exists(environmentConfigPath);
-
-logger.LogInformation("組態載入完成:");
-logger.LogInformation("- appsettings.json: 已載入");
-logger.LogInformation("- appsettings.{Environment}.json: {Status}", environment, environmentConfigExists ? "已載入" : "未找到");
-logger.LogInformation("- 環境變數: 已啟用");
-logger.LogInformation("- User Secrets: 已啟用");
-
-logger.LogInformation("Hello, World!");
