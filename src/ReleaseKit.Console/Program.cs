@@ -33,6 +33,9 @@ var host = Host.CreateDefaultBuilder(args)
         // 註冊 Redis 服務
         services.AddRedisServices(context.Configuration);
 
+        // 註冊 GitLab 服務
+        services.AddGitLabServices(context.Configuration);
+
         // 註冊應用程式服務
         services.AddApplicationServices();
     })

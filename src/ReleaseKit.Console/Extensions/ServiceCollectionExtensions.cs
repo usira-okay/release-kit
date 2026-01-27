@@ -7,6 +7,7 @@ using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Redis;
+using ReleaseKit.Infrastructure.SourceControl.GitLab;
 using ReleaseKit.Infrastructure.Time;
 using StackExchange.Redis;
 
@@ -43,6 +44,26 @@ public static class ServiceCollectionExtensions
             var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
             return new RedisService(connectionMultiplexer, logger, redisInstanceName);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// 註冊 GitLab 相關服務
+    /// </summary>
+    public static IServiceCollection AddGitLabServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        var gitLabDomain = configuration["GitLab:Domain"] 
+            ?? throw new InvalidOperationException("GitLab:Domain 組態設定不得為空");
+        var gitLabAccessToken = configuration["GitLab:AccessToken"] 
+            ?? throw new InvalidOperationException("GitLab:AccessToken 組態設定不得為空");
+
+        // 註冊 GitLab HttpClient
+        services.AddHttpClient<IGitLabRepository, GitLabRepository>(client =>
+        {
+            client.BaseAddress = new Uri(gitLabDomain);
+            client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", gitLabAccessToken);
         });
 
         return services;

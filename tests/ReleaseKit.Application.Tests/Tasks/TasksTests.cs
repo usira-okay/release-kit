@@ -1,4 +1,6 @@
+using Moq;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Domain.Abstractions;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
@@ -8,14 +10,44 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class TasksTests
 {
     [Fact]
-    public async Task FetchGitLabPullRequestsTask_ExecuteAsync_ShouldThrowNotImplementedException()
+    public async Task FetchGitLabPullRequestsTask_ExecuteAsync_ShouldCallRepository()
     {
         // Arrange
-        var task = new FetchGitLabPullRequestsTask();
+        var mockGitLabRepository = new Mock<IGitLabRepository>();
+        var mockNow = new Mock<INow>();
+        mockNow.Setup(x => x.UtcNow).Returns(new DateTimeOffset(2024, 1, 15, 10, 0, 0, TimeSpan.Zero));
+        
+        mockGitLabRepository
+            .Setup(x => x.FetchMergeRequestsByTimeRangeAsync(
+                It.IsAny<string>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(new List<Domain.Entities.MergeRequest>());
+        
+        mockGitLabRepository
+            .Setup(x => x.FetchMergeRequestsByBranchComparisonAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(new List<Domain.Entities.MergeRequest>());
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("拉取 GitLab Pull Request 資訊功能尚未實作", exception.Message);
+        var task = new FetchGitLabPullRequestsTask(mockGitLabRepository.Object, mockNow.Object);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        mockGitLabRepository.Verify(x => x.FetchMergeRequestsByTimeRangeAsync(
+            It.IsAny<string>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>()), Times.Once);
+        
+        mockGitLabRepository.Verify(x => x.FetchMergeRequestsByBranchComparisonAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

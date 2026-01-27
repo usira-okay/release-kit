@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Domain.Abstractions;
 using AppTaskFactory = ReleaseKit.Application.Tasks.TaskFactory;
 
 namespace ReleaseKit.Application.Tests.Tasks;
@@ -16,6 +18,16 @@ public class TaskFactoryTests
     {
         // 建立測試用的 DI 容器
         var services = new ServiceCollection();
+        
+        // 註冊 Mock 依賴
+        var mockGitLabRepository = new Mock<IGitLabRepository>();
+        var mockNow = new Mock<INow>();
+        mockNow.Setup(x => x.UtcNow).Returns(new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero));
+        
+        services.AddSingleton(mockGitLabRepository.Object);
+        services.AddSingleton(mockNow.Object);
+        
+        // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();
         services.AddTransient<FetchAzureDevOpsWorkItemsTask>();
