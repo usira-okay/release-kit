@@ -1,0 +1,86 @@
+using ReleaseKit.Application.Tasks;
+
+namespace ReleaseKit.Console.Parsers;
+
+/// <summary>
+/// 命令列參數解析器
+/// </summary>
+public class CommandLineParser
+{
+    private readonly Dictionary<string, TaskType> _taskMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "fetch-gitlab-pr", TaskType.FetchGitLabPullRequests },
+        { "fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests },
+        { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
+        { "update-googlesheet", TaskType.UpdateGoogleSheets }
+    };
+
+    /// <summary>
+    /// 解析命令列參數並取得對應的任務類型
+    /// </summary>
+    /// <param name="args">命令列參數陣列</param>
+    /// <returns>解析結果，包含任務類型或錯誤訊息</returns>
+    public ParseResult Parse(string[] args)
+    {
+        if (args == null || args.Length == 0)
+        {
+            return ParseResult.Failure("請指定要執行的任務。使用方式: ReleaseKit.Console <task-name>");
+        }
+
+        if (args.Length > 1)
+        {
+            return ParseResult.Failure("每次只允許執行單一任務。使用方式: ReleaseKit.Console <task-name>");
+        }
+
+        var taskName = args[0];
+        
+        if (_taskMappings.TryGetValue(taskName, out var taskType))
+        {
+            return ParseResult.Success(taskType);
+        }
+
+        var validTasks = string.Join(", ", _taskMappings.Keys);
+        return ParseResult.Failure($"不支援的任務: '{taskName}'。有效的任務: {validTasks}");
+    }
+}
+
+/// <summary>
+/// 命令列解析結果
+/// </summary>
+public class ParseResult
+{
+    /// <summary>
+    /// 是否解析成功
+    /// </summary>
+    public bool IsSuccess { get; private init; }
+    
+    /// <summary>
+    /// 任務類型（成功時）
+    /// </summary>
+    public TaskType? TaskType { get; private init; }
+    
+    /// <summary>
+    /// 錯誤訊息（失敗時）
+    /// </summary>
+    public string? ErrorMessage { get; private init; }
+
+    private ParseResult() { }
+
+    /// <summary>
+    /// 建立成功的解析結果
+    /// </summary>
+    public static ParseResult Success(TaskType taskType) => new()
+    {
+        IsSuccess = true,
+        TaskType = taskType
+    };
+
+    /// <summary>
+    /// 建立失敗的解析結果
+    /// </summary>
+    public static ParseResult Failure(string errorMessage) => new()
+    {
+        IsSuccess = false,
+        ErrorMessage = errorMessage
+    };
+}
