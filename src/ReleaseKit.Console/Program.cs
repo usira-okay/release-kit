@@ -34,7 +34,7 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddRedisServices(context.Configuration);
 
         // 註冊應用程式服務
-        services.AddApplicationServices();
+        services.AddApplicationServices(context.Configuration);
     })
     .UseSerilog((context, services, configuration) =>
     {

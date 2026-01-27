@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
@@ -51,10 +52,15 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 註冊應用程式服務
     /// </summary>
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         // 註冊時間服務
         services.AddSingleton<INow, SystemNow>();
+        
+        // 註冊配置選項
+        services.Configure<GitLabOptions>(configuration.GetSection(GitLabOptions.SectionName));
+        services.Configure<BitBucketOptions>(configuration.GetSection(BitBucketOptions.SectionName));
+        services.Configure<UserMappingOptions>(configuration.GetSection(UserMappingOptions.SectionName));
         
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();

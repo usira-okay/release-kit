@@ -88,6 +88,66 @@ public class ConfigurationTests
         Environment.SetEnvironmentVariable("Serilog__MinimumLevel__Default", null);
     }
     
+    [Fact]
+    public void Configuration_ShouldLoad_GitLabSettings()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        
+        // Act
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        // Assert
+        Assert.Equal("https://gitlab.com/api/v4", configuration["GitLab:ApiUrl"]);
+        Assert.Equal("", configuration["GitLab:AccessToken"]);
+        Assert.Equal("mygroup/backend-api", configuration["GitLab:Projects:0:ProjectPath"]);
+        Assert.Equal("main", configuration["GitLab:Projects:0:TargetBranch"]);
+    }
+    
+    [Fact]
+    public void Configuration_ShouldLoad_BitBucketSettings()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        
+        // Act
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        // Assert
+        Assert.Equal("https://api.bitbucket.org/2.0", configuration["BitBucket:ApiUrl"]);
+        Assert.Equal("", configuration["BitBucket:Email"]);
+        Assert.Equal("", configuration["BitBucket:AccessToken"]);
+        Assert.Equal("mygroup/backend-api", configuration["BitBucket:Projects:0:ProjectPath"]);
+        Assert.Equal("main", configuration["BitBucket:Projects:0:TargetBranch"]);
+    }
+    
+    [Fact]
+    public void Configuration_ShouldLoad_UserMappingSettings()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        
+        // Act
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        // Assert
+        Assert.Equal("john.doe", configuration["UserMapping:Mappings:0:GitLabUserId"]);
+        Assert.Equal("jdoe", configuration["UserMapping:Mappings:0:BitBucketUserId"]);
+        Assert.Equal("John Doe", configuration["UserMapping:Mappings:0:DisplayName"]);
+        Assert.Equal("jane.smith", configuration["UserMapping:Mappings:1:GitLabUserId"]);
+        Assert.Equal("jsmith", configuration["UserMapping:Mappings:1:BitBucketUserId"]);
+        Assert.Equal("Jane Smith", configuration["UserMapping:Mappings:1:DisplayName"]);
+    }
+    
     /// <summary>
     /// 取得專案基礎路徑（包含 appsettings.json 的路徑）
     /// </summary>
