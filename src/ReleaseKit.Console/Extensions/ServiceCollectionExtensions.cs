@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 註冊組態設定
     /// </summary>
-    public static IServiceCollection AddOptions(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
         // 註冊 GitLab 設定
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
