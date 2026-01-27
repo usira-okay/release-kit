@@ -37,6 +37,6 @@ public class AppStartupService
     public void Run()
     {
         DisplayConfigurationStatus();
-        _logger.LogInformation("Hello, World!");
+        _logger.LogInformation("嗨！我是 Copilot，Release-Kit 系統運作正常！");
     }
 }
