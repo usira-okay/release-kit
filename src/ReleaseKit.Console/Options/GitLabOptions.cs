@@ -23,19 +23,3 @@ public class GitLabOptions
     /// </summary>
     public List<GitLabProjectOptions> Projects { get; set; } = new();
 }
-
-/// <summary>
-/// GitLab 專案設定
-/// </summary>
-public class GitLabProjectOptions
-{
-    /// <summary>
-    /// 專案路徑 (例如: mygroup/backend-api)
-    /// </summary>
-    public string ProjectPath { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 目標分支
-    /// </summary>
-    public string TargetBranch { get; set; } = string.Empty;
-}
