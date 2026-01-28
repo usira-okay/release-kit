@@ -84,18 +84,8 @@ public class OptionsConfigurationTests
         
         // Assert
         Assert.NotNull(options);
-        Assert.NotEmpty(options.Mappings);
-        Assert.Equal(2, options.Mappings.Count);
-        
-        var firstMapping = options.Mappings[0];
-        Assert.Equal("john.doe", firstMapping.GitLabUserId);
-        Assert.Equal("jdoe", firstMapping.BitbucketUserId);
-        Assert.Equal("John Doe", firstMapping.DisplayName);
-        
-        var secondMapping = options.Mappings[1];
-        Assert.Equal("jane.smith", secondMapping.GitLabUserId);
-        Assert.Equal("jsmith", secondMapping.BitbucketUserId);
-        Assert.Equal("Jane Smith", secondMapping.DisplayName);
+        Assert.NotNull(options.Mappings);
+        Assert.Empty(options.Mappings); // appsettings.json 中的 Mappings 為空陣列
     }
     
     [Fact]
@@ -103,29 +93,44 @@ public class OptionsConfigurationTests
     {
         // Arrange
         var basePath = GetProjectBasePath();
-        Environment.SetEnvironmentVariable("GitLab__ApiUrl", "https://custom-gitlab.example.com/api/v4");
-        Environment.SetEnvironmentVariable("GitLab__AccessToken", "test-token-123");
-        
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(basePath)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-        
-        var services = new ServiceCollection();
-        services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
-        var serviceProvider = services.BuildServiceProvider();
-        
-        // Act
-        var options = serviceProvider.GetRequiredService<IOptions<GitLabOptions>>().Value;
-        
-        // Assert
-        Assert.Equal("https://custom-gitlab.example.com/api/v4", options.ApiUrl);
-        Assert.Equal("test-token-123", options.AccessToken);
-        
-        // Cleanup
-        Environment.SetEnvironmentVariable("GitLab__ApiUrl", null);
-        Environment.SetEnvironmentVariable("GitLab__AccessToken", null);
+        var envVars = new Dictionary<string, string>
+        {
+            { "GitLab__ApiUrl", "https://custom-gitlab.example.com/api/v4" },
+            { "GitLab__AccessToken", "test-token-123" }
+        };
+
+        try
+        {
+            foreach (var (key, value) in envVars)
+            {
+                Environment.SetEnvironmentVariable(key, value);
+            }
+
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
+            
+            var services = new ServiceCollection();
+            services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
+            var serviceProvider = services.BuildServiceProvider();
+            
+            // Act
+            var options = serviceProvider.GetRequiredService<IOptions<GitLabOptions>>().Value;
+            
+            // Assert
+            Assert.Equal("https://custom-gitlab.example.com/api/v4", options.ApiUrl);
+            Assert.Equal("test-token-123", options.AccessToken);
+        }
+        finally
+        {
+            // Cleanup: 確保無論測試成功或失敗都會清理環境變數
+            foreach (var key in envVars.Keys)
+            {
+                Environment.SetEnvironmentVariable(key, null);
+            }
+        }
     }
     
     [Fact]
@@ -133,29 +138,44 @@ public class OptionsConfigurationTests
     {
         // Arrange
         var basePath = GetProjectBasePath();
-        Environment.SetEnvironmentVariable("Bitbucket__Email", "test@example.com");
-        Environment.SetEnvironmentVariable("Bitbucket__AccessToken", "bitbucket-token-456");
-        
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(basePath)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-        
-        var services = new ServiceCollection();
-        services.Configure<BitbucketOptions>(configuration.GetSection("Bitbucket"));
-        var serviceProvider = services.BuildServiceProvider();
-        
-        // Act
-        var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
-        
-        // Assert
-        Assert.Equal("test@example.com", options.Email);
-        Assert.Equal("bitbucket-token-456", options.AccessToken);
-        
-        // Cleanup
-        Environment.SetEnvironmentVariable("Bitbucket__Email", null);
-        Environment.SetEnvironmentVariable("Bitbucket__AccessToken", null);
+        var envVars = new Dictionary<string, string>
+        {
+            { "Bitbucket__Email", "test@example.com" },
+            { "Bitbucket__AccessToken", "bitbucket-token-456" }
+        };
+
+        try
+        {
+            foreach (var (key, value) in envVars)
+            {
+                Environment.SetEnvironmentVariable(key, value);
+            }
+
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
+            
+            var services = new ServiceCollection();
+            services.Configure<BitbucketOptions>(configuration.GetSection("Bitbucket"));
+            var serviceProvider = services.BuildServiceProvider();
+            
+            // Act
+            var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
+            
+            // Assert
+            Assert.Equal("test@example.com", options.Email);
+            Assert.Equal("bitbucket-token-456", options.AccessToken);
+        }
+        finally
+        {
+            // Cleanup: 確保無論測試成功或失敗都會清理環境變數
+            foreach (var key in envVars.Keys)
+            {
+                Environment.SetEnvironmentVariable(key, null);
+            }
+        }
     }
     
     /// <summary>

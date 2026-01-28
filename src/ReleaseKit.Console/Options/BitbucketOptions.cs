@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ReleaseKit.Console.Options;
 
 /// <summary>
@@ -8,11 +10,13 @@ public class BitbucketOptions
     /// <summary>
     /// Bitbucket API URL
     /// </summary>
+    [Url(ErrorMessage = "Bitbucket:ApiUrl 必須是有效的 URL")]
     public string ApiUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Bitbucket 電子郵件
     /// </summary>
+    [EmailAddress(ErrorMessage = "Bitbucket:Email 必須是有效的電子郵件地址")]
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
