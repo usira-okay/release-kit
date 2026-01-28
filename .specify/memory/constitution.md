@@ -2,13 +2,10 @@
 ================================================================================
 Sync Impact Report
 ================================================================================
-Version change: 0.0.0 → 1.0.0 (初始版本)
-Modified principles: N/A (新建立)
+Version change: 1.0.0 → 1.1.0 (MINOR - 新增原則)
+Modified principles: N/A
 Added sections:
-  - Core Principles (10 項原則)
-  - 程式碼風格規範
-  - 開發工作流程
-  - Governance
+  - XI. 檔案組織規範（一個檔案只會有一個類別）
 Removed sections: N/A
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ 已檢視，無需更新
@@ -130,6 +127,17 @@ program.cs MUST 保持整潔：
 
 **理由**: 維持進入點的單一職責，便於理解應用程式啟動流程。
 
+### XI. 檔案組織規範
+
+程式碼檔案 MUST 遵守單一類別原則：
+
+- 一個檔案只能包含一個類別 (One Class Per File)
+- 檔案名稱 MUST 與類別名稱完全一致
+- 巢狀類別 (Nested Class) 為例外，可與父類別放在同一檔案
+- 禁止將多個公開類別放在同一檔案中
+
+**理由**: 提升程式碼可搜尋性與可維護性，便於快速定位類別定義。
+
 ## 程式碼風格規範
 
 ### C# 設計模式應用
@@ -193,4 +201,4 @@ Constitution 修訂 MUST 遵循以下程序：
 - 技術術語與程式碼識別符保持原文
 - 註解與文件 MUST 使用繁體中文
 
-**Version**: 1.0.0 | **Ratified**: 2026-01-27 | **Last Amended**: 2026-01-27
+**Version**: 1.1.0 | **Ratified**: 2026-01-27 | **Last Amended**: 2026-01-28
