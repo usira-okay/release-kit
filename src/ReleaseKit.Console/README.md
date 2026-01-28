@@ -65,6 +65,100 @@ $ dotnet run -- fetch-gitlab-pr extra-arg
 
 ## 組態設定
 
+### 設定項目
+
+#### GitLab 設定
+
+用於連接 GitLab API 並拉取 Pull Request 資訊。
+
+```json
+{
+  "GitLab": {
+    "ApiUrl": "https://gitlab.com/api/v4",
+    "AccessToken": "",
+    "Projects": [
+      {
+        "ProjectPath": "mygroup/backend-api",
+        "TargetBranch": "main"
+      }
+    ]
+  }
+}
+```
+
+- **ApiUrl**: GitLab API 端點 URL（必須是有效的 URL）
+- **AccessToken**: GitLab 個人存取權杖（建議透過環境變數設定）
+- **Projects**: 要追蹤的 GitLab 專案清單
+  - **ProjectPath**: 專案路徑（格式：群組名稱/專案名稱）
+  - **TargetBranch**: 目標分支名稱
+
+**環境變數設定範例：**
+```bash
+GitLab__AccessToken="your-gitlab-token-here" ./ReleaseKit.Console fetch-gitlab-pr
+```
+
+#### Bitbucket 設定
+
+用於連接 Bitbucket API 並拉取 Pull Request 資訊。
+
+```json
+{
+  "Bitbucket": {
+    "ApiUrl": "https://api.bitbucket.org/2.0",
+    "Email": "",
+    "AccessToken": "",
+    "Projects": [
+      {
+        "ProjectPath": "mygroup/backend-api",
+        "TargetBranch": "main"
+      }
+    ]
+  }
+}
+```
+
+- **ApiUrl**: Bitbucket API 端點 URL（必須是有效的 URL）
+- **Email**: Bitbucket 帳號電子郵件（必須是有效的電子郵件地址，建議透過環境變數設定）
+- **AccessToken**: Bitbucket App 密碼或存取權杖（建議透過環境變數設定）
+- **Projects**: 要追蹤的 Bitbucket 專案清單
+  - **ProjectPath**: 專案路徑（格式：群組名稱/專案名稱）
+  - **TargetBranch**: 目標分支名稱
+
+**環境變數設定範例：**
+```bash
+Bitbucket__Email="your-email@example.com" \
+Bitbucket__AccessToken="your-bitbucket-token" \
+./ReleaseKit.Console fetch-bitbucket-pr
+```
+
+#### UserMapping 設定
+
+用於對應不同平台的使用者 ID 至統一的顯示名稱。
+
+```json
+{
+  "UserMapping": {
+    "Mappings": [
+      {
+        "GitLabUserId": "john.doe",
+        "BitbucketUserId": "jdoe",
+        "DisplayName": "John Doe"
+      }
+    ]
+  }
+}
+```
+
+- **Mappings**: 使用者對應清單
+  - **GitLabUserId**: GitLab 使用者 ID
+  - **BitbucketUserId**: Bitbucket 使用者 ID
+  - **DisplayName**: 統一的顯示名稱
+
+**注意事項：**
+- 預設為空陣列，使用前需根據團隊成員進行設定
+- 建議將使用者對應資訊放在環境特定設定檔中（如 `appsettings.Production.json`）
+- 這不是敏感資訊，可以提交至版本控制
+
 ## 設定檔架構
 
 ### 基礎設定檔

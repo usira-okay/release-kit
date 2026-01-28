@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
@@ -44,6 +45,23 @@ public static class ServiceCollectionExtensions
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
             return new RedisService(connectionMultiplexer, logger, redisInstanceName);
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// 註冊設定選項
+    /// </summary>
+    public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
+    {
+        // 註冊 GitLab 設定
+        services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
+        
+        // 註冊 Bitbucket 設定
+        services.Configure<BitbucketOptions>(configuration.GetSection("Bitbucket"));
+        
+        // 註冊使用者對應設定
+        services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));
 
         return services;
     }
