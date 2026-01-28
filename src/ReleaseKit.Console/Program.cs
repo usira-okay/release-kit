@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using ReleaseKit.Console.Constants;
 using ReleaseKit.Console.Extensions;
+using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Services;
 using Serilog;
 
@@ -46,7 +48,7 @@ var host = Host.CreateDefaultBuilder(args)
             .Enrich.FromLogContext()
             .WriteTo.Console();
 
-        var seqOptions = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ReleaseKit.Console.Options.SeqOptions>>().Value;
+        var seqOptions = services.GetRequiredService<IOptions<SeqOptions>>().Value;
 
         if (!string.IsNullOrEmpty(seqOptions.ServerUrl))
         {

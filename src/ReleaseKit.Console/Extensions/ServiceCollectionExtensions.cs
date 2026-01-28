@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Parsers;
@@ -24,9 +25,10 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRedisServices(this IServiceCollection services, IConfiguration configuration)
     {
         // 註冊 IConnectionMultiplexer，使用指數級重試機制
+        // 注意：factory lambda 在服務解析時才會執行，此時 RedisOptions 已完成註冊
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
-            var redisOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RedisOptions>>().Value;
+            var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
             
             if (string.IsNullOrEmpty(redisOptions.ConnectionString))
                 throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
@@ -43,7 +45,7 @@ public static class ServiceCollectionExtensions
         // 註冊 Redis 服務
         services.AddSingleton<IRedisService>(sp =>
         {
-            var redisOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RedisOptions>>().Value;
+            var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
             var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
             return new RedisService(connectionMultiplexer, logger, redisOptions.InstanceName);
