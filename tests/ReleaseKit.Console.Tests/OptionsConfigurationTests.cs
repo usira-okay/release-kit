@@ -87,6 +87,119 @@ public class OptionsConfigurationTests
         Assert.NotNull(options.Mappings);
         Assert.Empty(options.Mappings); // appsettings.json 中的 Mappings 為空陣列
     }
+
+    [Fact]
+    public void Configuration_ShouldLoad_GoogleSheetOptions()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.Configure<GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<GoogleSheetOptions>>().Value;
+        
+        // Assert
+        Assert.NotNull(options);
+        Assert.Empty(options.SpreadsheetId);
+        Assert.Equal("Sheet1", options.SheetName);
+        Assert.Empty(options.ServiceAccountCredentialPath);
+        Assert.NotNull(options.ColumnMapping);
+        Assert.Equal("Z", options.ColumnMapping.RepositoryNameColumn);
+        Assert.Equal("B", options.ColumnMapping.FeatureColumn);
+        Assert.Equal("D", options.ColumnMapping.TeamColumn);
+        Assert.Equal("W", options.ColumnMapping.AuthorsColumn);
+        Assert.Equal("X", options.ColumnMapping.PullRequestUrlsColumn);
+        Assert.Equal("Y", options.ColumnMapping.UniqueKeyColumn);
+        Assert.Equal("F", options.ColumnMapping.AutoSyncColumn);
+    }
+
+    [Fact]
+    public void Configuration_ShouldLoad_AzureDevOpsOptions()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.Configure<AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<AzureDevOpsOptions>>().Value;
+        
+        // Assert
+        Assert.NotNull(options);
+        Assert.Equal("https://dev.azure.com/myorganization", options.OrganizationUrl);
+        Assert.NotEmpty(options.TeamMapping);
+        Assert.Equal(3, options.TeamMapping.Count);
+        Assert.Equal("MoneyLogistic", options.TeamMapping[0].OriginalTeamName);
+        Assert.Equal("金流團隊", options.TeamMapping[0].DisplayName);
+        Assert.Equal("DailyResource", options.TeamMapping[1].OriginalTeamName);
+        Assert.Equal("日常資源團隊", options.TeamMapping[1].DisplayName);
+        Assert.Equal("Commerce", options.TeamMapping[2].OriginalTeamName);
+        Assert.Equal("商務團隊", options.TeamMapping[2].DisplayName);
+    }
+
+    [Fact]
+    public void Configuration_ShouldLoad_AppOptions()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.Configure<AppOptions>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
+        
+        // Assert
+        Assert.NotNull(options);
+        Assert.Empty(options.FetchMode);
+        Assert.Equal("release/yyyyMMdd", options.SourceBranch);
+        Assert.Equal(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero), options.StartDateTime);
+        Assert.Equal(new DateTimeOffset(2025, 1, 31, 0, 0, 0, TimeSpan.Zero), options.EndDateTime);
+    }
+    
+    [Fact]
+    public void Configuration_ShouldLoad_GitLabProjectOptions_WithNewFields()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<GitLabOptions>>().Value;
+        var projectOptions = options.Projects[0];
+        
+        // Assert
+        Assert.NotNull(projectOptions);
+        Assert.Equal("", projectOptions.FetchMode);
+        Assert.Equal("release/yyyyMMdd", projectOptions.SourceBranch);
+        Assert.Equal(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero), projectOptions.StartDateTime);
+        Assert.Equal(new DateTimeOffset(2025, 1, 31, 0, 0, 0, TimeSpan.Zero), projectOptions.EndDateTime);
+    }
     
     [Fact]
     public void GitLabOptions_EnvironmentVariables_ShouldOverride_JsonSettings()
