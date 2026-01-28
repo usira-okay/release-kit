@@ -18,7 +18,7 @@ public class BitbucketProjectOptions
     /// <summary>
     /// 拉取模式：DateTimeRange 或 BranchDiff（可選，若未提供則使用全域設定）
     /// </summary>
-    public string? FetchMode { get; init; }
+    public FetchMode? FetchMode { get; init; }
 
     /// <summary>
     /// 來源分支名稱（BranchDiff 模式時必填）

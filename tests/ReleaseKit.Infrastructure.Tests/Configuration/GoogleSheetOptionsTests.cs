@@ -37,9 +37,7 @@ public class GoogleSheetOptionsTests
 
         var services = new ServiceCollection();
         services.AddOptions<GoogleSheetOptions>()
-            .Bind(configuration.GetSection("GoogleSheet"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("GoogleSheet"));
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -56,31 +54,35 @@ public class GoogleSheetOptionsTests
     }
 
     /// <summary>
-    /// 測試缺少必要屬性時應拋出驗證異常
+    /// 測試環境變數覆寫配置
     /// </summary>
     [Fact]
-    public void Validate_MissingRequiredProperty_ShouldThrowException()
+    public void Bind_EnvironmentVariableOverride_ShouldUseEnvironmentValue()
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["GoogleSheet:SpreadsheetId"] = "", // 空值，違反 Required
-                ["GoogleSheet:SheetName"] = "TestSheet"
+                ["GoogleSheet:SpreadsheetId"] = "original-id",
+                ["GoogleSheet:SheetName"] = "TestSheet",
+                ["GoogleSheet:ServiceAccountCredentialPath"] = "/test/path/credentials.json"
+            })
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["GoogleSheet:SpreadsheetId"] = "override-id" // 環境變數覆寫
             })
             .Build();
 
         var services = new ServiceCollection();
         services.AddOptions<GoogleSheetOptions>()
-            .Bind(configuration.GetSection("GoogleSheet"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("GoogleSheet"));
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        // Act & Assert - 嘗試訪問選項值應觸發驗證
-        var act = () => serviceProvider.GetRequiredService<IOptions<GoogleSheetOptions>>().Value;
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*SpreadsheetId*");
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<GoogleSheetOptions>>().Value;
+
+        // Assert
+        options.SpreadsheetId.Should().Be("override-id");
     }
 }

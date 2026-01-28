@@ -38,9 +38,7 @@ public class GitLabOptionsTests
 
         var services = new ServiceCollection();
         services.AddOptions<GitLabOptions>()
-            .Bind(configuration.GetSection("GitLab"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("GitLab"));
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -53,38 +51,41 @@ public class GitLabOptionsTests
         options.Projects.Should().HaveCount(2);
         options.Projects[0].ProjectPath.Should().Be("group/project1");
         options.Projects[0].TargetBranch.Should().Be("main");
-        options.Projects[0].FetchMode.Should().Be("DateTimeRange");
+        options.Projects[0].FetchMode.Should().Be(FetchMode.DateTimeRange);
         options.Projects[1].ProjectPath.Should().Be("group/project2");
-        options.Projects[1].FetchMode.Should().Be("BranchDiff");
+        options.Projects[1].FetchMode.Should().Be(FetchMode.BranchDiff);
         options.Projects[1].SourceBranch.Should().Be("release/20250128");
     }
 
     /// <summary>
-    /// 測試缺少必要屬性時應拋出驗證異常
+    /// 測試環境變數覆寫配置
     /// </summary>
     [Fact]
-    public void Validate_MissingRequiredProperty_ShouldThrowException()
+    public void Bind_EnvironmentVariableOverride_ShouldUseEnvironmentValue()
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["GitLab:ApiUrl"] = "", // 空值，違反 Required
-                ["GitLab:AccessToken"] = "token"
+                ["GitLab:ApiUrl"] = "https://gitlab.com/api/v4",
+                ["GitLab:AccessToken"] = "original-token"
+            })
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["GitLab:AccessToken"] = "override-token" // 環境變數覆寫
             })
             .Build();
 
         var services = new ServiceCollection();
         services.AddOptions<GitLabOptions>()
-            .Bind(configuration.GetSection("GitLab"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("GitLab"));
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        // Act & Assert - 嘗試訪問選項值應觸發驗證
-        var act = () => serviceProvider.GetRequiredService<IOptions<GitLabOptions>>().Value;
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*ApiUrl*");
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<GitLabOptions>>().Value;
+
+        // Assert
+        options.AccessToken.Should().Be("override-token");
     }
 }

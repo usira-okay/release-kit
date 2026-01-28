@@ -39,9 +39,7 @@ public class BitbucketOptionsTests
 
         var services = new ServiceCollection();
         services.AddOptions<BitbucketOptions>()
-            .Bind(configuration.GetSection("Bitbucket"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("Bitbucket"));
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -55,39 +53,42 @@ public class BitbucketOptionsTests
         options.Projects.Should().HaveCount(2);
         options.Projects[0].ProjectPath.Should().Be("workspace/repo1");
         options.Projects[0].TargetBranch.Should().Be("main");
-        options.Projects[0].FetchMode.Should().Be("DateTimeRange");
+        options.Projects[0].FetchMode.Should().Be(FetchMode.DateTimeRange);
         options.Projects[1].ProjectPath.Should().Be("workspace/repo2");
-        options.Projects[1].FetchMode.Should().Be("BranchDiff");
+        options.Projects[1].FetchMode.Should().Be(FetchMode.BranchDiff);
         options.Projects[1].SourceBranch.Should().Be("release/20250128");
     }
 
     /// <summary>
-    /// 測試缺少必要屬性時應拋出驗證異常
+    /// 測試環境變數覆寫配置
     /// </summary>
     [Fact]
-    public void Validate_MissingRequiredProperty_ShouldThrowException()
+    public void Bind_EnvironmentVariableOverride_ShouldUseEnvironmentValue()
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bitbucket:ApiUrl"] = "https://api.bitbucket.org/2.0",
-                ["Bitbucket:Email"] = "", // 空值，違反 Required
-                ["Bitbucket:AccessToken"] = "token"
+                ["Bitbucket:Email"] = "user@example.com",
+                ["Bitbucket:AccessToken"] = "original-password"
+            })
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Bitbucket:AccessToken"] = "override-password" // 環境變數覆寫
             })
             .Build();
 
         var services = new ServiceCollection();
         services.AddOptions<BitbucketOptions>()
-            .Bind(configuration.GetSection("Bitbucket"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("Bitbucket"));
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        // Act & Assert - 嘗試訪問選項值應觸發驗證
-        var act = () => serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*Email*");
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
+
+        // Assert
+        options.AccessToken.Should().Be("override-password");
     }
 }

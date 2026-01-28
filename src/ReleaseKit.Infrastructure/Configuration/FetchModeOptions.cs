@@ -8,7 +8,7 @@ public class FetchModeOptions
     /// <summary>
     /// 拉取模式：DateTimeRange（時間區間）或 BranchDiff（分支差異）
     /// </summary>
-    public string FetchMode { get; init; } = string.Empty;
+    public FetchMode FetchMode { get; init; } = FetchMode.DateTimeRange;
 
     /// <summary>
     /// 來源分支名稱（BranchDiff 模式時必填）

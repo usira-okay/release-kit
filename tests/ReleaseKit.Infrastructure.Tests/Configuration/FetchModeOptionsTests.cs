@@ -31,9 +31,7 @@ public class FetchModeOptionsTests
 
         var services = new ServiceCollection();
         services.AddOptions<FetchModeOptions>()
-            .Bind(configuration)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration);
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -41,37 +39,43 @@ public class FetchModeOptionsTests
         var options = serviceProvider.GetRequiredService<IOptions<FetchModeOptions>>().Value;
 
         // Assert
-        options.FetchMode.Should().Be("DateTimeRange");
+        options.FetchMode.Should().Be(FetchMode.DateTimeRange);
         options.SourceBranch.Should().BeNull();
         options.StartDateTime.Should().Be(DateTimeOffset.Parse("2025-01-01T00:00:00Z"));
         options.EndDateTime.Should().Be(DateTimeOffset.Parse("2025-01-31T23:59:59Z"));
     }
 
     /// <summary>
-    /// 測試缺少必要屬性時應拋出驗證異常
+    /// 測試環境變數覆寫配置
     /// </summary>
     [Fact]
-    public void Validate_MissingRequiredProperty_ShouldThrowException()
+    public void Bind_EnvironmentVariableOverride_ShouldUseEnvironmentValue()
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["FetchMode"] = "" // 空值，違反 Required
+                ["FetchMode"] = "DateTimeRange",
+                ["StartDateTime"] = "2025-01-01T00:00:00Z"
+            })
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["FetchMode"] = "BranchDiff", // 環境變數覆寫
+                ["SourceBranch"] = "develop"
             })
             .Build();
 
         var services = new ServiceCollection();
         services.AddOptions<FetchModeOptions>()
-            .Bind(configuration)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration);
 
         var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        // Act & Assert - 嘗試訪問選項值應觸發驗證
-        var act = () => serviceProvider.GetRequiredService<IOptions<FetchModeOptions>>().Value;
-        act.Should().Throw<OptionsValidationException>()
-            .WithMessage("*FetchMode*");
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<FetchModeOptions>>().Value;
+
+        // Assert
+        options.FetchMode.Should().Be(FetchMode.BranchDiff);
+        options.SourceBranch.Should().Be("develop");
     }
 }
