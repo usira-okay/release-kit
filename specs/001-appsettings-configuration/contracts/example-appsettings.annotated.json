@@ -1,0 +1,124 @@
+{
+  "$schema": "./appsettings-schema.json",
+  "//": "========================================",
+  "// NOTE": "此檔案為設定範例，包含所有可用選項的說明",
+  "//": "========================================",
+
+  "Serilog": {
+    "// Description": "Serilog 日誌框架設定",
+    "MinimumLevel": {
+      "Default": "Information",
+      "// Default Options": "Verbose, Debug, Information, Warning, Error, Fatal",
+      "Override": {
+        "// Description": "針對特定命名空間的日誌等級覆寫",
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    }
+  },
+
+  "Redis": {
+    "// Description": "Redis 快取服務設定（必填）",
+    "// Required": true,
+    "ConnectionString": "localhost:6379",
+    "// ConnectionString Examples": [
+      "localhost:6379",
+      "redis-server:6379,password=secret",
+      "redis-cluster:6379,redis-cluster:6380"
+    ],
+    "InstanceName": "ReleaseKit:",
+    "// InstanceName Note": "用於區分不同應用程式的 Redis Key 前綴"
+  },
+
+  "Seq": {
+    "// Description": "Seq 結構化日誌伺服器設定（選用）",
+    "// Required": false,
+    "ServerUrl": "http://localhost:5341",
+    "// ServerUrl Note": "若未設定則不啟用 Seq 日誌",
+    "ApiKey": "",
+    "// ApiKey Note": "選用，用於 Seq 的存取控制"
+  },
+
+  "GitLab": {
+    "// Description": "GitLab 整合設定（必填）",
+    "// Required": true,
+    "ApiUrl": "https://gitlab.com/api/v4",
+    "// ApiUrl Examples": [
+      "https://gitlab.com/api/v4",
+      "https://gitlab.internal.com/api/v4"
+    ],
+    "AccessToken": "",
+    "// AccessToken Note": "GitLab Personal Access Token (格式: glpat-xxxxx)，建議使用 User Secrets 或環境變數",
+    "// AccessToken Scope": "需要 api, read_repository 權限",
+    "Projects": [
+      {
+        "// Description": "要追蹤的 GitLab 專案設定",
+        "ProjectPath": "mygroup/backend-api",
+        "// ProjectPath Format": "group/project 或 group/subgroup/project",
+        "TargetBranch": "main",
+        "// TargetBranch Note": "要追蹤的分支名稱"
+      },
+      {
+        "ProjectPath": "mygroup/frontend",
+        "TargetBranch": "develop"
+      }
+    ]
+  },
+
+  "Bitbucket": {
+    "// Description": "Bitbucket 整合設定（必填）",
+    "// Required": true,
+    "ApiUrl": "https://api.bitbucket.org/2.0",
+    "// ApiUrl Examples": [
+      "https://api.bitbucket.org/2.0",
+      "https://bitbucket.internal.com/rest/api/2.0"
+    ],
+    "Email": "",
+    "// Email Note": "Bitbucket 帳號電子郵件",
+    "AccessToken": "",
+    "// AccessToken Note": "Bitbucket App Password，建議使用 User Secrets 或環境變數",
+    "// AccessToken Scope": "需要 repository:read, pullrequest:read 權限",
+    "Projects": [
+      {
+        "// Description": "要追蹤的 Bitbucket 專案設定",
+        "ProjectPath": "mygroup/backend-api",
+        "// ProjectPath Format": "workspace/repository",
+        "TargetBranch": "main"
+      }
+    ]
+  },
+
+  "UserMapping": {
+    "// Description": "使用者名稱對應設定（選用）",
+    "// Use Case": "當 GitLab/Bitbucket 的使用者名稱與內部系統不一致時使用",
+    "Mappings": [
+      {
+        "From": "gitlab_user",
+        "To": "internal_user",
+        "// From": "來源系統（GitLab/Bitbucket）的使用者名稱",
+        "// To": "內部系統的使用者名稱"
+      },
+      {
+        "From": "john.doe@company.com",
+        "To": "johndoe",
+        "// Note": "可以使用 Email 或 Username 作為來源"
+      }
+    ]
+  },
+
+  "// ========================================": "",
+  "// 環境特定覆寫範例": "",
+  "// ========================================": "",
+  "// Development": "appsettings.Development.json - 開發環境使用 localhost",
+  "// Production": "appsettings.Production.json - 生產環境使用實際服務位址",
+  "// QA": "appsettings.Qa.json - QA 環境使用測試服務位址",
+  "// Docker": "appsettings.Docker.json - Docker 容器內使用服務名稱",
+
+  "// ========================================": "",
+  "// 敏感資訊管理": "",
+  "// ========================================": "",
+  "// User Secrets (Development)": "dotnet user-secrets set 'GitLab:AccessToken' 'glpat-xxxxx'",
+  "// Environment Variables (Production)": "export GitLab__AccessToken='glpat-xxxxx'",
+  "// Docker Compose": "environment: - GitLab__AccessToken=${GITLAB_TOKEN}",
+  "// Kubernetes Secret": "使用 Secret 資源掛載為環境變數"
+}
