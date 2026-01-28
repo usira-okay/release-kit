@@ -169,7 +169,7 @@ public class OptionsConfigurationTests
         
         // Assert
         Assert.NotNull(options);
-        Assert.Empty(options.FetchMode);
+        Assert.Equal("", options.FetchMode);
         Assert.Equal("release/yyyyMMdd", options.SourceBranch);
         Assert.Equal(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero), options.StartDateTime);
         Assert.Equal(new DateTimeOffset(2025, 1, 31, 0, 0, 0, TimeSpan.Zero), options.EndDateTime);

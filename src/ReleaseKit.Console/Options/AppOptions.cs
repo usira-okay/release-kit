@@ -8,7 +8,7 @@ public class AppOptions
     /// <summary>
     /// 擷取模式 (DateTimeRange 或 BranchDiff)
     /// </summary>
-    public string FetchMode { get; set; } = string.Empty;
+    public string? FetchMode { get; set; }
 
     /// <summary>
     /// 來源分支 (例如: release/yyyyMMdd)
