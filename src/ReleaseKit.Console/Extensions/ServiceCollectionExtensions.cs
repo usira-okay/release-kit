@@ -54,13 +54,22 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        // 註冊 GitLab 設定
-        services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
-        
-        // 註冊 Bitbucket 設定
-        services.Configure<BitbucketOptions>(configuration.GetSection("Bitbucket"));
-        
-        // 註冊使用者對應設定
+        // 註冊 FetchMode 配置（Root Level）
+        services.Configure<ReleaseKit.Infrastructure.Configuration.FetchModeOptions>(configuration);
+
+        // 註冊 GoogleSheet 配置
+        services.Configure<ReleaseKit.Infrastructure.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
+
+        // 註冊 AzureDevOps 配置
+        services.Configure<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
+
+        // 註冊 GitLab 配置
+        services.Configure<ReleaseKit.Infrastructure.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
+
+        // 註冊 Bitbucket 配置
+        services.Configure<ReleaseKit.Infrastructure.Configuration.BitbucketOptions>(configuration.GetSection("Bitbucket"));
+
+        // 註冊 UserMapping 配置
         services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));
 
         return services;
