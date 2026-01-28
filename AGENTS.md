@@ -175,4 +175,4 @@ Console 應用程式進入點，負責：
 
 ## 開發指引
 
-**請遵循 .specify\memory\constitution.md** 的規範
+**請遵循 `.specify/memory/constitution.md`** 的規範
