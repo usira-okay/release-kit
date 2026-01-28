@@ -46,13 +46,12 @@ var host = Host.CreateDefaultBuilder(args)
             .Enrich.FromLogContext()
             .WriteTo.Console();
 
-        var seqServerUrl = context.Configuration["Seq:ServerUrl"];
-        var seqApiKey = context.Configuration["Seq:ApiKey"];
+        var seqOptions = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ReleaseKit.Console.Options.SeqOptions>>().Value;
 
-        if (!string.IsNullOrEmpty(seqServerUrl))
+        if (!string.IsNullOrEmpty(seqOptions.ServerUrl))
         {
-            configuration.WriteTo.Seq(seqServerUrl, apiKey: seqApiKey);
-            Log.Information("Seq 日誌已啟用: {SeqUrl}", seqServerUrl);
+            configuration.WriteTo.Seq(seqOptions.ServerUrl, apiKey: seqOptions.ApiKey);
+            Log.Information("Seq 日誌已啟用: {SeqUrl}", seqOptions.ServerUrl);
         }
     })
     .Build();

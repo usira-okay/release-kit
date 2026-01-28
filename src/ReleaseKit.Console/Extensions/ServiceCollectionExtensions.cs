@@ -23,16 +23,18 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddRedisServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var redisConnectionString = configuration["Redis:ConnectionString"] 
-            ?? throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
-        var redisInstanceName = configuration["Redis:InstanceName"] 
-            ?? throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
-
         // 註冊 IConnectionMultiplexer，使用指數級重試機制
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
+            var redisOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RedisOptions>>().Value;
+            
+            if (string.IsNullOrEmpty(redisOptions.ConnectionString))
+                throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
+            if (string.IsNullOrEmpty(redisOptions.InstanceName))
+                throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
+            
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IConnectionMultiplexer>>();
-            var configOptions = ConfigurationOptions.Parse(redisConnectionString);
+            var configOptions = ConfigurationOptions.Parse(redisOptions.ConnectionString);
             configOptions.AbortOnConnectFail = false; // 允許應用程式啟動即使 Redis 尚未就緒
 
             return ConnectionMultiplexerExtensions.ConnectWithRetry(configOptions, logger);
@@ -41,9 +43,10 @@ public static class ServiceCollectionExtensions
         // 註冊 Redis 服務
         services.AddSingleton<IRedisService>(sp =>
         {
+            var redisOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RedisOptions>>().Value;
             var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
-            return new RedisService(connectionMultiplexer, logger, redisInstanceName);
+            return new RedisService(connectionMultiplexer, logger, redisOptions.InstanceName);
         });
 
         return services;
@@ -54,6 +57,12 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
+        // 註冊 Redis 設定
+        services.Configure<RedisOptions>(configuration.GetSection("Redis"));
+        
+        // 註冊 Seq 設定
+        services.Configure<SeqOptions>(configuration.GetSection("Seq"));
+        
         // 註冊 GitLab 設定
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
         

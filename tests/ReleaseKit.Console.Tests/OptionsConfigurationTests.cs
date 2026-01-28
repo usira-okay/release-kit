@@ -89,6 +89,52 @@ public class OptionsConfigurationTests
     }
     
     [Fact]
+    public void Configuration_ShouldLoad_RedisOptions()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.Configure<RedisOptions>(configuration.GetSection("Redis"));
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<RedisOptions>>().Value;
+        
+        // Assert
+        Assert.NotNull(options);
+        Assert.Equal("localhost:6379", options.ConnectionString);
+        Assert.Equal("ReleaseKit:", options.InstanceName);
+    }
+    
+    [Fact]
+    public void Configuration_ShouldLoad_SeqOptions()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.Configure<SeqOptions>(configuration.GetSection("Seq"));
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Act
+        var options = serviceProvider.GetRequiredService<IOptions<SeqOptions>>().Value;
+        
+        // Assert
+        Assert.NotNull(options);
+        Assert.Equal("http://localhost:5341", options.ServerUrl);
+        Assert.Empty(options.ApiKey);
+    }
+    
+    [Fact]
     public void GitLabOptions_EnvironmentVariables_ShouldOverride_JsonSettings()
     {
         // Arrange
@@ -167,6 +213,96 @@ public class OptionsConfigurationTests
             // Assert
             Assert.Equal("test@example.com", options.Email);
             Assert.Equal("bitbucket-token-456", options.AccessToken);
+        }
+        finally
+        {
+            // Cleanup: 確保無論測試成功或失敗都會清理環境變數
+            foreach (var key in envVars.Keys)
+            {
+                Environment.SetEnvironmentVariable(key, null);
+            }
+        }
+    }
+    
+    [Fact]
+    public void RedisOptions_EnvironmentVariables_ShouldOverride_JsonSettings()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var envVars = new Dictionary<string, string>
+        {
+            { "Redis__ConnectionString", "redis.example.com:6379" },
+            { "Redis__InstanceName", "TestInstance:" }
+        };
+
+        try
+        {
+            foreach (var (key, value) in envVars)
+            {
+                Environment.SetEnvironmentVariable(key, value);
+            }
+
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
+            
+            var services = new ServiceCollection();
+            services.Configure<RedisOptions>(configuration.GetSection("Redis"));
+            var serviceProvider = services.BuildServiceProvider();
+            
+            // Act
+            var options = serviceProvider.GetRequiredService<IOptions<RedisOptions>>().Value;
+            
+            // Assert
+            Assert.Equal("redis.example.com:6379", options.ConnectionString);
+            Assert.Equal("TestInstance:", options.InstanceName);
+        }
+        finally
+        {
+            // Cleanup: 確保無論測試成功或失敗都會清理環境變數
+            foreach (var key in envVars.Keys)
+            {
+                Environment.SetEnvironmentVariable(key, null);
+            }
+        }
+    }
+    
+    [Fact]
+    public void SeqOptions_EnvironmentVariables_ShouldOverride_JsonSettings()
+    {
+        // Arrange
+        var basePath = GetProjectBasePath();
+        var envVars = new Dictionary<string, string>
+        {
+            { "Seq__ServerUrl", "https://seq.example.com" },
+            { "Seq__ApiKey", "test-api-key-789" }
+        };
+
+        try
+        {
+            foreach (var (key, value) in envVars)
+            {
+                Environment.SetEnvironmentVariable(key, value);
+            }
+
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
+            
+            var services = new ServiceCollection();
+            services.Configure<SeqOptions>(configuration.GetSection("Seq"));
+            var serviceProvider = services.BuildServiceProvider();
+            
+            // Act
+            var options = serviceProvider.GetRequiredService<IOptions<SeqOptions>>().Value;
+            
+            // Assert
+            Assert.Equal("https://seq.example.com", options.ServerUrl);
+            Assert.Equal("test-api-key-789", options.ApiKey);
         }
         finally
         {
