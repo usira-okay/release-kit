@@ -172,3 +172,7 @@ Console 應用程式進入點，負責：
 ## 執行方式
 
 手動執行的 CLI 工具，供開發者或 PM 在需要產出 Release Notes 時使用。
+
+## 開發指引
+
+**請遵循 .specify\memory\constitution.md** 的規範
