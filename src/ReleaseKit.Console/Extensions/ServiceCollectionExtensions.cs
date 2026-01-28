@@ -54,6 +54,26 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
+        // 註冊 GoogleSheet 設定
+        services.AddOptions<GoogleSheetOptions>()
+            .BindConfiguration("GoogleSheet")
+            .Validate(opts =>
+            {
+                opts.Validate();
+                return true;
+            })
+            .ValidateOnStart();
+        
+        // 註冊 AzureDevOps 設定
+        services.AddOptions<AzureDevOpsOptions>()
+            .BindConfiguration("AzureDevOps")
+            .Validate(opts =>
+            {
+                opts.Validate();
+                return true;
+            })
+            .ValidateOnStart();
+        
         // 註冊 GitLab 設定
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
         

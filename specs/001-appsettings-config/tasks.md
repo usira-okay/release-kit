@@ -29,9 +29,9 @@ description: "Task list for AppSettings 配置擴充 feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create test project ReleaseKit.Console.Tests under tests/ directory
-- [ ] T002 Add project reference from ReleaseKit.Console.Tests to ReleaseKit.Console
-- [ ] T003 Install xUnit and FluentAssertions packages in ReleaseKit.Console.Tests
+- [X] T001 Create test project ReleaseKit.Console.Tests under tests/ directory
+- [X] T002 Add project reference from ReleaseKit.Console.Tests to ReleaseKit.Console
+- [X] T003 Install xUnit and FluentAssertions packages in ReleaseKit.Console.Tests
 
 ---
 
@@ -41,12 +41,12 @@ description: "Task list for AppSettings 配置擴充 feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Create FetchMode enum in src/ReleaseKit.Console/Options/FetchMode.cs
-- [ ] T005 [P] Create GoogleSheetOptions class in src/ReleaseKit.Console/Options/GoogleSheetOptions.cs
-- [ ] T006 [P] Create ColumnMappingOptions class in src/ReleaseKit.Console/Options/ColumnMappingOptions.cs
-- [ ] T007 [P] Create AzureDevOpsOptions class in src/ReleaseKit.Console/Options/AzureDevOpsOptions.cs
-- [ ] T008 [P] Create TeamMappingOptions class in src/ReleaseKit.Console/Options/TeamMappingOptions.cs
-- [ ] T009 Modify GitLabProjectOptions class in src/ReleaseKit.Console/Options/GitLabProjectOptions.cs to add FetchMode, SourceBranch, StartDateTime, EndDateTime fields
+- [X] T004 [P] Create FetchMode enum in src/ReleaseKit.Console/Options/FetchMode.cs
+- [X] T005 [P] Create GoogleSheetOptions class in src/ReleaseKit.Console/Options/GoogleSheetOptions.cs
+- [X] T006 [P] Create ColumnMappingOptions class in src/ReleaseKit.Console/Options/ColumnMappingOptions.cs
+- [X] T007 [P] Create AzureDevOpsOptions class in src/ReleaseKit.Console/Options/AzureDevOpsOptions.cs
+- [X] T008 [P] Create TeamMappingOptions class in src/ReleaseKit.Console/Options/TeamMappingOptions.cs
+- [X] T009 Modify GitLabProjectOptions class in src/ReleaseKit.Console/Options/GitLabProjectOptions.cs to add FetchMode, SourceBranch, StartDateTime, EndDateTime fields
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -64,16 +64,16 @@ description: "Task list for AppSettings 配置擴充 feature implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Add Validate() method to GoogleSheetOptions in src/ReleaseKit.Console/Options/GoogleSheetOptions.cs
-- [ ] T011 [P] [US1] Add Validate() method to ColumnMappingOptions in src/ReleaseKit.Console/Options/ColumnMappingOptions.cs
-- [ ] T012 [P] [US1] Add Validate() method to AzureDevOpsOptions in src/ReleaseKit.Console/Options/AzureDevOpsOptions.cs
-- [ ] T013 [P] [US1] Add Validate() method to TeamMappingOptions in src/ReleaseKit.Console/Options/TeamMappingOptions.cs
-- [ ] T014 [P] [US1] Add Validate() method to GitLabProjectOptions in src/ReleaseKit.Console/Options/GitLabProjectOptions.cs
-- [ ] T015 [US1] Register GoogleSheetOptions to DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs with ValidateOnStart
-- [ ] T016 [US1] Register AzureDevOpsOptions to DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs with ValidateOnStart
-- [ ] T017 [P] [US1] Create GoogleSheetOptionsTests in tests/ReleaseKit.Console.Tests/Options/GoogleSheetOptionsTests.cs
-- [ ] T018 [P] [US1] Create AzureDevOpsOptionsTests in tests/ReleaseKit.Console.Tests/Options/AzureDevOpsOptionsTests.cs
-- [ ] T019 [P] [US1] Create GitLabProjectOptionsTests in tests/ReleaseKit.Console.Tests/Options/GitLabProjectOptionsTests.cs
+- [X] T010 [P] [US1] Add Validate() method to GoogleSheetOptions in src/ReleaseKit.Console/Options/GoogleSheetOptions.cs
+- [X] T011 [P] [US1] Add Validate() method to ColumnMappingOptions in src/ReleaseKit.Console/Options/ColumnMappingOptions.cs
+- [X] T012 [P] [US1] Add Validate() method to AzureDevOpsOptions in src/ReleaseKit.Console/Options/AzureDevOpsOptions.cs
+- [X] T013 [P] [US1] Add Validate() method to TeamMappingOptions in src/ReleaseKit.Console/Options/TeamMappingOptions.cs
+- [X] T014 [P] [US1] Add Validate() method to GitLabProjectOptions in src/ReleaseKit.Console/Options/GitLabProjectOptions.cs
+- [X] T015 [US1] Register GoogleSheetOptions to DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs with ValidateOnStart
+- [X] T016 [US1] Register AzureDevOpsOptions to DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs with ValidateOnStart
+- [X] T017 [P] [US1] Create GoogleSheetOptionsTests in tests/ReleaseKit.Console.Tests/Options/GoogleSheetOptionsTests.cs
+- [X] T018 [P] [US1] Create AzureDevOpsOptionsTests in tests/ReleaseKit.Console.Tests/Options/AzureDevOpsOptionsTests.cs
+- [X] T019 [P] [US1] Create GitLabProjectOptionsTests in tests/ReleaseKit.Console.Tests/Options/GitLabProjectOptionsTests.cs
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -91,11 +91,11 @@ description: "Task list for AppSettings 配置擴充 feature implementation"
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create appsettings.Development.json in src/ReleaseKit.Console/ with sample environment-specific overrides
-- [ ] T021 [P] [US2] Create appsettings.Production.json in src/ReleaseKit.Console/ with sample environment-specific overrides
-- [ ] T022 [US2] Update Program.cs in src/ReleaseKit.Console/Program.cs to ensure environment-specific configuration loading order
-- [ ] T023 [US2] Create integration test for environment-specific configuration in tests/ReleaseKit.Console.Tests/Integration/EnvironmentConfigurationTests.cs
-- [ ] T024 [US2] Document environment-specific configuration usage in quickstart.md
+- [X] T020 [P] [US2] Create appsettings.Development.json in src/ReleaseKit.Console/ with sample environment-specific overrides
+- [X] T021 [P] [US2] Create appsettings.Production.json in src/ReleaseKit.Console/ with sample environment-specific overrides
+- [X] T022 [US2] Update Program.cs in src/ReleaseKit.Console/Program.cs to ensure environment-specific configuration loading order
+- [X] T023 [US2] Create integration test for environment-specific configuration in tests/ReleaseKit.Console.Tests/Integration/EnvironmentConfigurationTests.cs
+- [X] T024 [US2] Document environment-specific configuration usage in quickstart.md
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -112,10 +112,10 @@ description: "Task list for AppSettings 配置擴充 feature implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Verify environment variable override mechanism in Program.cs in src/ReleaseKit.Console/Program.cs
-- [ ] T026 [US3] Create integration test for environment variable override in tests/ReleaseKit.Console.Tests/Integration/EnvironmentVariableOverrideTests.cs
-- [ ] T027 [US3] Document environment variable naming conventions in quickstart.md
-- [ ] T028 [US3] Add examples of sensitive information injection via environment variables in quickstart.md
+- [X] T025 [US3] Verify environment variable override mechanism in Program.cs in src/ReleaseKit.Console/Program.cs
+- [X] T026 [US3] Create integration test for environment variable override in tests/ReleaseKit.Console.Tests/Integration/EnvironmentVariableOverrideTests.cs
+- [X] T027 [US3] Document environment variable naming conventions in quickstart.md
+- [X] T028 [US3] Add examples of sensitive information injection via environment variables in quickstart.md
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -125,11 +125,11 @@ description: "Task list for AppSettings 配置擴充 feature implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T029 [P] Add XML documentation comments to all public properties in Options classes
-- [ ] T030 [P] Update constitution.md validation status in specs/001-appsettings-config/plan.md
-- [ ] T031 Validate all scenarios in quickstart.md by running the application
-- [ ] T032 Run existing tests to ensure no regression with new configuration changes
-- [ ] T033 [P] Update README.md with configuration usage instructions if needed
+- [X] T029 [P] Add XML documentation comments to all public properties in Options classes
+- [X] T030 [P] Update constitution.md validation status in specs/001-appsettings-config/plan.md
+- [X] T031 Validate all scenarios in quickstart.md by running the application
+- [X] T032 Run existing tests to ensure no regression with new configuration changes
+- [X] T033 [P] Update README.md with configuration usage instructions if needed
 
 ---
 
