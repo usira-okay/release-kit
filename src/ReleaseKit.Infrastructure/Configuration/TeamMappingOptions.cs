@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace ReleaseKit.Infrastructure.Configuration;
 
 /// <summary>
@@ -10,12 +8,10 @@ public class TeamMappingOptions
     /// <summary>
     /// 原始團隊名稱（英文）
     /// </summary>
-    [Required(ErrorMessage = "OriginalTeamName 不可為空")]
     public string OriginalTeamName { get; init; } = string.Empty;
 
     /// <summary>
     /// 顯示名稱（中文或其他語言）
     /// </summary>
-    [Required(ErrorMessage = "DisplayName 不可為空")]
     public string DisplayName { get; init; } = string.Empty;
 }

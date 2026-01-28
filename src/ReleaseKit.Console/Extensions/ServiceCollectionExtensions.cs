@@ -56,33 +56,23 @@ public static class ServiceCollectionExtensions
     {
         // 註冊 FetchMode 配置（Root Level）
         services.AddOptions<ReleaseKit.Infrastructure.Configuration.FetchModeOptions>()
-            .Bind(configuration)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration);
 
         // 註冊 GoogleSheet 配置
         services.AddOptions<ReleaseKit.Infrastructure.Configuration.GoogleSheetOptions>()
-            .Bind(configuration.GetSection("GoogleSheet"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("GoogleSheet"));
 
         // 註冊 AzureDevOps 配置
         services.AddOptions<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>()
-            .Bind(configuration.GetSection("AzureDevOps"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("AzureDevOps"));
 
         // 註冊 GitLab 配置
         services.AddOptions<ReleaseKit.Infrastructure.Configuration.GitLabOptions>()
-            .Bind(configuration.GetSection("GitLab"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("GitLab"));
 
         // 註冊 Bitbucket 配置
         services.AddOptions<ReleaseKit.Infrastructure.Configuration.BitbucketOptions>()
-            .Bind(configuration.GetSection("Bitbucket"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("Bitbucket"));
         
         // 保留舊有的配置註冊（向下相容）
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));

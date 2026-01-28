@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace ReleaseKit.Infrastructure.Configuration;
 
 /// <summary>
@@ -10,7 +8,6 @@ public class FetchModeOptions
     /// <summary>
     /// 拉取模式：DateTimeRange（時間區間）或 BranchDiff（分支差異）
     /// </summary>
-    [Required(ErrorMessage = "FetchMode 不可為空")]
     public string FetchMode { get; init; } = string.Empty;
 
     /// <summary>

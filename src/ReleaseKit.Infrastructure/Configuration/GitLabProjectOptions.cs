@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace ReleaseKit.Infrastructure.Configuration;
 
 /// <summary>
@@ -10,13 +8,11 @@ public class GitLabProjectOptions
     /// <summary>
     /// 專案路徑（如 "group/project"）
     /// </summary>
-    [Required(ErrorMessage = "ProjectPath 不可為空")]
     public string ProjectPath { get; init; } = string.Empty;
 
     /// <summary>
     /// 目標分支名稱
     /// </summary>
-    [Required(ErrorMessage = "TargetBranch 不可為空")]
     public string TargetBranch { get; init; } = string.Empty;
 
     /// <summary>
