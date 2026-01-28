@@ -54,6 +54,9 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
+        // 註冊應用程式設定
+        services.Configure<AppOptions>(configuration);
+        
         // 註冊 GitLab 設定
         services.Configure<GitLabOptions>(configuration.GetSection("GitLab"));
         
@@ -62,6 +65,12 @@ public static class ServiceCollectionExtensions
         
         // 註冊使用者對應設定
         services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));
+
+        // 註冊 Google Sheet 設定
+        services.Configure<GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
+
+        // 註冊 Azure DevOps 設定
+        services.Configure<AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
 
         return services;
     }

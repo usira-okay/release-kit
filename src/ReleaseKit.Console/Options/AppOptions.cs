@@ -1,24 +1,14 @@
 namespace ReleaseKit.Console.Options;
 
 /// <summary>
-/// GitLab 專案設定
+/// 應用程式設定選項
 /// </summary>
-public class GitLabProjectOptions
+public class AppOptions
 {
-    /// <summary>
-    /// 專案路徑 (例如: mygroup/backend-api)
-    /// </summary>
-    public string ProjectPath { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 目標分支
-    /// </summary>
-    public string TargetBranch { get; set; } = string.Empty;
-
     /// <summary>
     /// 擷取模式 (DateTimeRange 或 BranchDiff)
     /// </summary>
-    public string? FetchMode { get; set; }
+    public string FetchMode { get; set; } = string.Empty;
 
     /// <summary>
     /// 來源分支 (例如: release/yyyyMMdd)
