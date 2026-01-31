@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReleaseKit.Application.Common;
 using ReleaseKit.Application.Configuration;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
@@ -45,33 +46,74 @@ public class FetchGitLabPullRequestsTask : ITask
         _logger.LogInformation("開始執行 GitLab Pull Request 拉取任務");
 
         var repository = _serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("GitLab");
-        var allResults = new List<MergeRequest>();
+        var projectResults = new List<ProjectResult>();
 
         // 處理每個專案
         foreach (var project in _gitLabOptions.Projects)
         {
             _logger.LogInformation("處理專案: {ProjectPath}", project.ProjectPath);
 
-            // 專案層級設定覆蓋全域設定
-            var fetchMode = project.FetchMode ?? _fetchModeOptions.FetchMode;
-            
-            if (fetchMode == FetchMode.DateTimeRange)
+            var projectResult = new ProjectResult
             {
-                var result = await ExecuteDateTimeRangeModeAsync(repository, project);
-                if (result != null)
+                ProjectPath = project.ProjectPath,
+                Platform = "GitLab",
+                PullRequests = new List<MergeRequestOutput>()
+            };
+
+            try
+            {
+                // 專案層級設定覆蓋全域設定
+                var fetchMode = project.FetchMode ?? _fetchModeOptions.FetchMode;
+                
+                List<MergeRequest>? mergeRequests = null;
+                
+                if (fetchMode == FetchMode.DateTimeRange)
                 {
-                    allResults.AddRange(result);
+                    mergeRequests = await ExecuteDateTimeRangeModeAsync(repository, project);
+                }
+                else if (fetchMode == FetchMode.BranchDiff)
+                {
+                    mergeRequests = await ExecuteBranchDiffModeAsync(repository, project);
+                }
+
+                // 轉換為輸出格式
+                if (mergeRequests != null)
+                {
+                    projectResult = projectResult with
+                    {
+                        PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
+                        {
+                            Title = mr.Title,
+                            Description = mr.Description,
+                            SourceBranch = mr.SourceBranch,
+                            TargetBranch = mr.TargetBranch,
+                            CreatedAt = mr.CreatedAt,
+                            MergedAt = mr.MergedAt,
+                            State = mr.State,
+                            AuthorUserId = mr.AuthorUserId,
+                            AuthorName = mr.AuthorName,
+                            PRUrl = mr.PRUrl
+                        }).ToList()
+                    };
                 }
             }
-            else if (fetchMode == FetchMode.BranchDiff)
+            catch (Exception ex)
             {
-                var result = await ExecuteBranchDiffModeAsync(repository, project);
-                if (result != null)
+                _logger.LogError(ex, "處理專案 {ProjectPath} 時發生例外", project.ProjectPath);
+                projectResult = projectResult with
                 {
-                    allResults.AddRange(result);
-                }
+                    Error = $"處理失敗: {ex.Message}"
+                };
             }
+
+            projectResults.Add(projectResult);
         }
+
+        // 建立最終輸出
+        var fetchResult = new FetchResult
+        {
+            Results = projectResults
+        };
 
         // 輸出 JSON 結果
         var jsonOptions = new JsonSerializerOptions
@@ -79,10 +121,16 @@ public class FetchGitLabPullRequestsTask : ITask
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
-        var json = JsonSerializer.Serialize(allResults, jsonOptions);
+        var json = JsonSerializer.Serialize(fetchResult, jsonOptions);
         System.Console.WriteLine(json);
 
-        _logger.LogInformation("GitLab Pull Request 拉取任務完成，共取得 {Count} 筆 MR", allResults.Count);
+        var totalMRs = projectResults.Sum(r => r.PullRequests.Count);
+        var failedProjects = projectResults.Count(r => r.Error != null);
+        _logger.LogInformation(
+            "GitLab Pull Request 拉取任務完成，共處理 {ProjectCount} 個專案，取得 {Count} 筆 MR，{FailedCount} 個專案失敗",
+            projectResults.Count,
+            totalMRs,
+            failedProjects);
     }
 
     /// <summary>

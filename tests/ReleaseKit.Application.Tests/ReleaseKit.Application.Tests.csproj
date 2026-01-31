@@ -10,8 +10,11 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="RichardSzalay.MockHttp" Version="7.0.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
@@ -23,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ReleaseKit.Domain\ReleaseKit.Domain.csproj" />
     <ProjectReference Include="..\..\src\ReleaseKit.Application\ReleaseKit.Application.csproj" />
+    <ProjectReference Include="..\..\src\ReleaseKit.Infrastructure\ReleaseKit.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

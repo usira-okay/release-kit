@@ -149,17 +149,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T053 [P] [US4] Unit test for configuration inheritance logic in tests/ReleaseKit.Application.Tests/Tasks/ConfigurationInheritanceTests.cs
-- [ ] T054 [P] [US4] Integration test for multi-project execution in tests/ReleaseKit.Application.Tests/Tasks/MultiProjectExecutionTests.cs
+- [X] T053 [P] [US4] Unit test for configuration inheritance logic in tests/ReleaseKit.Application.Tests/Tasks/ConfigurationInheritanceTests.cs
+- [X] T054 [P] [US4] Integration test for multi-project execution in tests/ReleaseKit.Application.Tests/Tasks/MultiProjectExecutionTests.cs
 
 ### Implementation for User Story 4
 
-- [ ] T055 [US4] Implement configuration inheritance helper in src/ReleaseKit.Application/Common/ConfigurationHelper.cs
-- [ ] T056 [US4] Implement multi-project iteration logic in FetchGitLabPullRequestsTask in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
-- [ ] T057 [US4] Implement multi-project iteration logic in FetchBitbucketPullRequestsTask in src/ReleaseKit.Application/Tasks/FetchBitbucketPullRequestsTask.cs
-- [ ] T058 [US4] Create FetchResult output model in src/ReleaseKit.Application/Common/FetchResult.cs
-- [ ] T059 [US4] Create ProjectResult output model in src/ReleaseKit.Application/Common/ProjectResult.cs
-- [ ] T060 [US4] Create MergeRequestOutput output model in src/ReleaseKit.Application/Common/MergeRequestOutput.cs
+- [X] T055 [US4] Implement configuration inheritance helper in src/ReleaseKit.Application/Common/ConfigurationHelper.cs
+- [X] T056 [US4] Implement multi-project iteration logic in FetchGitLabPullRequestsTask in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
+- [X] T057 [US4] Implement multi-project iteration logic in FetchBitbucketPullRequestsTask in src/ReleaseKit.Application/Tasks/FetchBitbucketPullRequestsTask.cs
+- [X] T058 [US4] Create FetchResult output model in src/ReleaseKit.Application/Common/FetchResult.cs
+- [X] T059 [US4] Create ProjectResult output model in src/ReleaseKit.Application/Common/ProjectResult.cs
+- [X] T060 [US4] Create MergeRequestOutput output model in src/ReleaseKit.Application/Common/MergeRequestOutput.cs
 
 **Checkpoint**: User Story 4 (multi-project batch) should be fully functional with correct config inheritance
 
@@ -169,13 +169,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T061 [P] Add XML documentation comments to ISourceControlRepository in src/ReleaseKit.Domain/Abstractions/ISourceControlRepository.cs
-- [ ] T062 [P] Add XML documentation comments to Result<T> and Error in src/ReleaseKit.Domain/Common/
-- [ ] T063 [P] Add XML documentation comments to MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
-- [ ] T064 [P] Add logging for API calls in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T065 [P] Add logging for API calls in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
-- [ ] T066 Code review and refactoring for DRY principle across repositories
-- [ ] T067 Run quickstart.md validation scenarios
+- [X] T061 [P] Add XML documentation comments to ISourceControlRepository in src/ReleaseKit.Domain/Abstractions/ISourceControlRepository.cs
+- [X] T062 [P] Add XML documentation comments to Result<T> and Error in src/ReleaseKit.Domain/Common/
+- [X] T063 [P] Add XML documentation comments to MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
+- [X] T064 [P] Add logging for API calls in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T065 [P] Add logging for API calls in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T066 Code review and refactoring for DRY principle across repositories
+- [X] T067 Run quickstart.md validation scenarios
 
 ---
 
