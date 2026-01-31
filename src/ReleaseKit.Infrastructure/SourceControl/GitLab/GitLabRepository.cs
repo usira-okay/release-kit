@@ -126,18 +126,17 @@ public class GitLabRepository : ISourceControlRepository
 
         // 2. 對每個 commit 取得關聯的 MR
         var allMergeRequests = new List<MergeRequest>();
-        var processedMRIds = new HashSet<int>();
+        var processedMRUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var commit in compareResult.Commits)
         {
             var mrResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Id, cancellationToken);
             if (mrResult.IsSuccess && mrResult.Value != null)
             {
-                // 去重複
+                // 去重複：使用 PRUrl 作為唯一鍵
                 foreach (var mr in mrResult.Value)
                 {
-                    var mrId = int.Parse(mr.PRUrl.Split('/').Last());
-                    if (processedMRIds.Add(mrId))
+                    if (processedMRUrls.Add(mr.PRUrl))
                     {
                         allMergeRequests.Add(mr);
                     }

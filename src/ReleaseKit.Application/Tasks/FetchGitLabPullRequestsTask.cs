@@ -139,7 +139,9 @@ public class FetchGitLabPullRequestsTask : ITask
         // 取得時間參數：專案層級優先，否則使用全域設定
         var startDateTime = project.StartDateTime ?? _fetchModeOptions.StartDateTime;
         var endDateTime = project.EndDateTime ?? _fetchModeOptions.EndDateTime;
-        var targetBranch = project.TargetBranch ?? _fetchModeOptions.TargetBranch;
+        var targetBranch = string.IsNullOrWhiteSpace(project.TargetBranch)
+            ? _fetchModeOptions.TargetBranch
+            : project.TargetBranch;
 
         // 驗證必填參數
         if (!startDateTime.HasValue)
@@ -186,8 +188,12 @@ public class FetchGitLabPullRequestsTask : ITask
         GitLabProjectOptions project)
     {
         // 取得分支參數：專案層級優先，否則使用全域設定
-        var sourceBranch = project.SourceBranch ?? _fetchModeOptions.SourceBranch;
-        var targetBranch = project.TargetBranch ?? _fetchModeOptions.TargetBranch;
+        var sourceBranch = string.IsNullOrWhiteSpace(project.SourceBranch)
+            ? _fetchModeOptions.SourceBranch
+            : project.SourceBranch;
+        var targetBranch = string.IsNullOrWhiteSpace(project.TargetBranch)
+            ? _fetchModeOptions.TargetBranch
+            : project.TargetBranch;
 
         // 驗證必填參數
         if (string.IsNullOrEmpty(sourceBranch))

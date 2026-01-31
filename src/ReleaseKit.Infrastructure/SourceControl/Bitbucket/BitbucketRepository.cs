@@ -60,11 +60,12 @@ public class BitbucketRepository : ISourceControlRepository
                 break;
             }
 
-            // 二次過濾：僅保留 closed_on 在時間範圍內的 PR
+            // 二次過濾：僅保留 closed_on 在時間範圍內且合併到目標分支的 PR
             var filteredPullRequests = pageResponse.Values
                 .Where(pr => pr.ClosedOn.HasValue &&
                              pr.ClosedOn.Value >= startDateTime &&
-                             pr.ClosedOn.Value <= endDateTime)
+                             pr.ClosedOn.Value <= endDateTime &&
+                             pr.Destination?.Branch?.Name == targetBranch)
                 .Select(pr => BitbucketPullRequestMapper.ToDomain(pr, projectPath))
                 .ToList();
 
