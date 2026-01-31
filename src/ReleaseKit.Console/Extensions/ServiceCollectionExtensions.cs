@@ -163,8 +163,11 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 註冊應用程式服務
     /// </summary>
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // 註冊 HttpClient 服務（Repositories 依賴 IHttpClientFactory）
+        services.AddHttpClientServices(configuration);
+        
         // 註冊時間服務
         services.AddSingleton<INow, SystemNow>();
         
