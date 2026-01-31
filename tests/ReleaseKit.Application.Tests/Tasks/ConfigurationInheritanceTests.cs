@@ -1,5 +1,5 @@
 using ReleaseKit.Application.Common;
-using ReleaseKit.Application.Configuration;
+using ReleaseKit.Common.Configuration;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 

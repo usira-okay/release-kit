@@ -1,24 +1,19 @@
-namespace ReleaseKit.Application.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
-/// GitLab 專案配置選項
+/// 拉取模式配置選項
 /// </summary>
-public class GitLabProjectOptions
+public class FetchModeOptions
 {
     /// <summary>
-    /// 專案路徑（如 "group/project"）
+    /// 拉取模式：DateTimeRange（時間區間）或 BranchDiff（分支差異）
     /// </summary>
-    public string ProjectPath { get; init; } = string.Empty;
+    public FetchMode FetchMode { get; init; } = FetchMode.DateTimeRange;
 
     /// <summary>
-    /// 目標分支名稱
+    /// 目標分支名稱（全域預設值，可被專案層級設定覆蓋）
     /// </summary>
-    public string TargetBranch { get; init; } = string.Empty;
-
-    /// <summary>
-    /// 拉取模式：DateTimeRange 或 BranchDiff（可選，若未提供則使用全域設定）
-    /// </summary>
-    public FetchMode? FetchMode { get; init; }
+    public string? TargetBranch { get; init; }
 
     /// <summary>
     /// 來源分支名稱（BranchDiff 模式時必填）

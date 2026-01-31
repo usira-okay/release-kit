@@ -11,13 +11,11 @@ public sealed record BitbucketPageResponse<T>
     /// <summary>
     /// 資料清單
     /// </summary>
-    [JsonPropertyName("values")]
     public List<T> Values { get; init; } = new();
 
     /// <summary>
     /// 下一頁連結
     /// </summary>
-    [JsonPropertyName("next")]
     public string? Next { get; init; }
 
     /// <summary>
@@ -35,6 +33,5 @@ public sealed record BitbucketPageResponse<T>
     /// <summary>
     /// 總筆數
     /// </summary>
-    [JsonPropertyName("size")]
     public int Size { get; init; }
 }

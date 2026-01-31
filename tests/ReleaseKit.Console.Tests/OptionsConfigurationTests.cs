@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using ReleaseKit.Common.Configuration;
 using ReleaseKit.Console.Options;
 
 namespace ReleaseKit.Console.Tests;

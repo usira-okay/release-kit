@@ -10,7 +10,6 @@ public sealed record GitLabCommitResponse
     /// <summary>
     /// Commit ID（完整 SHA）
     /// </summary>
-    [JsonPropertyName("id")]
     public string Id { get; init; } = string.Empty;
 
     /// <summary>
@@ -22,7 +21,6 @@ public sealed record GitLabCommitResponse
     /// <summary>
     /// Commit 標題
     /// </summary>
-    [JsonPropertyName("title")]
     public string Title { get; init; } = string.Empty;
 
     /// <summary>

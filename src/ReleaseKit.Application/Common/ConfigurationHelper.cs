@@ -1,4 +1,4 @@
-using ReleaseKit.Application.Configuration;
+using ReleaseKit.Common.Configuration;
 
 namespace ReleaseKit.Application.Common;
 

@@ -10,25 +10,21 @@ public sealed record GitLabMergeRequestResponse
     /// <summary>
     /// MR ID
     /// </summary>
-    [JsonPropertyName("id")]
     public int Id { get; init; }
 
     /// <summary>
     /// MR IID（專案內的 ID）
     /// </summary>
-    [JsonPropertyName("iid")]
     public int Iid { get; init; }
 
     /// <summary>
     /// MR 標題
     /// </summary>
-    [JsonPropertyName("title")]
     public string Title { get; init; } = string.Empty;
 
     /// <summary>
     /// MR 描述
     /// </summary>
-    [JsonPropertyName("description")]
     public string? Description { get; init; }
 
     /// <summary>
@@ -46,7 +42,6 @@ public sealed record GitLabMergeRequestResponse
     /// <summary>
     /// MR 狀態
     /// </summary>
-    [JsonPropertyName("state")]
     public string State { get; init; } = string.Empty;
 
     /// <summary>

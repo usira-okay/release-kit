@@ -11,13 +11,11 @@ public sealed record BitbucketDiffResponse
     /// <summary>
     /// 變更的檔案清單
     /// </summary>
-    [JsonPropertyName("values")]
     public List<BitbucketDiffStatResponse> Values { get; init; } = new();
 
     /// <summary>
     /// 下一頁 URL
     /// </summary>
-    [JsonPropertyName("next")]
     public string? Next { get; init; }
 }
 
@@ -29,7 +27,6 @@ public sealed record BitbucketDiffStatResponse
     /// <summary>
     /// 檔案類型
     /// </summary>
-    [JsonPropertyName("type")]
     public string Type { get; init; } = string.Empty;
 
     /// <summary>

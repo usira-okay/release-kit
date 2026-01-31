@@ -10,13 +10,11 @@ public sealed record BitbucketPullRequestResponse
     /// <summary>
     /// PR ID
     /// </summary>
-    [JsonPropertyName("id")]
     public int Id { get; init; }
 
     /// <summary>
     /// PR 標題
     /// </summary>
-    [JsonPropertyName("title")]
     public string Title { get; init; } = string.Empty;
 
     /// <summary>
@@ -40,7 +38,6 @@ public sealed record BitbucketPullRequestResponse
     /// <summary>
     /// PR 狀態
     /// </summary>
-    [JsonPropertyName("state")]
     public string State { get; init; } = string.Empty;
 
     /// <summary>

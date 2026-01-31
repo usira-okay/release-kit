@@ -1,4 +1,4 @@
-namespace ReleaseKit.Application.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// Bitbucket 配置選項
@@ -11,7 +11,12 @@ public class BitbucketOptions
     public string ApiUrl { get; init; } = string.Empty;
 
     /// <summary>
-    /// Bitbucket Access Token
+    /// Bitbucket 帳戶 Email
+    /// </summary>
+    public string Email { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Bitbucket Access Token / App Password
     /// </summary>
     public string AccessToken { get; init; } = string.Empty;
 

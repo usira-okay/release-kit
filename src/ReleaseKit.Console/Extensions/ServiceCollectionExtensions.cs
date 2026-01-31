@@ -54,11 +54,8 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddConfigurationOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        // 註冊 FetchMode 配置（Root Level）- Infrastructure
-        services.Configure<ReleaseKit.Infrastructure.Configuration.FetchModeOptions>(configuration);
-        
-        // 註冊 FetchMode 配置（Root Level）- Application
-        services.Configure<ReleaseKit.Application.Configuration.FetchModeOptions>(configuration);
+        // 註冊 FetchMode 配置（Root Level）
+        services.Configure<ReleaseKit.Common.Configuration.FetchModeOptions>(configuration);
 
         // 註冊 GoogleSheet 配置
         services.Configure<ReleaseKit.Infrastructure.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
@@ -66,17 +63,11 @@ public static class ServiceCollectionExtensions
         // 註冊 AzureDevOps 配置
         services.Configure<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
 
-        // 註冊 GitLab 配置 - Infrastructure
-        services.Configure<ReleaseKit.Infrastructure.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
-        
-        // 註冊 GitLab 配置 - Application  
-        services.Configure<ReleaseKit.Application.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
+        // 註冊 GitLab 配置
+        services.Configure<ReleaseKit.Common.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
 
-        // 註冊 Bitbucket 配置 - Infrastructure
-        services.Configure<ReleaseKit.Infrastructure.Configuration.BitbucketOptions>(configuration.GetSection("Bitbucket"));
-        
-        // 註冊 Bitbucket 配置 - Application
-        services.Configure<ReleaseKit.Application.Configuration.BitbucketOptions>(configuration.GetSection("Bitbucket"));
+        // 註冊 Bitbucket 配置
+        services.Configure<ReleaseKit.Common.Configuration.BitbucketOptions>(configuration.GetSection("Bitbucket"));
 
         // 註冊 UserMapping 配置
         services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));
@@ -92,7 +83,7 @@ public static class ServiceCollectionExtensions
         // 註冊 GitLab HttpClient
         services.AddHttpClient("GitLab", (sp, client) =>
         {
-            var gitLabOptions = configuration.GetSection("GitLab").Get<ReleaseKit.Infrastructure.Configuration.GitLabOptions>();
+            var gitLabOptions = configuration.GetSection("GitLab").Get<ReleaseKit.Common.Configuration.GitLabOptions>();
             if (gitLabOptions?.ApiUrl != null)
             {
                 var apiUri = new Uri(gitLabOptions.ApiUrl);
@@ -123,7 +114,7 @@ public static class ServiceCollectionExtensions
         // 註冊 Bitbucket HttpClient
         services.AddHttpClient("Bitbucket", (sp, client) =>
         {
-            var bitbucketOptions = configuration.GetSection("Bitbucket").Get<ReleaseKit.Infrastructure.Configuration.BitbucketOptions>();
+            var bitbucketOptions = configuration.GetSection("Bitbucket").Get<ReleaseKit.Common.Configuration.BitbucketOptions>();
             if (bitbucketOptions?.ApiUrl != null)
             {
                 var apiUri = new Uri(bitbucketOptions.ApiUrl);

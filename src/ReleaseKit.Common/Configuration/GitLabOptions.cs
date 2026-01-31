@@ -1,4 +1,4 @@
-namespace ReleaseKit.Application.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// GitLab 配置選項

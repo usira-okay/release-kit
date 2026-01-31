@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using ReleaseKit.Application.Configuration;
+using ReleaseKit.Common.Configuration;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Domain.Abstractions;
 using AppTaskFactory = ReleaseKit.Application.Tasks.TaskFactory;

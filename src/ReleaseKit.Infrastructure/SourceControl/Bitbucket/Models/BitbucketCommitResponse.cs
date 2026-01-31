@@ -10,13 +10,11 @@ public sealed record BitbucketCommitResponse
     /// <summary>
     /// Commit Hash
     /// </summary>
-    [JsonPropertyName("hash")]
     public string Hash { get; init; } = string.Empty;
 
     /// <summary>
     /// Commit 類型 (通常是 "commit")
     /// </summary>
-    [JsonPropertyName("type")]
     public string Type { get; init; } = string.Empty;
 
     /// <summary>

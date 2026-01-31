@@ -10,6 +10,5 @@ public sealed record BitbucketBranchResponse
     /// <summary>
     /// 分支名稱
     /// </summary>
-    [JsonPropertyName("name")]
     public string Name { get; init; } = string.Empty;
 }

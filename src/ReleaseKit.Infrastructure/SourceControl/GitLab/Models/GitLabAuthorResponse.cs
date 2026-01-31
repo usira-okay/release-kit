@@ -10,7 +10,6 @@ public sealed record GitLabAuthorResponse
     /// <summary>
     /// 作者 ID
     /// </summary>
-    [JsonPropertyName("id")]
     public int Id { get; init; }
 
     /// <summary>

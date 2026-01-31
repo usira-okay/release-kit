@@ -1,6 +1,6 @@
 using ReleaseKit.Application.Common;
 using ReleaseKit.Domain.ValueObjects;
-using ReleaseKit.Application.Configuration;
+using ReleaseKit.Common.Configuration;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
