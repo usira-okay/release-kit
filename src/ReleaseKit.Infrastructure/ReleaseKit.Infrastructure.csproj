@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ReleaseKit.Domain\ReleaseKit.Domain.csproj" />
     <ProjectReference Include="..\ReleaseKit.Application\ReleaseKit.Application.csproj" />
+    <ProjectReference Include="..\ReleaseKit.Common\ReleaseKit.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

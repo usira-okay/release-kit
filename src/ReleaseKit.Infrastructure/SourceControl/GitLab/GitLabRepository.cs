@@ -1,9 +1,9 @@
 using System.Net;
 using System.Web;
+using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Domain.Entities;
-using ReleaseKit.Infrastructure.Common;
 using ReleaseKit.Infrastructure.SourceControl.GitLab.Models;
 
 namespace ReleaseKit.Infrastructure.SourceControl.GitLab;

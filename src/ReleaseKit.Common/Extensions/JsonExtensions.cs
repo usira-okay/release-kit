@@ -1,6 +1,9 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Unicode;
 
-namespace ReleaseKit.Infrastructure.Common;
+namespace ReleaseKit.Common.Extensions;
 
 /// <summary>
 /// JSON 序列化與反序列化擴充方法
@@ -8,21 +11,31 @@ namespace ReleaseKit.Infrastructure.Common;
 public static class JsonExtensions
 {
     /// <summary>
-    /// 預設 JSON 序列化選項（使用 camelCase 命名策略）
+    /// 預設 JSON 序列化選項
+    /// - 使用 camelCase 命名策略
+    /// - 不縮排輸出
+    /// - 支援完整 Unicode 字元（包含中文）
+    /// - 支援字串枚舉轉換
     /// </summary>
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
+        WriteIndented = false,
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
     /// <summary>
-    /// 預設 JSON 序列化選項（帶縮排，用於輸出）
+    /// 預設 JSON 反序列化選項
+    /// - 忽略大小寫
+    /// - 支援完整 Unicode 字元（包含中文）
+    /// - 支援字串枚舉轉換
     /// </summary>
-    private static readonly JsonSerializerOptions IndentedSerializerOptions = new()
+    private static readonly JsonSerializerOptions DefaultDeserializerOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        PropertyNameCaseInsensitive = true,
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
     /// <summary>
@@ -30,24 +43,22 @@ public static class JsonExtensions
     /// </summary>
     /// <typeparam name="T">目標型別</typeparam>
     /// <param name="json">JSON 字串</param>
-    /// <param name="options">JSON 序列化選項（選填）</param>
+    /// <param name="options">JSON 序列化選項（選填，預設使用忽略大小寫的選項）</param>
     /// <returns>反序列化後的物件，若失敗則返回 null</returns>
     public static T? DeserializeFromJson<T>(this string json, JsonSerializerOptions? options = null)
     {
-        return JsonSerializer.Deserialize<T>(json, options);
+        return JsonSerializer.Deserialize<T>(json, options ?? DefaultDeserializerOptions);
     }
 
     /// <summary>
-    /// 將物件序列化為 JSON 字串
+    /// 將物件序列化為 JSON 字串（不縮排）
     /// </summary>
     /// <typeparam name="T">來源型別</typeparam>
     /// <param name="obj">要序列化的物件</param>
-    /// <param name="indented">是否使用縮排格式（預設為 false）</param>
     /// <returns>JSON 字串</returns>
-    public static string SerializeToJson<T>(this T obj, bool indented = false)
+    public static string SerializeToJson<T>(this T obj)
     {
-        var options = indented ? IndentedSerializerOptions : DefaultSerializerOptions;
-        return JsonSerializer.Serialize(obj, options);
+        return JsonSerializer.Serialize(obj, DefaultSerializerOptions);
     }
 
     /// <summary>

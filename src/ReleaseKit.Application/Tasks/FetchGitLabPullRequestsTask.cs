@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Application.Common;
 using ReleaseKit.Application.Configuration;
+using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
 
@@ -115,7 +116,7 @@ public class FetchGitLabPullRequestsTask : ITask
         };
 
         // 輸出 JSON 結果
-        var json = fetchResult.SerializeToJson(indented: true);
+        var json = fetchResult.SerializeToJson();
         System.Console.WriteLine(json);
 
         var totalMRs = projectResults.Sum(r => r.PullRequests.Count);
