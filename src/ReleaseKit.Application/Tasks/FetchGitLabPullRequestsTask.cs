@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -116,12 +115,7 @@ public class FetchGitLabPullRequestsTask : ITask
         };
 
         // 輸出 JSON 結果
-        var jsonOptions = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-        var json = JsonSerializer.Serialize(fetchResult, jsonOptions);
+        var json = fetchResult.SerializeToJson(indented: true);
         System.Console.WriteLine(json);
 
         var totalMRs = projectResults.Sum(r => r.PullRequests.Count);

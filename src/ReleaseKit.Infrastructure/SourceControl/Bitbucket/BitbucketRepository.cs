@@ -1,9 +1,9 @@
 using System.Net;
-using System.Text.Json;
 using System.Web;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Infrastructure.Common;
 using ReleaseKit.Infrastructure.SourceControl.Bitbucket.Models;
 
 namespace ReleaseKit.Infrastructure.SourceControl.Bitbucket;
@@ -53,7 +53,7 @@ public class BitbucketRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var pageResponse = JsonSerializer.Deserialize<BitbucketPageResponse<BitbucketPullRequestResponse>>(content);
+            var pageResponse = content.DeserializeFromJson<BitbucketPageResponse<BitbucketPullRequestResponse>>();
 
             if (pageResponse == null || pageResponse.Values.Count == 0)
             {
@@ -100,7 +100,7 @@ public class BitbucketRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var pageResponse = JsonSerializer.Deserialize<BitbucketPageResponse<BitbucketBranchResponse>>(content);
+            var pageResponse = content.DeserializeFromJson<BitbucketPageResponse<BitbucketBranchResponse>>();
 
             if (pageResponse == null || pageResponse.Values.Count == 0)
             {
@@ -154,7 +154,7 @@ public class BitbucketRepository : ISourceControlRepository
         }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var pageResponse = JsonSerializer.Deserialize<BitbucketPageResponse<BitbucketPullRequestResponse>>(content);
+        var pageResponse = content.DeserializeFromJson<BitbucketPageResponse<BitbucketPullRequestResponse>>();
 
         if (pageResponse == null || pageResponse.Values.Count == 0)
         {
@@ -199,7 +199,7 @@ public class BitbucketRepository : ISourceControlRepository
             }
 
             var commitsContent = await commitsResponse.Content.ReadAsStringAsync(cancellationToken);
-            var commitsPageResponse = JsonSerializer.Deserialize<BitbucketPageResponse<BitbucketCommitResponse>>(commitsContent);
+            var commitsPageResponse = commitsContent.DeserializeFromJson<BitbucketPageResponse<BitbucketCommitResponse>>();
 
             if (commitsPageResponse == null || commitsPageResponse.Values.Count == 0)
             {

@@ -1,9 +1,9 @@
 using System.Net;
-using System.Text.Json;
 using System.Web;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Infrastructure.Common;
 using ReleaseKit.Infrastructure.SourceControl.GitLab.Models;
 
 namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
@@ -61,7 +61,7 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var gitLabResponses = JsonSerializer.Deserialize<List<GitLabMergeRequestResponse>>(content);
+            var gitLabResponses = content.DeserializeFromJson<List<GitLabMergeRequestResponse>>();
 
             if (gitLabResponses == null || gitLabResponses.Count == 0)
             {
@@ -117,7 +117,7 @@ public class GitLabRepository : ISourceControlRepository
         }
 
         var compareContent = await compareResponse.Content.ReadAsStringAsync(cancellationToken);
-        var compareResult = JsonSerializer.Deserialize<GitLabCompareResponse>(compareContent);
+        var compareResult = compareContent.DeserializeFromJson<GitLabCompareResponse>();
 
         if (compareResult == null || compareResult.Commits.Count == 0)
         {
@@ -184,7 +184,7 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var branches = JsonSerializer.Deserialize<List<GitLabBranchResponse>>(content);
+            var branches = content.DeserializeFromJson<List<GitLabBranchResponse>>();
 
             if (branches == null || branches.Count == 0)
             {
@@ -242,7 +242,7 @@ public class GitLabRepository : ISourceControlRepository
         }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var gitLabResponses = JsonSerializer.Deserialize<List<GitLabMergeRequestResponse>>(content);
+        var gitLabResponses = content.DeserializeFromJson<List<GitLabMergeRequestResponse>>();
 
         if (gitLabResponses == null)
         {
