@@ -76,7 +76,7 @@
 - [X] T028 [US1] Implement GetMergeRequestsByDateRangeAsync in GitLabRepository with pagination handling in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
 - [X] T029 [US1] Implement secondary filtering by merged_at in GitLabRepository.GetMergeRequestsByDateRangeAsync in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
 - [X] T030 [US1] Register GitLabRepository as keyed service in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
-- [ ] T031 [US1] Implement FetchGitLabPullRequestsTask DateTimeRange mode in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
+- [X] T031 [US1] Implement FetchGitLabPullRequestsTask DateTimeRange mode in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
 
 **Checkpoint**: User Story 1 (GitLab DateTimeRange) should be fully functional and testable independently
 
