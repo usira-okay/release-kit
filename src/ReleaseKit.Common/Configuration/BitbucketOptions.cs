@@ -1,4 +1,4 @@
-namespace ReleaseKit.Infrastructure.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// Bitbucket 配置選項
@@ -16,7 +16,7 @@ public class BitbucketOptions
     public string Email { get; init; } = string.Empty;
 
     /// <summary>
-    /// Bitbucket App Password
+    /// Bitbucket Access Token / App Password
     /// </summary>
     public string AccessToken { get; init; } = string.Empty;
 

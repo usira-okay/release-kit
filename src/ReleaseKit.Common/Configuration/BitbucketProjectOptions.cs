@@ -1,4 +1,4 @@
-namespace ReleaseKit.Infrastructure.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// Bitbucket 專案配置選項
@@ -6,7 +6,7 @@ namespace ReleaseKit.Infrastructure.Configuration;
 public class BitbucketProjectOptions
 {
     /// <summary>
-    /// 專案路徑（如 "workspace/repo"）
+    /// 專案路徑（如 "workspace/repository"）
     /// </summary>
     public string ProjectPath { get; init; } = string.Empty;
 
