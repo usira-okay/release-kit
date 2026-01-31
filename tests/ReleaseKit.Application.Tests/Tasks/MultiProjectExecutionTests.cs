@@ -1,4 +1,5 @@
 using ReleaseKit.Application.Common;
+using ReleaseKit.Domain.ValueObjects;
 using ReleaseKit.Application.Configuration;
 
 namespace ReleaseKit.Application.Tests.Tasks;
@@ -109,7 +110,7 @@ public sealed class MultiProjectExecutionTests
             new()
             {
                 ProjectPath = "group/backend",
-                Platform = "GitLab",
+                Platform = SourceControlPlatform.GitLab,
                 PullRequests = new List<MergeRequestOutput>
                 {
                     new() { Title = "Backend MR 1", SourceBranch = "feature/backend", TargetBranch = "main" }
@@ -118,7 +119,7 @@ public sealed class MultiProjectExecutionTests
             new()
             {
                 ProjectPath = "group/frontend",
-                Platform = "GitLab",
+                Platform = SourceControlPlatform.GitLab,
                 PullRequests = new List<MergeRequestOutput>
                 {
                     new() { Title = "Frontend MR 1", SourceBranch = "feature/frontend", TargetBranch = "main" }
@@ -147,7 +148,7 @@ public sealed class MultiProjectExecutionTests
         var projectResult = new ProjectResult
         {
             ProjectPath = "group/failed-project",
-            Platform = "GitLab",
+            Platform = SourceControlPlatform.GitLab,
             PullRequests = new List<MergeRequestOutput>(),
             Error = "API 驗證失敗: 401 Unauthorized"
         };

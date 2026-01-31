@@ -61,7 +61,7 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var gitLabResponses = content.DeserializeFromJson<List<GitLabMergeRequestResponse>>();
+            var gitLabResponses = content.ToTypedObject<List<GitLabMergeRequestResponse>>();
 
             if (gitLabResponses == null || gitLabResponses.Count == 0)
             {
@@ -117,7 +117,7 @@ public class GitLabRepository : ISourceControlRepository
         }
 
         var compareContent = await compareResponse.Content.ReadAsStringAsync(cancellationToken);
-        var compareResult = compareContent.DeserializeFromJson<GitLabCompareResponse>();
+        var compareResult = compareContent.ToTypedObject<GitLabCompareResponse>();
 
         if (compareResult == null || compareResult.Commits.Count == 0)
         {
@@ -184,7 +184,7 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var branches = content.DeserializeFromJson<List<GitLabBranchResponse>>();
+            var branches = content.ToTypedObject<List<GitLabBranchResponse>>();
 
             if (branches == null || branches.Count == 0)
             {
@@ -242,7 +242,7 @@ public class GitLabRepository : ISourceControlRepository
         }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var gitLabResponses = content.DeserializeFromJson<List<GitLabMergeRequestResponse>>();
+        var gitLabResponses = content.ToTypedObject<List<GitLabMergeRequestResponse>>();
 
         if (gitLabResponses == null)
         {

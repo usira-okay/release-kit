@@ -31,6 +31,12 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FetchGitLabPullRequestsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchBitbucketPullRequestsTask>>().Object);
         
+        // 註冊 ISourceControlRepository mock with keyed services
+        var mockGitLabRepository = new Mock<ISourceControlRepository>();
+        var mockBitbucketRepository = new Mock<ISourceControlRepository>();
+        services.AddKeyedSingleton<ISourceControlRepository>("GitLab", mockGitLabRepository.Object);
+        services.AddKeyedSingleton<ISourceControlRepository>("Bitbucket", mockBitbucketRepository.Object);
+        
         // 註冊 Tasks
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();

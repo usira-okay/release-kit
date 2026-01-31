@@ -45,7 +45,7 @@ public static class JsonExtensions
     /// <param name="json">JSON 字串</param>
     /// <param name="options">JSON 序列化選項（選填，預設使用忽略大小寫的選項）</param>
     /// <returns>反序列化後的物件，若失敗則返回 null</returns>
-    public static T? DeserializeFromJson<T>(this string json, JsonSerializerOptions? options = null)
+    public static T? ToTypedObject<T>(this string json, JsonSerializerOptions? options = null)
     {
         return JsonSerializer.Deserialize<T>(json, options ?? DefaultDeserializerOptions);
     }
@@ -56,7 +56,7 @@ public static class JsonExtensions
     /// <typeparam name="T">來源型別</typeparam>
     /// <param name="obj">要序列化的物件</param>
     /// <returns>JSON 字串</returns>
-    public static string SerializeToJson<T>(this T obj)
+    public static string ToJson<T>(this T obj)
     {
         return JsonSerializer.Serialize(obj, DefaultSerializerOptions);
     }
@@ -68,7 +68,7 @@ public static class JsonExtensions
     /// <param name="obj">要序列化的物件</param>
     /// <param name="options">JSON 序列化選項</param>
     /// <returns>JSON 字串</returns>
-    public static string SerializeToJson<T>(this T obj, JsonSerializerOptions options)
+    public static string ToJson<T>(this T obj, JsonSerializerOptions options)
     {
         return JsonSerializer.Serialize(obj, options);
     }

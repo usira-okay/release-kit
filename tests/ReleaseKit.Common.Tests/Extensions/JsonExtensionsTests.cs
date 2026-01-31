@@ -10,13 +10,13 @@ namespace ReleaseKit.Common.Tests.Extensions;
 public class JsonExtensionsTests
 {
     [Fact]
-    public void SerializeToJson_ShouldNotIndent()
+    public void ToJson_ShouldNotIndent()
     {
         // Arrange
         var obj = new { Name = "Test", Value = 123 };
 
         // Act
-        var json = obj.SerializeToJson();
+        var json = obj.ToJson();
 
         // Assert
         Assert.DoesNotContain("\n", json);
@@ -25,13 +25,13 @@ public class JsonExtensionsTests
     }
 
     [Fact]
-    public void SerializeToJson_ShouldEncodeChineseCharacters()
+    public void ToJson_ShouldEncodeChineseCharacters()
     {
         // Arrange
         var obj = new { Name = "測試", Description = "中文字元" };
 
         // Act
-        var json = obj.SerializeToJson();
+        var json = obj.ToJson();
 
         // Assert
         Assert.Contains("測試", json);
@@ -39,26 +39,26 @@ public class JsonExtensionsTests
     }
 
     [Fact]
-    public void SerializeToJson_ShouldConvertEnumToString()
+    public void ToJson_ShouldConvertEnumToString()
     {
         // Arrange
         var obj = new { Status = TestEnum.Active };
 
         // Act
-        var json = obj.SerializeToJson();
+        var json = obj.ToJson();
 
         // Assert
         Assert.Contains("\"active\"", json);
     }
 
     [Fact]
-    public void DeserializeFromJson_ShouldBeCaseInsensitive()
+    public void ToTypedObject_ShouldBeCaseInsensitive()
     {
         // Arrange
         var json = "{\"name\":\"Test\",\"VALUE\":456}";
 
         // Act
-        var result = json.DeserializeFromJson<TestClass>();
+        var result = json.ToTypedObject<TestClass>();
 
         // Assert
         Assert.NotNull(result);
@@ -67,13 +67,13 @@ public class JsonExtensionsTests
     }
 
     [Fact]
-    public void DeserializeFromJson_ShouldConvertStringToEnum()
+    public void ToTypedObject_ShouldConvertStringToEnum()
     {
         // Arrange
         var json = "{\"status\":\"active\"}";
 
         // Act
-        var result = json.DeserializeFromJson<TestClassWithEnum>();
+        var result = json.ToTypedObject<TestClassWithEnum>();
 
         // Assert
         Assert.NotNull(result);

@@ -53,7 +53,7 @@ public class BitbucketRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var pageResponse = content.DeserializeFromJson<BitbucketPageResponse<BitbucketPullRequestResponse>>();
+            var pageResponse = content.ToTypedObject<BitbucketPageResponse<BitbucketPullRequestResponse>>();
 
             if (pageResponse == null || pageResponse.Values.Count == 0)
             {
@@ -100,7 +100,7 @@ public class BitbucketRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var pageResponse = content.DeserializeFromJson<BitbucketPageResponse<BitbucketBranchResponse>>();
+            var pageResponse = content.ToTypedObject<BitbucketPageResponse<BitbucketBranchResponse>>();
 
             if (pageResponse == null || pageResponse.Values.Count == 0)
             {
@@ -154,7 +154,7 @@ public class BitbucketRepository : ISourceControlRepository
         }
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var pageResponse = content.DeserializeFromJson<BitbucketPageResponse<BitbucketPullRequestResponse>>();
+        var pageResponse = content.ToTypedObject<BitbucketPageResponse<BitbucketPullRequestResponse>>();
 
         if (pageResponse == null || pageResponse.Values.Count == 0)
         {
@@ -199,7 +199,7 @@ public class BitbucketRepository : ISourceControlRepository
             }
 
             var commitsContent = await commitsResponse.Content.ReadAsStringAsync(cancellationToken);
-            var commitsPageResponse = commitsContent.DeserializeFromJson<BitbucketPageResponse<BitbucketCommitResponse>>();
+            var commitsPageResponse = commitsContent.ToTypedObject<BitbucketPageResponse<BitbucketCommitResponse>>();
 
             if (commitsPageResponse == null || commitsPageResponse.Values.Count == 0)
             {

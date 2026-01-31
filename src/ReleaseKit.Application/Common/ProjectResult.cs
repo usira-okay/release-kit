@@ -1,3 +1,5 @@
+using ReleaseKit.Domain.ValueObjects;
+
 namespace ReleaseKit.Application.Common;
 
 /// <summary>
@@ -16,7 +18,7 @@ public sealed record ProjectResult
     /// <summary>
     /// 來源平台（GitLab 或 Bitbucket）
     /// </summary>
-    public string Platform { get; init; } = string.Empty;
+    public SourceControlPlatform Platform { get; init; }
 
     /// <summary>
     /// 該專案擷取到的 PR/MR 清單

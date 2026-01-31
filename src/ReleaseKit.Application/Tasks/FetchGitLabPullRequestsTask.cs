@@ -6,6 +6,7 @@ using ReleaseKit.Application.Configuration;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -14,7 +15,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 public class FetchGitLabPullRequestsTask : ITask
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly ISourceControlRepository _repository;
     private readonly ILogger<FetchGitLabPullRequestsTask> _logger;
     private readonly GitLabOptions _gitLabOptions;
     private readonly FetchModeOptions _fetchModeOptions;
@@ -32,7 +33,7 @@ public class FetchGitLabPullRequestsTask : ITask
         IOptions<GitLabOptions> gitLabOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
     {
-        _serviceProvider = serviceProvider;
+        _repository = serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("GitLab");
         _logger = logger;
         _gitLabOptions = gitLabOptions.Value;
         _fetchModeOptions = fetchModeOptions.Value;
@@ -45,7 +46,6 @@ public class FetchGitLabPullRequestsTask : ITask
     {
         _logger.LogInformation("開始執行 GitLab Pull Request 拉取任務");
 
-        var repository = _serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("GitLab");
         var projectResults = new List<ProjectResult>();
 
         // 處理每個專案
@@ -56,7 +56,7 @@ public class FetchGitLabPullRequestsTask : ITask
             var projectResult = new ProjectResult
             {
                 ProjectPath = project.ProjectPath,
-                Platform = "GitLab",
+                Platform = SourceControlPlatform.GitLab,
                 PullRequests = new List<MergeRequestOutput>()
             };
 
@@ -65,37 +65,38 @@ public class FetchGitLabPullRequestsTask : ITask
                 // 專案層級設定覆蓋全域設定
                 var fetchMode = project.FetchMode ?? _fetchModeOptions.FetchMode;
                 
-                List<MergeRequest>? mergeRequests = null;
+                List<MergeRequest> mergeRequests;
                 
                 if (fetchMode == FetchMode.DateTimeRange)
                 {
-                    mergeRequests = await ExecuteDateTimeRangeModeAsync(repository, project);
+                    mergeRequests = await ExecuteDateTimeRangeModeAsync(_repository, project);
                 }
                 else if (fetchMode == FetchMode.BranchDiff)
                 {
-                    mergeRequests = await ExecuteBranchDiffModeAsync(repository, project);
+                    mergeRequests = await ExecuteBranchDiffModeAsync(_repository, project);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"不支援的擷取模式: {fetchMode}");
                 }
 
                 // 轉換為輸出格式
-                if (mergeRequests != null)
+                projectResult = projectResult with
                 {
-                    projectResult = projectResult with
+                    PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
                     {
-                        PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
-                        {
-                            Title = mr.Title,
-                            Description = mr.Description,
-                            SourceBranch = mr.SourceBranch,
-                            TargetBranch = mr.TargetBranch,
-                            CreatedAt = mr.CreatedAt,
-                            MergedAt = mr.MergedAt,
-                            State = mr.State,
-                            AuthorUserId = mr.AuthorUserId,
-                            AuthorName = mr.AuthorName,
-                            PRUrl = mr.PRUrl
-                        }).ToList()
-                    };
-                }
+                        Title = mr.Title,
+                        Description = mr.Description,
+                        SourceBranch = mr.SourceBranch,
+                        TargetBranch = mr.TargetBranch,
+                        CreatedAt = mr.CreatedAt,
+                        MergedAt = mr.MergedAt,
+                        State = mr.State,
+                        AuthorUserId = mr.AuthorUserId,
+                        AuthorName = mr.AuthorName,
+                        PRUrl = mr.PRUrl
+                    }).ToList()
+                };
             }
             catch (Exception ex)
             {
@@ -116,7 +117,7 @@ public class FetchGitLabPullRequestsTask : ITask
         };
 
         // 輸出 JSON 結果
-        var json = fetchResult.SerializeToJson();
+        var json = fetchResult.ToJson();
         System.Console.WriteLine(json);
 
         var totalMRs = projectResults.Sum(r => r.PullRequests.Count);
@@ -131,7 +132,7 @@ public class FetchGitLabPullRequestsTask : ITask
     /// <summary>
     /// 執行 DateTimeRange 模式
     /// </summary>
-    private async Task<List<MergeRequest>?> ExecuteDateTimeRangeModeAsync(
+    private async Task<List<MergeRequest>> ExecuteDateTimeRangeModeAsync(
         ISourceControlRepository repository,
         GitLabProjectOptions project)
     {
@@ -143,20 +144,17 @@ public class FetchGitLabPullRequestsTask : ITask
         // 驗證必填參數
         if (!startDateTime.HasValue)
         {
-            _logger.LogError("專案 {ProjectPath} 缺少必填參數: StartDateTime", project.ProjectPath);
-            return null;
+            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: StartDateTime");
         }
 
         if (!endDateTime.HasValue)
         {
-            _logger.LogError("專案 {ProjectPath} 缺少必填參數: EndDateTime", project.ProjectPath);
-            return null;
+            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: EndDateTime");
         }
 
         if (string.IsNullOrEmpty(targetBranch))
         {
-            _logger.LogError("專案 {ProjectPath} 缺少必填參數: TargetBranch", project.ProjectPath);
-            return null;
+            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: TargetBranch");
         }
 
         _logger.LogInformation(
@@ -173,18 +171,17 @@ public class FetchGitLabPullRequestsTask : ITask
 
         if (result.IsFailure)
         {
-            _logger.LogError("拉取專案 {ProjectPath} 的 MR 失敗: {Error}", project.ProjectPath, result.Error);
-            return null;
+            throw new InvalidOperationException($"拉取專案 {project.ProjectPath} 的 MR 失敗: {result.Error}");
         }
 
         _logger.LogInformation("專案 {ProjectPath} 取得 {Count} 筆 MR", project.ProjectPath, result.Value?.Count ?? 0);
-        return result.Value?.ToList();
+        return result.Value?.ToList() ?? new List<MergeRequest>();
     }
 
     /// <summary>
     /// 執行 BranchDiff 模式
     /// </summary>
-    private async Task<List<MergeRequest>?> ExecuteBranchDiffModeAsync(
+    private async Task<List<MergeRequest>> ExecuteBranchDiffModeAsync(
         ISourceControlRepository repository,
         GitLabProjectOptions project)
     {
@@ -195,14 +192,12 @@ public class FetchGitLabPullRequestsTask : ITask
         // 驗證必填參數
         if (string.IsNullOrEmpty(sourceBranch))
         {
-            _logger.LogError("專案 {ProjectPath} 缺少必填參數: SourceBranch", project.ProjectPath);
-            return null;
+            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: SourceBranch");
         }
 
         if (string.IsNullOrEmpty(targetBranch))
         {
-            _logger.LogError("專案 {ProjectPath} 缺少必填參數: TargetBranch", project.ProjectPath);
-            return null;
+            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: TargetBranch");
         }
 
         _logger.LogInformation(
@@ -217,11 +212,10 @@ public class FetchGitLabPullRequestsTask : ITask
 
         if (result.IsFailure)
         {
-            _logger.LogError("拉取專案 {ProjectPath} 的 MR 失敗: {Error}", project.ProjectPath, result.Error);
-            return null;
+            throw new InvalidOperationException($"拉取專案 {project.ProjectPath} 的 MR 失敗: {result.Error}");
         }
 
         _logger.LogInformation("專案 {ProjectPath} 取得 {Count} 筆 MR", project.ProjectPath, result.Value?.Count ?? 0);
-        return result.Value?.ToList();
+        return result.Value?.ToList() ?? new List<MergeRequest>();
     }
 }
