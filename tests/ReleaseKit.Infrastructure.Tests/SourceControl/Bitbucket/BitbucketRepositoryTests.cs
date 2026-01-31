@@ -231,6 +231,249 @@ public class BitbucketRepositoryTests
         Assert.Equal("PR 4", result.Value[1].Title);
     }
 
+    // T042 [US3] Unit test for GetBranchesAsync
+    [Fact]
+    public async Task GetBranchesAsync_WithValidParameters_ShouldReturnBranches()
+    {
+        // Arrange
+        var branchesResponse = new BitbucketPageResponse<BitbucketBranchResponse>
+        {
+            Values = new List<BitbucketBranchResponse>
+            {
+                new() { Name = "main" },
+                new() { Name = "develop" },
+                new() { Name = "release/1.0" },
+                new() { Name = "release/2.0" },
+                new() { Name = "feature/test" }
+            },
+            Next = null
+        };
+
+        SetupHttpResponseForBranches(_httpMessageHandlerMock, branchesResponse);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetBranchesAsync("test/repo", "release/");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Equal(2, result.Value.Count);
+        Assert.Contains("release/1.0", result.Value);
+        Assert.Contains("release/2.0", result.Value);
+    }
+
+    [Fact]
+    public async Task GetBranchesAsync_WithoutPattern_ShouldReturnAllBranches()
+    {
+        // Arrange
+        var branchesResponse = new BitbucketPageResponse<BitbucketBranchResponse>
+        {
+            Values = new List<BitbucketBranchResponse>
+            {
+                new() { Name = "main" },
+                new() { Name = "develop" },
+                new() { Name = "feature/test" }
+            },
+            Next = null
+        };
+
+        SetupHttpResponseForBranches(_httpMessageHandlerMock, branchesResponse);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetBranchesAsync("test/repo");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Equal(3, result.Value.Count);
+    }
+
+    // T043 [US3] Unit test for GetMergeRequestsByBranchDiffAsync
+    [Fact]
+    public async Task GetMergeRequestsByBranchDiffAsync_WithValidParameters_ShouldReturnMergeRequests()
+    {
+        // Arrange
+        var commitsResponse = new BitbucketPageResponse<BitbucketCommitResponse>
+        {
+            Values = new List<BitbucketCommitResponse>
+            {
+                new() { Hash = "abc123", Message = "Commit 1", Date = DateTimeOffset.UtcNow },
+                new() { Hash = "def456", Message = "Commit 2", Date = DateTimeOffset.UtcNow }
+            },
+            Next = null
+        };
+
+        var pr1Response = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse>
+            {
+                CreateSamplePullRequest("PR 1", "2024-01-10T09:00:00Z", "2024-01-12T14:00:00Z")
+            },
+            Next = null
+        };
+
+        var pr2Response = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse>
+            {
+                CreateSamplePullRequest("PR 2", "2024-01-11T09:00:00Z", "2024-01-13T14:00:00Z")
+            },
+            Next = null
+        };
+
+        SetupMultipleHttpResponses(_httpMessageHandlerMock, commitsResponse, pr1Response, pr2Response);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetMergeRequestsByBranchDiffAsync(
+            "test/repo",
+            "release/1.0",
+            "release/2.0");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Equal(2, result.Value.Count);
+    }
+
+    [Fact]
+    public async Task GetMergeRequestsByBranchDiffAsync_WithDuplicatePRs_ShouldDeduplicateResults()
+    {
+        // Arrange - both commits belong to the same PR
+        var commitsResponse = new BitbucketPageResponse<BitbucketCommitResponse>
+        {
+            Values = new List<BitbucketCommitResponse>
+            {
+                new() { Hash = "abc123", Message = "Commit 1", Date = DateTimeOffset.UtcNow },
+                new() { Hash = "def456", Message = "Commit 2", Date = DateTimeOffset.UtcNow }
+            },
+            Next = null
+        };
+
+        var samePR = CreateSamplePullRequest("PR 1", "2024-01-10T09:00:00Z", "2024-01-12T14:00:00Z");
+        var pr1Response = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse> { samePR },
+            Next = null
+        };
+
+        var pr2Response = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse> { samePR },
+            Next = null
+        };
+
+        SetupMultipleHttpResponses(_httpMessageHandlerMock, commitsResponse, pr1Response, pr2Response);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetMergeRequestsByBranchDiffAsync(
+            "test/repo",
+            "release/1.0",
+            "release/2.0");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Single(result.Value); // Should be deduplicated
+    }
+
+    // T044 [US3] Unit test for GetMergeRequestsByCommitAsync
+    [Fact]
+    public async Task GetMergeRequestsByCommitAsync_WithValidCommit_ShouldReturnMergeRequests()
+    {
+        // Arrange
+        var prResponse = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse>
+            {
+                CreateSamplePullRequest("PR 1", "2024-01-10T09:00:00Z", "2024-01-12T14:00:00Z")
+            },
+            Next = null
+        };
+
+        SetupHttpResponse(_httpMessageHandlerMock, prResponse);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetMergeRequestsByCommitAsync(
+            "test/repo",
+            "abc123def456");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Single(result.Value);
+    }
+
+    [Fact]
+    public async Task GetMergeRequestsByCommitAsync_WithNoResults_ShouldReturnEmptyList()
+    {
+        // Arrange
+        var emptyResponse = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse>(),
+            Next = null
+        };
+
+        SetupHttpResponse(_httpMessageHandlerMock, emptyResponse);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetMergeRequestsByCommitAsync(
+            "test/repo",
+            "nonexistent");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Empty(result.Value);
+    }
+
     // Helper methods
     private static BitbucketPullRequestResponse CreateSamplePullRequest(
         string title,
@@ -290,6 +533,76 @@ public class BitbucketRepositoryTests
 
                 var response = responseQueue.Dequeue();
                 var json = JsonSerializer.Serialize(response);
+
+                return new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+                };
+            });
+    }
+
+    private static void SetupHttpResponseForBranches(
+        Mock<HttpMessageHandler> handlerMock,
+        params BitbucketPageResponse<BitbucketBranchResponse>[] responses)
+    {
+        var responseQueue = new Queue<BitbucketPageResponse<BitbucketBranchResponse>>(responses);
+
+        handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                if (responseQueue.Count == 0)
+                {
+                    return new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.NotFound
+                    };
+                }
+
+                var response = responseQueue.Dequeue();
+                var json = JsonSerializer.Serialize(response);
+
+                return new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+                };
+            });
+    }
+
+    private static void SetupMultipleHttpResponses(
+        Mock<HttpMessageHandler> handlerMock,
+        BitbucketPageResponse<BitbucketCommitResponse> commitsResponse,
+        params BitbucketPageResponse<BitbucketPullRequestResponse>[] prResponses)
+    {
+        var responseQueue = new Queue<string>();
+        responseQueue.Enqueue(JsonSerializer.Serialize(commitsResponse));
+        
+        foreach (var prResponse in prResponses)
+        {
+            responseQueue.Enqueue(JsonSerializer.Serialize(prResponse));
+        }
+
+        handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                if (responseQueue.Count == 0)
+                {
+                    return new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.NotFound
+                    };
+                }
+
+                var json = responseQueue.Dequeue();
 
                 return new HttpResponseMessage
                 {

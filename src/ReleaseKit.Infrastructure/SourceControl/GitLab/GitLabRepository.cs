@@ -167,7 +167,10 @@ public class GitLabRepository : ISourceControlRepository
                       $"page={page}&" +
                       $"per_page={perPage}";
 
-            if (!string.IsNullOrEmpty(pattern))
+            // GitLab API search parameter searches for branches that contain the search term,
+            // but for prefix matching we need to filter client-side
+            // Only use search if pattern doesn't end with / (indicating a prefix search)
+            if (!string.IsNullOrEmpty(pattern) && !pattern.EndsWith('/'))
             {
                 url += $"&search={HttpUtility.UrlEncode(pattern)}";
             }
@@ -181,7 +184,7 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var branches = JsonSerializer.Deserialize<List<JsonElement>>(content);
+            var branches = JsonSerializer.Deserialize<List<GitLabBranchResponse>>(content);
 
             if (branches == null || branches.Count == 0)
             {
@@ -189,9 +192,8 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             var branchNames = branches
-                .Select(b => b.GetProperty("name").GetString())
-                .Where(name => name != null)
-                .Cast<string>()
+                .Select(b => b.Name)
+                .Where(name => !string.IsNullOrEmpty(name))
                 .ToList();
 
             allBranches.AddRange(branchNames);
@@ -202,6 +204,14 @@ public class GitLabRepository : ISourceControlRepository
             }
 
             page++;
+        }
+
+        // Client-side filtering for pattern matching (prefix match)
+        if (!string.IsNullOrEmpty(pattern))
+        {
+            allBranches = allBranches
+                .Where(name => name.StartsWith(pattern, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
         return Result<IReadOnlyList<string>>.Success(allBranches);

@@ -117,23 +117,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T039 [P] [US3] Unit test for GitLabRepository.GetBranchesAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
-- [ ] T040 [P] [US3] Unit test for GitLabRepository.GetMergeRequestsByBranchDiffAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
-- [ ] T041 [P] [US3] Unit test for GitLabRepository.GetMergeRequestsByCommitAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
-- [ ] T042 [P] [US3] Unit test for BitbucketRepository.GetBranchesAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
-- [ ] T043 [P] [US3] Unit test for BitbucketRepository.GetMergeRequestsByBranchDiffAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
-- [ ] T044 [P] [US3] Unit test for BitbucketRepository.GetMergeRequestsByCommitAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
+- [X] T039 [P] [US3] Unit test for GitLabRepository.GetBranchesAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
+- [X] T040 [P] [US3] Unit test for GitLabRepository.GetMergeRequestsByBranchDiffAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
+- [X] T041 [P] [US3] Unit test for GitLabRepository.GetMergeRequestsByCommitAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
+- [X] T042 [P] [US3] Unit test for BitbucketRepository.GetBranchesAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
+- [X] T043 [P] [US3] Unit test for BitbucketRepository.GetMergeRequestsByBranchDiffAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
+- [X] T044 [P] [US3] Unit test for BitbucketRepository.GetMergeRequestsByCommitAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
 
 ### Implementation for User Story 3
 
-- [ ] T045 [US3] Implement GetBranchesAsync in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T046 [US3] Implement GetMergeRequestsByCommitAsync in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T047 [US3] Implement GetMergeRequestsByBranchDiffAsync in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T048 [P] [US3] Implement GetBranchesAsync in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
-- [ ] T049 [P] [US3] Implement GetMergeRequestsByCommitAsync in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
-- [ ] T050 [US3] Implement GetMergeRequestsByBranchDiffAsync in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
-- [ ] T051 [US3] Implement FetchGitLabPullRequestsTask BranchDiff mode in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
-- [ ] T052 [US3] Implement FetchBitbucketPullRequestsTask BranchDiff mode in src/ReleaseKit.Application/Tasks/FetchBitbucketPullRequestsTask.cs
+- [X] T045 [US3] Implement GetBranchesAsync in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T046 [US3] Implement GetMergeRequestsByCommitAsync in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T047 [US3] Implement GetMergeRequestsByBranchDiffAsync in GitLabRepository in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T048 [P] [US3] Implement GetBranchesAsync in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T049 [P] [US3] Implement GetMergeRequestsByCommitAsync in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T050 [US3] Implement GetMergeRequestsByBranchDiffAsync in BitbucketRepository in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T051 [US3] Implement FetchGitLabPullRequestsTask BranchDiff mode in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
+- [X] T052 [US3] Implement FetchBitbucketPullRequestsTask BranchDiff mode in src/ReleaseKit.Application/Tasks/FetchBitbucketPullRequestsTask.cs
 
 **Checkpoint**: User Story 3 (BranchDiff mode) should be fully functional for both platforms
 
