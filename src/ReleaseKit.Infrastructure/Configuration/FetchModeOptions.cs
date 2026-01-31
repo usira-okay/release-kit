@@ -11,6 +11,11 @@ public class FetchModeOptions
     public FetchMode FetchMode { get; init; } = FetchMode.DateTimeRange;
 
     /// <summary>
+    /// 目標分支名稱（全域預設值，可被專案層級設定覆蓋）
+    /// </summary>
+    public string? TargetBranch { get; init; }
+
+    /// <summary>
     /// 來源分支名稱（BranchDiff 模式時必填）
     /// </summary>
     public string? SourceBranch { get; init; }

@@ -19,10 +19,10 @@
 
 **Purpose**: Project initialization and Result Pattern foundation
 
-- [ ] T001 Create Result<T> class in src/ReleaseKit.Domain/Common/Result.cs
-- [ ] T002 [P] Create Error sealed record in src/ReleaseKit.Domain/Common/Error.cs
-- [ ] T003 [P] Create SourceControlPlatform enum in src/ReleaseKit.Domain/ValueObjects/SourceControlPlatform.cs
-- [ ] T004 [P] Add TargetBranch property to FetchModeOptions in src/ReleaseKit.Infrastructure/Configuration/FetchModeOptions.cs
+- [X] T001 Create Result<T> class in src/ReleaseKit.Domain/Common/Result.cs
+- [X] T002 [P] Create Error sealed record in src/ReleaseKit.Domain/Common/Error.cs
+- [X] T003 [P] Create SourceControlPlatform enum in src/ReleaseKit.Domain/ValueObjects/SourceControlPlatform.cs
+- [X] T004 [P] Add TargetBranch property to FetchModeOptions in src/ReleaseKit.Infrastructure/Configuration/FetchModeOptions.cs
 
 ---
 
@@ -32,23 +32,23 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
-- [ ] T006 Create ISourceControlRepository interface in src/ReleaseKit.Domain/Abstractions/ISourceControlRepository.cs
-- [ ] T007 [P] Create GitLabMergeRequestResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabMergeRequestResponse.cs
-- [ ] T008 [P] Create GitLabAuthorResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabAuthorResponse.cs
-- [ ] T009 [P] Create GitLabCompareResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabCompareResponse.cs
-- [ ] T010 [P] Create GitLabCommitResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabCommitResponse.cs
-- [ ] T011 [P] Create BitbucketPullRequestResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketPullRequestResponse.cs
-- [ ] T012 [P] Create BitbucketSummaryResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketSummaryResponse.cs
-- [ ] T013 [P] Create BitbucketBranchRefResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketBranchRefResponse.cs
-- [ ] T014 [P] Create BitbucketBranchResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketBranchResponse.cs
-- [ ] T015 [P] Create BitbucketAuthorResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketAuthorResponse.cs
-- [ ] T016 [P] Create BitbucketLinksResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketLinksResponse.cs
-- [ ] T017 [P] Create BitbucketLinkResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketLinkResponse.cs
-- [ ] T018 [P] Create BitbucketPageResponse<T> model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketPageResponse.cs
-- [ ] T019 Create GitLabMergeRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabMergeRequestMapper.cs
-- [ ] T020 [P] Create BitbucketPullRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketPullRequestMapper.cs
-- [ ] T021 Register HttpClient factories in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
+- [X] T005 Create MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
+- [X] T006 Create ISourceControlRepository interface in src/ReleaseKit.Domain/Abstractions/ISourceControlRepository.cs
+- [X] T007 [P] Create GitLabMergeRequestResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabMergeRequestResponse.cs
+- [X] T008 [P] Create GitLabAuthorResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabAuthorResponse.cs
+- [X] T009 [P] Create GitLabCompareResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabCompareResponse.cs
+- [X] T010 [P] Create GitLabCommitResponse model in src/ReleaseKit.Infrastructure/SourceControl/GitLab/Models/GitLabCommitResponse.cs
+- [X] T011 [P] Create BitbucketPullRequestResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketPullRequestResponse.cs
+- [X] T012 [P] Create BitbucketSummaryResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketSummaryResponse.cs
+- [X] T013 [P] Create BitbucketBranchRefResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketBranchRefResponse.cs
+- [X] T014 [P] Create BitbucketBranchResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketBranchResponse.cs
+- [X] T015 [P] Create BitbucketAuthorResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketAuthorResponse.cs
+- [X] T016 [P] Create BitbucketLinksResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketLinksResponse.cs
+- [X] T017 [P] Create BitbucketLinkResponse model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketLinkResponse.cs
+- [X] T018 [P] Create BitbucketPageResponse<T> model in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/Models/BitbucketPageResponse.cs
+- [X] T019 Create GitLabMergeRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabMergeRequestMapper.cs
+- [X] T020 [P] Create BitbucketPullRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketPullRequestMapper.cs
+- [X] T021 Register HttpClient factories in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -64,18 +64,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T022 [P] [US1] Unit test for Result<T> in tests/ReleaseKit.Domain.Tests/Common/ResultTests.cs
-- [ ] T023 [P] [US1] Unit test for Error in tests/ReleaseKit.Domain.Tests/Common/ErrorTests.cs
-- [ ] T024 [P] [US1] Unit test for MergeRequest entity in tests/ReleaseKit.Domain.Tests/Entities/MergeRequestTests.cs
-- [ ] T025 [P] [US1] Unit test for GitLabMergeRequestMapper in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabMergeRequestMapperTests.cs
-- [ ] T026 [P] [US1] Unit test for GitLabRepository.GetMergeRequestsByDateRangeAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
+- [X] T022 [P] [US1] Unit test for Result<T> in tests/ReleaseKit.Domain.Tests/Common/ResultTests.cs
+- [X] T023 [P] [US1] Unit test for Error in tests/ReleaseKit.Domain.Tests/Common/ErrorTests.cs
+- [X] T024 [P] [US1] Unit test for MergeRequest entity in tests/ReleaseKit.Domain.Tests/Entities/MergeRequestTests.cs
+- [X] T025 [P] [US1] Unit test for GitLabMergeRequestMapper in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabMergeRequestMapperTests.cs
+- [X] T026 [P] [US1] Unit test for GitLabRepository.GetMergeRequestsByDateRangeAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabRepositoryTests.cs
 
 ### Implementation for User Story 1
 
-- [ ] T027 [US1] Implement GitLabRepository constructor with IHttpClientFactory in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T028 [US1] Implement GetMergeRequestsByDateRangeAsync in GitLabRepository with pagination handling in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T029 [US1] Implement secondary filtering by merged_at in GitLabRepository.GetMergeRequestsByDateRangeAsync in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
-- [ ] T030 [US1] Register GitLabRepository as keyed service in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
+- [X] T027 [US1] Implement GitLabRepository constructor with IHttpClientFactory in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T028 [US1] Implement GetMergeRequestsByDateRangeAsync in GitLabRepository with pagination handling in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T029 [US1] Implement secondary filtering by merged_at in GitLabRepository.GetMergeRequestsByDateRangeAsync in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabRepository.cs
+- [X] T030 [US1] Register GitLabRepository as keyed service in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
 - [ ] T031 [US1] Implement FetchGitLabPullRequestsTask DateTimeRange mode in src/ReleaseKit.Application/Tasks/FetchGitLabPullRequestsTask.cs
 
 **Checkpoint**: User Story 1 (GitLab DateTimeRange) should be fully functional and testable independently

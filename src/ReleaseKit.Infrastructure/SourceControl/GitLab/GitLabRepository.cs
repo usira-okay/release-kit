@@ -1,0 +1,248 @@
+using System.Net;
+using System.Text.Json;
+using System.Web;
+using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.Common;
+using ReleaseKit.Domain.Entities;
+using ReleaseKit.Infrastructure.SourceControl.GitLab.Models;
+
+namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
+
+/// <summary>
+/// GitLab Repository 實作
+/// </summary>
+public class GitLabRepository : ISourceControlRepository
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    /// <summary>
+    /// 建構子
+    /// </summary>
+    /// <param name="httpClientFactory">HttpClient 工廠</param>
+    public GitLabRepository(IHttpClientFactory httpClientFactory)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<IReadOnlyList<MergeRequest>>> GetMergeRequestsByDateRangeAsync(
+        string projectPath,
+        string targetBranch,
+        DateTimeOffset startDateTime,
+        DateTimeOffset endDateTime,
+        CancellationToken cancellationToken = default)
+    {
+        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
+        var allMergeRequests = new List<MergeRequest>();
+
+        var page = 1;
+        const int perPage = 100;
+
+        while (true)
+        {
+            var url = $"projects/{encodedProjectPath}/merge_requests?" +
+                      $"state=merged&" +
+                      $"target_branch={HttpUtility.UrlEncode(targetBranch)}&" +
+                      $"updated_after={startDateTime:yyyy-MM-ddTHH:mm:ssZ}&" +
+                      $"updated_before={endDateTime:yyyy-MM-ddTHH:mm:ssZ}&" +
+                      $"scope=all&" +
+                      $"page={page}&" +
+                      $"per_page={perPage}";
+
+            var response = await httpClient.GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result<IReadOnlyList<MergeRequest>>.Failure(
+                    response.StatusCode == HttpStatusCode.Unauthorized
+                        ? Error.SourceControl.Unauthorized
+                        : Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
+            }
+
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            var gitLabResponses = JsonSerializer.Deserialize<List<GitLabMergeRequestResponse>>(content);
+
+            if (gitLabResponses == null || gitLabResponses.Count == 0)
+            {
+                break;
+            }
+
+            // 二次過濾：僅保留 merged_at 在時間範圍內的 MR
+            var filteredMergeRequests = gitLabResponses
+                .Where(mr => mr.MergedAt.HasValue &&
+                             mr.MergedAt.Value >= startDateTime &&
+                             mr.MergedAt.Value <= endDateTime)
+                .Select(mr => GitLabMergeRequestMapper.ToDomain(mr, projectPath))
+                .ToList();
+
+            allMergeRequests.AddRange(filteredMergeRequests);
+
+            // 如果回傳的筆數少於 perPage，表示已經是最後一頁
+            if (gitLabResponses.Count < perPage)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return Result<IReadOnlyList<MergeRequest>>.Success(allMergeRequests);
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<IReadOnlyList<MergeRequest>>> GetMergeRequestsByBranchDiffAsync(
+        string projectPath,
+        string sourceBranch,
+        string targetBranch,
+        CancellationToken cancellationToken = default)
+    {
+        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
+
+        // 1. 取得分支差異的 commits
+        var compareUrl = $"projects/{encodedProjectPath}/repository/compare?" +
+                         $"from={HttpUtility.UrlEncode(sourceBranch)}&" +
+                         $"to={HttpUtility.UrlEncode(targetBranch)}&" +
+                         $"straight=false";
+
+        var compareResponse = await httpClient.GetAsync(compareUrl, cancellationToken);
+
+        if (!compareResponse.IsSuccessStatusCode)
+        {
+            return Result<IReadOnlyList<MergeRequest>>.Failure(
+                compareResponse.StatusCode == HttpStatusCode.NotFound
+                    ? Error.SourceControl.BranchNotFound($"{sourceBranch} or {targetBranch}")
+                    : Error.SourceControl.ApiError($"HTTP {(int)compareResponse.StatusCode}"));
+        }
+
+        var compareContent = await compareResponse.Content.ReadAsStringAsync(cancellationToken);
+        var compareResult = JsonSerializer.Deserialize<GitLabCompareResponse>(compareContent);
+
+        if (compareResult == null || compareResult.Commits.Count == 0)
+        {
+            return Result<IReadOnlyList<MergeRequest>>.Success(Array.Empty<MergeRequest>());
+        }
+
+        // 2. 對每個 commit 取得關聯的 MR
+        var allMergeRequests = new List<MergeRequest>();
+        var processedMRIds = new HashSet<int>();
+
+        foreach (var commit in compareResult.Commits)
+        {
+            var mrResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Id, cancellationToken);
+            if (mrResult.IsSuccess && mrResult.Value != null)
+            {
+                // 去重複
+                foreach (var mr in mrResult.Value)
+                {
+                    var mrId = int.Parse(mr.PRUrl.Split('/').Last());
+                    if (processedMRIds.Add(mrId))
+                    {
+                        allMergeRequests.Add(mr);
+                    }
+                }
+            }
+        }
+
+        return Result<IReadOnlyList<MergeRequest>>.Success(allMergeRequests);
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<IReadOnlyList<string>>> GetBranchesAsync(
+        string projectPath,
+        string? pattern = null,
+        CancellationToken cancellationToken = default)
+    {
+        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
+        var allBranches = new List<string>();
+
+        var page = 1;
+        const int perPage = 100;
+
+        while (true)
+        {
+            var url = $"projects/{encodedProjectPath}/repository/branches?" +
+                      $"page={page}&" +
+                      $"per_page={perPage}";
+
+            if (!string.IsNullOrEmpty(pattern))
+            {
+                url += $"&search={HttpUtility.UrlEncode(pattern)}";
+            }
+
+            var response = await httpClient.GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result<IReadOnlyList<string>>.Failure(
+                    Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
+            }
+
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            var branches = JsonSerializer.Deserialize<List<JsonElement>>(content);
+
+            if (branches == null || branches.Count == 0)
+            {
+                break;
+            }
+
+            var branchNames = branches
+                .Select(b => b.GetProperty("name").GetString())
+                .Where(name => name != null)
+                .Cast<string>()
+                .ToList();
+
+            allBranches.AddRange(branchNames);
+
+            if (branches.Count < perPage)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return Result<IReadOnlyList<string>>.Success(allBranches);
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<IReadOnlyList<MergeRequest>>> GetMergeRequestsByCommitAsync(
+        string projectPath,
+        string commitSha,
+        CancellationToken cancellationToken = default)
+    {
+        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
+
+        var url = $"projects/{encodedProjectPath}/repository/commits/{commitSha}/merge_requests";
+
+        var response = await httpClient.GetAsync(url, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return Result<IReadOnlyList<MergeRequest>>.Success(Array.Empty<MergeRequest>());
+            }
+
+            return Result<IReadOnlyList<MergeRequest>>.Failure(
+                Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
+        }
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        var gitLabResponses = JsonSerializer.Deserialize<List<GitLabMergeRequestResponse>>(content);
+
+        if (gitLabResponses == null)
+        {
+            return Result<IReadOnlyList<MergeRequest>>.Success(Array.Empty<MergeRequest>());
+        }
+
+        var mergeRequests = gitLabResponses
+            .Select(mr => GitLabMergeRequestMapper.ToDomain(mr, projectPath))
+            .ToList();
+
+        return Result<IReadOnlyList<MergeRequest>>.Success(mergeRequests);
+    }
+}
