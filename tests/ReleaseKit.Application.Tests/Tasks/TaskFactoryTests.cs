@@ -24,6 +24,7 @@ public class TaskFactoryTests
         
         // 註冊必要的配置選項
         services.AddSingleton(Options.Create(new GitLabOptions()));
+        services.AddSingleton(Options.Create(new BitbucketOptions()));
         services.AddSingleton(Options.Create(new FetchModeOptions()));
         
         // 註冊 Logger mocks

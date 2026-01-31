@@ -92,14 +92,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T032 [P] [US2] Unit test for BitbucketPullRequestMapper in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketPullRequestMapperTests.cs
-- [ ] T033 [P] [US2] Unit test for BitbucketRepository.GetMergeRequestsByDateRangeAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
+- [X] T032 [P] [US2] Unit test for BitbucketPullRequestMapper in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketPullRequestMapperTests.cs
+- [X] T033 [P] [US2] Unit test for BitbucketRepository.GetMergeRequestsByDateRangeAsync in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketRepositoryTests.cs
 
 ### Implementation for User Story 2
 
-- [ ] T034 [US2] Implement BitbucketRepository constructor with IHttpClientFactory in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
-- [ ] T035 [US2] Implement GetMergeRequestsByDateRangeAsync in BitbucketRepository with cursor-based pagination in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
-- [ ] T036 [US2] Implement secondary filtering by closed_on in BitbucketRepository.GetMergeRequestsByDateRangeAsync in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T034 [US2] Implement BitbucketRepository constructor with IHttpClientFactory in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T035 [US2] Implement GetMergeRequestsByDateRangeAsync in BitbucketRepository with cursor-based pagination in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
+- [X] T036 [US2] Implement secondary filtering by closed_on in BitbucketRepository.GetMergeRequestsByDateRangeAsync in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketRepository.cs
 - [ ] T037 [US2] Register BitbucketRepository as keyed service in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
 - [ ] T038 [US2] Implement FetchBitbucketPullRequestsTask DateTimeRange mode in src/ReleaseKit.Application/Tasks/FetchBitbucketPullRequestsTask.cs
 

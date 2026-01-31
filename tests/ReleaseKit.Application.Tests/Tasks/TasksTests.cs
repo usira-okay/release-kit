@@ -54,14 +54,44 @@ public class TasksTests
     }
 
     [Fact]
-    public async Task FetchBitbucketPullRequestsTask_ExecuteAsync_ShouldThrowNotImplementedException()
+    public async Task FetchBitbucketPullRequestsTask_ExecuteAsync_WithEmptyProjects_ShouldCompleteSuccessfully()
     {
         // Arrange
-        var task = new FetchBitbucketPullRequestsTask();
+        var services = new ServiceCollection();
+        var bitbucketOptions = Options.Create(new BitbucketOptions { Projects = new List<BitbucketProjectOptions>() });
+        var fetchModeOptions = Options.Create(new FetchModeOptions());
+        
+        // Mock logger
+        var loggerMock = new Mock<ILogger<FetchBitbucketPullRequestsTask>>();
+        
+        // Mock keyed repository service
+        var repositoryMock = new Mock<ReleaseKit.Domain.Abstractions.ISourceControlRepository>();
+        
+        services.AddSingleton(bitbucketOptions);
+        services.AddSingleton(fetchModeOptions);
+        services.AddSingleton(loggerMock.Object);
+        services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
+        
+        var serviceProvider = services.BuildServiceProvider();
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("拉取 Bitbucket Pull Request 資訊功能尚未實作", exception.Message);
+        var task = new FetchBitbucketPullRequestsTask(
+            serviceProvider,
+            loggerMock.Object,
+            bitbucketOptions,
+            fetchModeOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - should complete without exception
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("開始執行 Bitbucket Pull Request 拉取任務")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

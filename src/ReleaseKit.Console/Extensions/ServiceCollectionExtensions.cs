@@ -72,8 +72,11 @@ public static class ServiceCollectionExtensions
         // 註冊 GitLab 配置 - Application  
         services.Configure<ReleaseKit.Application.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
 
-        // 註冊 Bitbucket 配置
+        // 註冊 Bitbucket 配置 - Infrastructure
         services.Configure<ReleaseKit.Infrastructure.Configuration.BitbucketOptions>(configuration.GetSection("Bitbucket"));
+        
+        // 註冊 Bitbucket 配置 - Application
+        services.Configure<ReleaseKit.Application.Configuration.BitbucketOptions>(configuration.GetSection("Bitbucket"));
 
         // 註冊 UserMapping 配置
         services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));
@@ -129,6 +132,8 @@ public static class ServiceCollectionExtensions
         // 註冊 Source Control Repositories
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
             ReleaseKit.Infrastructure.SourceControl.GitLab.GitLabRepository>("GitLab");
+        services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
+            ReleaseKit.Infrastructure.SourceControl.Bitbucket.BitbucketRepository>("Bitbucket");
         
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();
