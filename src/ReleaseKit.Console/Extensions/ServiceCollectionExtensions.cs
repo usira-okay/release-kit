@@ -95,9 +95,26 @@ public static class ServiceCollectionExtensions
             var gitLabOptions = configuration.GetSection("GitLab").Get<ReleaseKit.Infrastructure.Configuration.GitLabOptions>();
             if (gitLabOptions?.ApiUrl != null)
             {
-                client.BaseAddress = new Uri(gitLabOptions.ApiUrl);
+                var apiUri = new Uri(gitLabOptions.ApiUrl);
+                
+                // 確保使用 HTTPS
+                if (apiUri.Scheme != Uri.UriSchemeHttps)
+                {
+                    throw new InvalidOperationException(
+                        $"GitLab API URL 必須使用 HTTPS 協定。目前的 URL: {gitLabOptions.ApiUrl}");
+                }
+                
+                client.BaseAddress = apiUri;
+                
+                // 驗證並設定存取權杖
                 if (!string.IsNullOrEmpty(gitLabOptions.AccessToken))
                 {
+                    if (gitLabOptions.AccessToken.Length < 20)
+                    {
+                        throw new InvalidOperationException(
+                            "GitLab AccessToken 格式不正確。權杖長度過短。");
+                    }
+                    
                     client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", gitLabOptions.AccessToken);
                 }
             }
@@ -109,9 +126,26 @@ public static class ServiceCollectionExtensions
             var bitbucketOptions = configuration.GetSection("Bitbucket").Get<ReleaseKit.Infrastructure.Configuration.BitbucketOptions>();
             if (bitbucketOptions?.ApiUrl != null)
             {
-                client.BaseAddress = new Uri(bitbucketOptions.ApiUrl);
+                var apiUri = new Uri(bitbucketOptions.ApiUrl);
+                
+                // 確保使用 HTTPS
+                if (apiUri.Scheme != Uri.UriSchemeHttps)
+                {
+                    throw new InvalidOperationException(
+                        $"Bitbucket API URL 必須使用 HTTPS 協定。目前的 URL: {bitbucketOptions.ApiUrl}");
+                }
+                
+                client.BaseAddress = apiUri;
+                
+                // 驗證並設定存取權杖
                 if (!string.IsNullOrEmpty(bitbucketOptions.AccessToken))
                 {
+                    if (bitbucketOptions.AccessToken.Length < 20)
+                    {
+                        throw new InvalidOperationException(
+                            "Bitbucket AccessToken 格式不正確。權杖長度過短。");
+                    }
+                    
                     client.DefaultRequestHeaders.Authorization = 
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bitbucketOptions.AccessToken);
                 }
