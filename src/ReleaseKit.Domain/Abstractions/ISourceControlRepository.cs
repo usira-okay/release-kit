@@ -55,12 +55,12 @@ public interface ISourceControlRepository
     /// 取得專案的分支清單
     /// </summary>
     /// <param name="projectPath">專案路徑（如：mygroup/backend-api 或 workspace/repo_slug）</param>
-    /// <param name="pattern">分支名稱篩選模式（如：release/*），null 表示取得所有分支</param>
+    /// <param name="pattern">分支名稱前綴篩選（如：release/），null 表示取得所有分支</param>
     /// <param name="cancellationToken">取消標記</param>
     /// <returns>成功時回傳分支名稱清單；失敗時回傳包含錯誤資訊的 Result</returns>
     /// <remarks>
-    /// 用於取得符合特定命名模式的分支，常用於 BranchDiff 模式中判斷分支順序。
-    /// 篩選模式支援萬用字元（*）。
+    /// 用於取得符合特定命名前綴的分支，常用於 BranchDiff 模式中判斷分支順序。
+    /// 目前實作採用前綴比對（StartsWith），不解析萬用字元（*）；若需過濾 release 系列分支，請傳入如：release/。
     /// </remarks>
     Task<Result<IReadOnlyList<string>>> GetBranchesAsync(
         string projectPath,
