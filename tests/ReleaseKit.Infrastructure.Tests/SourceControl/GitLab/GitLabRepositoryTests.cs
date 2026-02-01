@@ -497,6 +497,108 @@ public class GitLabRepositoryTests
         Assert.Empty(result.Value);
     }
 
+    [Fact]
+    public async Task GetMergeRequestsByDateRangeAsync_WithPagination_ShouldUseXNextPageHeader()
+    {
+        // Arrange - 測試使用 X-Next-Page header 進行分頁
+        var page1Results = new List<GitLabMergeRequestResponse>
+        {
+            new()
+            {
+                Id = 1,
+                Iid = 1,
+                Title = "MR 1",
+                SourceBranch = "feature1",
+                TargetBranch = "main",
+                State = "merged",
+                CreatedAt = DateTimeOffset.Parse("2024-03-10T09:00:00Z"),
+                MergedAt = DateTimeOffset.Parse("2024-03-12T14:00:00Z"),
+                WebUrl = "https://gitlab.example.com/1",
+                Author = new GitLabAuthorResponse { Id = 1, Username = "user1" }
+            }
+        };
+
+        var page2Results = new List<GitLabMergeRequestResponse>
+        {
+            new()
+            {
+                Id = 2,
+                Iid = 2,
+                Title = "MR 2",
+                SourceBranch = "feature2",
+                TargetBranch = "main",
+                State = "merged",
+                CreatedAt = DateTimeOffset.Parse("2024-03-11T09:00:00Z"),
+                MergedAt = DateTimeOffset.Parse("2024-03-13T14:00:00Z"),
+                WebUrl = "https://gitlab.example.com/2",
+                Author = new GitLabAuthorResponse { Id = 2, Username = "user2" }
+            }
+        };
+
+        SetupPaginatedHttpResponses(page1Results, page2Results);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://gitlab.example.com/api/v4/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
+
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetMergeRequestsByDateRangeAsync(
+            "mygroup/myproject",
+            "main",
+            DateTimeOffset.Parse("2024-03-01T00:00:00Z"),
+            DateTimeOffset.Parse("2024-03-31T23:59:59Z"));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Equal(2, result.Value.Count);
+        Assert.Equal("MR 1", result.Value[0].Title);
+        Assert.Equal("MR 2", result.Value[1].Title);
+    }
+
+    [Fact]
+    public async Task GetBranchesAsync_WithPagination_ShouldUseXNextPageHeader()
+    {
+        // Arrange - 測試使用 X-Next-Page header 進行分頁
+        var page1Branches = new List<GitLabBranchResponse>
+        {
+            new() { Name = "main", Default = true, Protected = true },
+            new() { Name = "develop", Default = false, Protected = false }
+        };
+
+        var page2Branches = new List<GitLabBranchResponse>
+        {
+            new() { Name = "release/1.0", Default = false, Protected = true },
+            new() { Name = "release/2.0", Default = false, Protected = true }
+        };
+
+        SetupPaginatedHttpResponses(page1Branches, page2Branches);
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://gitlab.example.com/api/v4/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
+
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+
+        // Act
+        var result = await repository.GetBranchesAsync("mygroup/myproject");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Equal(4, result.Value.Count);
+        Assert.Contains("main", result.Value);
+        Assert.Contains("develop", result.Value);
+        Assert.Contains("release/1.0", result.Value);
+        Assert.Contains("release/2.0", result.Value);
+    }
+
     private void SetupHttpResponse(List<GitLabMergeRequestResponse> responses)
     {
         var json = responses.ToJson();
@@ -553,6 +655,40 @@ public class GitLabRepositoryTests
                     StatusCode = HttpStatusCode.OK,
                     Content = new StringContent(json)
                 };
+            });
+    }
+
+    private void SetupPaginatedHttpResponses<T>(List<T> page1Results, List<T> page2Results)
+    {
+        var callCount = 0;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                var response = new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK
+                };
+
+                if (callCount == 1)
+                {
+                    // 第一頁：包含 X-Next-Page header
+                    response.Content = new StringContent(JsonSerializer.Serialize(page1Results));
+                    response.Headers.Add("X-Next-Page", "2");
+                }
+                else
+                {
+                    // 第二頁：沒有 X-Next-Page header，表示這是最後一頁
+                    response.Content = new StringContent(JsonSerializer.Serialize(page2Results));
+                }
+
+                return response;
             });
     }
 }

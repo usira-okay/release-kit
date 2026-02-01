@@ -79,8 +79,12 @@ public class GitLabRepository : ISourceControlRepository
 
             allMergeRequests.AddRange(filteredMergeRequests);
 
-            // 如果回傳的筆數少於 perPage，表示已經是最後一頁
-            if (gitLabResponses.Count < perPage)
+            // 使用 X-Next-Page header 判斷是否有下一頁
+            var hasNextPage = response.Headers.TryGetValues("X-Next-Page", out var nextPageValues) &&
+                              nextPageValues.Any() &&
+                              !string.IsNullOrWhiteSpace(nextPageValues.First());
+
+            if (!hasNextPage)
             {
                 break;
             }
@@ -194,7 +198,12 @@ public class GitLabRepository : ISourceControlRepository
 
             allBranches.AddRange(branchNames);
 
-            if (branches.Count < perPage)
+            // 使用 X-Next-Page header 判斷是否有下一頁
+            var hasNextPage = response.Headers.TryGetValues("X-Next-Page", out var nextPageValues) &&
+                              nextPageValues.Any() &&
+                              !string.IsNullOrWhiteSpace(nextPageValues.First());
+
+            if (!hasNextPage)
             {
                 break;
             }
