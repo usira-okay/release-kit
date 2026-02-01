@@ -679,13 +679,13 @@ public class GitLabRepositoryTests
                 if (callCount == 1)
                 {
                     // 第一頁：包含 X-Next-Page header
-                    response.Content = new StringContent(JsonSerializer.Serialize(page1Results));
+                    response.Content = new StringContent(page1Results.ToJson());
                     response.Headers.Add("X-Next-Page", "2");
                 }
                 else
                 {
                     // 第二頁：沒有 X-Next-Page header，表示這是最後一頁
-                    response.Content = new StringContent(JsonSerializer.Serialize(page2Results));
+                    response.Content = new StringContent(page2Results.ToJson());
                 }
 
                 return response;
