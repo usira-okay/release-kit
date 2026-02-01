@@ -1,7 +1,7 @@
 using System.Net;
-using System.Text.Json;
 using Moq;
 using Moq.Protected;
+using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.ValueObjects;
 using ReleaseKit.Infrastructure.SourceControl.GitLab;
 using ReleaseKit.Infrastructure.SourceControl.GitLab.Models;
@@ -499,7 +499,7 @@ public class GitLabRepositoryTests
 
     private void SetupHttpResponse(List<GitLabMergeRequestResponse> responses)
     {
-        var json = JsonSerializer.Serialize(responses);
+        var json = responses.ToJson();
         _httpMessageHandlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -515,7 +515,7 @@ public class GitLabRepositoryTests
 
     private void SetupHttpResponse(List<GitLabBranchResponse> branches)
     {
-        var json = JsonSerializer.Serialize(branches);
+        var json = branches.ToJson();
         _httpMessageHandlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -535,9 +535,9 @@ public class GitLabRepositoryTests
         List<GitLabMergeRequestResponse> secondCommitMRs)
     {
         var responseQueue = new Queue<string>();
-        responseQueue.Enqueue(JsonSerializer.Serialize(compareResponse));
-        responseQueue.Enqueue(JsonSerializer.Serialize(firstCommitMRs));
-        responseQueue.Enqueue(JsonSerializer.Serialize(secondCommitMRs));
+        responseQueue.Enqueue(compareResponse.ToJson());
+        responseQueue.Enqueue(firstCommitMRs.ToJson());
+        responseQueue.Enqueue(secondCommitMRs.ToJson());
 
         _httpMessageHandlerMock
             .Protected()
