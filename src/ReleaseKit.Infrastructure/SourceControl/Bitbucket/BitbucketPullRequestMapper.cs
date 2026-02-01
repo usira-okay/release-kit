@@ -24,7 +24,7 @@ public static class BitbucketPullRequestMapper
             SourceBranch = response.Source.Branch.Name,
             TargetBranch = response.Destination.Branch.Name,
             CreatedAt = response.CreatedOn,
-            MergedAt = response.ClosedOn ?? DateTimeOffset.MinValue,
+            MergedAt = response.ClosedOn,
             State = response.State,
             AuthorUserId = response.Author.Uuid,
             AuthorName = response.Author.DisplayName,

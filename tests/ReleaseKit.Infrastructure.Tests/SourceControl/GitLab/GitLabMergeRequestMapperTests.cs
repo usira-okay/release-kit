@@ -77,7 +77,7 @@ public class GitLabMergeRequestMapperTests
     }
 
     [Fact]
-    public void ToDomain_WithNullMergedAt_ShouldMapToMinValue()
+    public void ToDomain_WithNullMergedAt_ShouldMapToNull()
     {
         // Arrange
         var response = new GitLabMergeRequestResponse
@@ -97,7 +97,7 @@ public class GitLabMergeRequestMapperTests
         var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
 
         // Assert
-        Assert.Equal(DateTimeOffset.MinValue, domain.MergedAt);
+        Assert.Null(domain.MergedAt);
     }
 
     [Fact]
