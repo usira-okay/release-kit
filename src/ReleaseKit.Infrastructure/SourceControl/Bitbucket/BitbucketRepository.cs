@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
@@ -32,7 +33,7 @@ public class BitbucketRepository : ISourceControlRepository
         DateTimeOffset endDateTime,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("Bitbucket");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
         var allMergeRequests = new List<MergeRequest>();
 
         // Bitbucket API 路徑格式: repositories/{workspace}/{repo_slug}/pullrequests
@@ -84,7 +85,7 @@ public class BitbucketRepository : ISourceControlRepository
         string? pattern = null,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("Bitbucket");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
         var allBranches = new List<string>();
 
         // Bitbucket API: GET /2.0/repositories/{workspace}/{repo_slug}/refs/branches
@@ -136,7 +137,7 @@ public class BitbucketRepository : ISourceControlRepository
         string commitSha,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("Bitbucket");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
 
         // Bitbucket API: GET /2.0/repositories/{workspace}/{repo_slug}/commit/{commit}/pullrequests
         var url = $"repositories/{HttpUtility.UrlEncode(projectPath)}/commit/{commitSha}/pullrequests?fields=*.*";
@@ -176,7 +177,7 @@ public class BitbucketRepository : ISourceControlRepository
         string targetBranch,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("Bitbucket");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
 
         // 1. 取得兩個分支之間的 commits
         // Bitbucket API: GET /2.0/repositories/{workspace}/{repo_slug}/commits/{revision}
