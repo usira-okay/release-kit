@@ -36,7 +36,10 @@ public sealed record MergeRequestOutput
     /// <summary>
     /// PR/MR 合併時間（UTC）
     /// </summary>
-    public DateTimeOffset MergedAt { get; init; }
+    /// <remarks>
+    /// 若 PR/MR 尚未合併，此值為 null。
+    /// </remarks>
+    public DateTimeOffset? MergedAt { get; init; }
 
     /// <summary>
     /// PR/MR 狀態（通常為 merged）

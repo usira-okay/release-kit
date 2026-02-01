@@ -24,7 +24,7 @@ public static class GitLabMergeRequestMapper
             SourceBranch = response.SourceBranch,
             TargetBranch = response.TargetBranch,
             CreatedAt = response.CreatedAt,
-            MergedAt = response.MergedAt ?? DateTimeOffset.MinValue,
+            MergedAt = response.MergedAt,
             State = response.State,
             AuthorUserId = response.Author.Id.ToString(),
             AuthorName = response.Author.Username,

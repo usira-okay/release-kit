@@ -65,8 +65,9 @@ public sealed record MergeRequest
     /// 對應 GitLab 的 merged_at 欄位或 Bitbucket 的 closed_on 欄位。
     /// 統一使用 UTC 時區的 DateTimeOffset。
     /// 此欄位為判斷 PR/MR 是否在時間區間內的關鍵欄位。
+    /// 若 PR/MR 尚未合併，此值為 null。
     /// </remarks>
-    public required DateTimeOffset MergedAt { get; init; }
+    public required DateTimeOffset? MergedAt { get; init; }
 
     /// <summary>
     /// 狀態（通常為 "merged"）

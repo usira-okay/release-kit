@@ -113,7 +113,7 @@ public class BitbucketPullRequestMapperTests
     }
 
     [Fact]
-    public void ToDomain_WithNullClosedOn_ShouldUseMinValue()
+    public void ToDomain_WithNullClosedOn_ShouldMapToNull()
     {
         // Arrange
         var response = new BitbucketPullRequestResponse
@@ -149,7 +149,7 @@ public class BitbucketPullRequestMapperTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(DateTimeOffset.MinValue, result.MergedAt);
+        Assert.Null(result.MergedAt);
     }
 
     [Fact]
