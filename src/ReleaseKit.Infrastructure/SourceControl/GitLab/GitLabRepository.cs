@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
@@ -32,7 +33,7 @@ public class GitLabRepository : ISourceControlRepository
         DateTimeOffset endDateTime,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
         var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
         var allMergeRequests = new List<MergeRequest>();
 
@@ -97,7 +98,7 @@ public class GitLabRepository : ISourceControlRepository
         string targetBranch,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
         var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
 
         // 1. 取得分支差異的 commits
@@ -148,7 +149,7 @@ public class GitLabRepository : ISourceControlRepository
         string? pattern = null,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
         var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
         var allBranches = new List<string>();
 
@@ -217,7 +218,7 @@ public class GitLabRepository : ISourceControlRepository
         string commitSha,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("GitLab");
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
         var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
 
         var url = $"projects/{encodedProjectPath}/repository/commits/{commitSha}/merge_requests";

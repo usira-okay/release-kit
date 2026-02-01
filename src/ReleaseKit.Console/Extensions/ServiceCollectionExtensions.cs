@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Common.Constants;
 using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
@@ -81,7 +82,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddHttpClientServices(this IServiceCollection services, IConfiguration configuration)
     {
         // 註冊 GitLab HttpClient
-        services.AddHttpClient("GitLab", (sp, client) =>
+        services.AddHttpClient(HttpClientNames.GitLab, (sp, client) =>
         {
             var gitLabSection = configuration.GetSection("GitLab");
             var gitLabOptions = gitLabSection.Get<ReleaseKit.Common.Configuration.GitLabOptions>();
@@ -112,7 +113,7 @@ public static class ServiceCollectionExtensions
         });
 
         // 註冊 Bitbucket HttpClient
-        services.AddHttpClient("Bitbucket", (sp, client) =>
+        services.AddHttpClient(HttpClientNames.Bitbucket, (sp, client) =>
         {
             var bitbucketSection = configuration.GetSection("Bitbucket");
             var bitbucketOptions = bitbucketSection.Get<ReleaseKit.Common.Configuration.BitbucketOptions>();
@@ -160,9 +161,9 @@ public static class ServiceCollectionExtensions
         
         // 註冊 Source Control Repositories
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
-            ReleaseKit.Infrastructure.SourceControl.GitLab.GitLabRepository>("GitLab");
+            ReleaseKit.Infrastructure.SourceControl.GitLab.GitLabRepository>(HttpClientNames.GitLab);
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
-            ReleaseKit.Infrastructure.SourceControl.Bitbucket.BitbucketRepository>("Bitbucket");
+            ReleaseKit.Infrastructure.SourceControl.Bitbucket.BitbucketRepository>(HttpClientNames.Bitbucket);
         
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();
