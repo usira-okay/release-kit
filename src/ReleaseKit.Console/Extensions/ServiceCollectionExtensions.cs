@@ -104,7 +104,7 @@ public static class ServiceCollectionExtensions
             if (apiUri.Scheme != Uri.UriSchemeHttps)
             {
                 throw new InvalidOperationException(
-                    $"GitLab API URL 必須使用 HTTPS 協定。目前的 URL: {gitLabOptions.ApiUrl}");
+                    $"GitLab API URL 必須使用 HTTPS 協定。目前使用的協定: {apiUri.Scheme}");
             }
 
             client.BaseAddress = apiUri;
@@ -135,7 +135,7 @@ public static class ServiceCollectionExtensions
             if (apiUri.Scheme != Uri.UriSchemeHttps)
             {
                 throw new InvalidOperationException(
-                    $"Bitbucket API URL 必須使用 HTTPS 協定。目前的 URL: {bitbucketOptions.ApiUrl}");
+                    $"Bitbucket API URL 必須使用 HTTPS 協定。目前使用的協定: {apiUri.Scheme}");
             }
 
             client.BaseAddress = apiUri;
