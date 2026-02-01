@@ -176,10 +176,3 @@ Console 應用程式進入點，負責：
 ## 開發指引
 
 **請遵循 `.specify/memory/constitution.md`** 的規範
-
-## Active Technologies
-- C# / .NET 9.0 + HttpClient, System.Text.Json, Microsoft.Extensions.Options (001-pr-info-fetch)
-- N/A (輸出 JSON 格式，可選擇性使用 Redis 快取) (001-pr-info-fetch)
-
-## Recent Changes
-- 001-pr-info-fetch: Added C# / .NET 9.0 + HttpClient, System.Text.Json, Microsoft.Extensions.Options
