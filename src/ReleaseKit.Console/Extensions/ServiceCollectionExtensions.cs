@@ -108,13 +108,6 @@ public static class ServiceCollectionExtensions
 
             client.BaseAddress = apiUri;
 
-            // 驗證並設定存取權杖
-            if (gitLabOptions.AccessToken.Length < 20)
-            {
-                throw new InvalidOperationException(
-                    "GitLab AccessToken 格式不正確。權杖長度過短。");
-            }
-
             client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", gitLabOptions.AccessToken);
         });
 
