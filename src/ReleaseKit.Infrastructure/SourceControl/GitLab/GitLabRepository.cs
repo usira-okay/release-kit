@@ -134,7 +134,8 @@ public class GitLabRepository : ISourceControlRepository
             var mrResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Id, cancellationToken);
             if (mrResult.IsSuccess && mrResult.Value != null)
             {
-                // 去重複 - 使用明確的 Where 過濾並立即執行
+                // 去重複：HashSet.Add() 只在元素尚不存在時才回傳 true，
+                // 利用此特性在 Where 過濾器中實現去重邏輯，並立即執行以確保重複項目被過濾
                 var uniqueMRs = mrResult.Value.Where(mr => processedMRUrls.Add(mr.PRUrl)).ToList();
                 allMergeRequests.AddRange(uniqueMRs);
             }
