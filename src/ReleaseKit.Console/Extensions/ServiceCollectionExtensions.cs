@@ -146,13 +146,7 @@ public static class ServiceCollectionExtensions
 
             client.BaseAddress = apiUri;
 
-            // 驗證並設定存取權杖
-            if (bitbucketOptions.AccessToken.Length < 20)
-            {
-                throw new InvalidOperationException(
-                    "Bitbucket AccessToken 格式不正確。權杖長度過短。");
-            }
-
+            // 設定存取權杖；詳細格式與有效性交由 Bitbucket API 驗證
             client.DefaultRequestHeaders.Authorization = 
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bitbucketOptions.AccessToken);
         });
