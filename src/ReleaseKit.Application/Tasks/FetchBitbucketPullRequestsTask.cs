@@ -1,11 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Configuration;
-using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tasks;
@@ -13,13 +10,8 @@ namespace ReleaseKit.Application.Tasks;
 /// <summary>
 /// 拉取 Bitbucket Pull Request 資訊任務
 /// </summary>
-public class FetchBitbucketPullRequestsTask : ITask
+public class FetchBitbucketPullRequestsTask : BaseFetchPullRequestsTask<BitbucketOptions, BitbucketProjectOptions>
 {
-    private readonly ISourceControlRepository _repository;
-    private readonly ILogger<FetchBitbucketPullRequestsTask> _logger;
-    private readonly BitbucketOptions _bitbucketOptions;
-    private readonly FetchModeOptions _fetchModeOptions;
-
     /// <summary>
     /// 建構子
     /// </summary>
@@ -32,196 +24,20 @@ public class FetchBitbucketPullRequestsTask : ITask
         ILogger<FetchBitbucketPullRequestsTask> logger,
         IOptions<BitbucketOptions> bitbucketOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
+        : base(
+            serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("Bitbucket"),
+            logger,
+            bitbucketOptions.Value,
+            fetchModeOptions)
     {
-        _repository = serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("Bitbucket");
-        _logger = logger;
-        _bitbucketOptions = bitbucketOptions.Value;
-        _fetchModeOptions = fetchModeOptions.Value;
     }
 
-    /// <summary>
-    /// 執行拉取 Bitbucket Pull Request 資訊任務
-    /// </summary>
-    public async Task ExecuteAsync()
-    {
-        _logger.LogInformation("開始執行 Bitbucket Pull Request 拉取任務");
+    /// <inheritdoc />
+    protected override string PlatformName => "Bitbucket";
 
-        var projectResults = new List<ProjectResult>();
+    /// <inheritdoc />
+    protected override SourceControlPlatform Platform => SourceControlPlatform.Bitbucket;
 
-        // 處理每個專案
-        foreach (var project in _bitbucketOptions.Projects)
-        {
-            _logger.LogInformation("處理專案: {ProjectPath}", project.ProjectPath);
-
-            var projectResult = new ProjectResult
-            {
-                ProjectPath = project.ProjectPath,
-                Platform = SourceControlPlatform.Bitbucket,
-                PullRequests = new List<MergeRequestOutput>()
-            };
-
-            try
-            {
-                // 專案層級設定覆蓋全域設定
-                var fetchMode = project.FetchMode ?? _fetchModeOptions.FetchMode;
-                
-                List<MergeRequest> mergeRequests;
-                
-                if (fetchMode == FetchMode.DateTimeRange)
-                {
-                    mergeRequests = await ExecuteDateTimeRangeModeAsync(_repository, project);
-                }
-                else if (fetchMode == FetchMode.BranchDiff)
-                {
-                    mergeRequests = await ExecuteBranchDiffModeAsync(_repository, project);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"不支援的擷取模式: {fetchMode}");
-                }
-
-                // 轉換為輸出格式
-                projectResult = projectResult with
-                {
-                    PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
-                    {
-                        Title = mr.Title,
-                        Description = mr.Description,
-                        SourceBranch = mr.SourceBranch,
-                        TargetBranch = mr.TargetBranch,
-                        CreatedAt = mr.CreatedAt,
-                        MergedAt = mr.MergedAt,
-                        State = mr.State,
-                        AuthorUserId = mr.AuthorUserId,
-                        AuthorName = mr.AuthorName,
-                        PRUrl = mr.PRUrl
-                    }).ToList()
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "處理專案 {ProjectPath} 時發生例外", project.ProjectPath);
-                projectResult = projectResult with
-                {
-                    Error = $"處理失敗: {ex.Message}"
-                };
-            }
-
-            projectResults.Add(projectResult);
-        }
-
-        // 建立最終輸出
-        var fetchResult = new FetchResult
-        {
-            Results = projectResults
-        };
-
-        // 輸出 JSON 結果
-        var json = fetchResult.ToJson();
-        System.Console.WriteLine(json);
-
-        var totalPRs = projectResults.Sum(r => r.PullRequests.Count);
-        var failedProjects = projectResults.Count(r => r.Error != null);
-        _logger.LogInformation(
-            "Bitbucket Pull Request 拉取任務完成，共處理 {ProjectCount} 個專案，取得 {Count} 筆 PR，{FailedCount} 個專案失敗",
-            projectResults.Count,
-            totalPRs,
-            failedProjects);
-    }
-
-    /// <summary>
-    /// 執行 DateTimeRange 模式
-    /// </summary>
-    private async Task<List<MergeRequest>> ExecuteDateTimeRangeModeAsync(
-        ISourceControlRepository repository,
-        BitbucketProjectOptions project)
-    {
-        // 取得時間參數：專案層級優先，否則使用全域設定
-        var startDateTime = project.StartDateTime ?? _fetchModeOptions.StartDateTime;
-        var endDateTime = project.EndDateTime ?? _fetchModeOptions.EndDateTime;
-        var targetBranch = string.IsNullOrWhiteSpace(project.TargetBranch)
-            ? _fetchModeOptions.TargetBranch
-            : project.TargetBranch;
-
-        // 驗證必填參數
-        if (!startDateTime.HasValue)
-        {
-            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: StartDateTime");
-        }
-
-        if (!endDateTime.HasValue)
-        {
-            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: EndDateTime");
-        }
-
-        if (string.IsNullOrEmpty(targetBranch))
-        {
-            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: TargetBranch");
-        }
-
-        _logger.LogInformation(
-            "使用 DateTimeRange 模式: {TargetBranch}, {StartDateTime} ~ {EndDateTime}",
-            targetBranch,
-            startDateTime.Value,
-            endDateTime.Value);
-
-        var result = await repository.GetMergeRequestsByDateRangeAsync(
-            project.ProjectPath,
-            targetBranch,
-            startDateTime.Value,
-            endDateTime.Value);
-
-        if (result.IsFailure)
-        {
-            throw new InvalidOperationException($"拉取專案 {project.ProjectPath} 的 PR 失敗: {result.Error}");
-        }
-
-        _logger.LogInformation("專案 {ProjectPath} 取得 {Count} 筆 PR", project.ProjectPath, result.Value?.Count ?? 0);
-        return result.Value?.ToList() ?? new List<MergeRequest>();
-    }
-
-    /// <summary>
-    /// 執行 BranchDiff 模式
-    /// </summary>
-    private async Task<List<MergeRequest>> ExecuteBranchDiffModeAsync(
-        ISourceControlRepository repository,
-        BitbucketProjectOptions project)
-    {
-        // 取得分支參數：專案層級優先，否則使用全域設定
-        var sourceBranch = string.IsNullOrWhiteSpace(project.SourceBranch)
-            ? _fetchModeOptions.SourceBranch
-            : project.SourceBranch;
-        var targetBranch = string.IsNullOrWhiteSpace(project.TargetBranch)
-            ? _fetchModeOptions.TargetBranch
-            : project.TargetBranch;
-
-        // 驗證必填參數
-        if (string.IsNullOrEmpty(sourceBranch))
-        {
-            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: SourceBranch");
-        }
-
-        if (string.IsNullOrEmpty(targetBranch))
-        {
-            throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: TargetBranch");
-        }
-
-        _logger.LogInformation(
-            "使用 BranchDiff 模式: {SourceBranch} -> {TargetBranch}",
-            sourceBranch,
-            targetBranch);
-
-        var result = await repository.GetMergeRequestsByBranchDiffAsync(
-            project.ProjectPath,
-            sourceBranch,
-            targetBranch);
-
-        if (result.IsFailure)
-        {
-            throw new InvalidOperationException($"拉取專案 {project.ProjectPath} 的 PR 失敗: {result.Error}");
-        }
-
-        _logger.LogInformation("專案 {ProjectPath} 取得 {Count} 筆 PR", project.ProjectPath, result.Value?.Count ?? 0);
-        return result.Value?.ToList() ?? new List<MergeRequest>();
-    }
+    /// <inheritdoc />
+    protected override IEnumerable<BitbucketProjectOptions> GetProjects() => PlatformOptions.Projects;
 }

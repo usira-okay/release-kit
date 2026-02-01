@@ -3,7 +3,7 @@ namespace ReleaseKit.Common.Configuration;
 /// <summary>
 /// GitLab 專案配置選項
 /// </summary>
-public class GitLabProjectOptions
+public class GitLabProjectOptions : IProjectOptions
 {
     /// <summary>
     /// 專案路徑（如 "group/project"）
