@@ -227,15 +227,9 @@ public class BitbucketRepository : ISourceControlRepository
             var prResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Hash, cancellationToken);
             if (prResult.IsSuccess && prResult.Value != null)
             {
-                // 去重複
-                foreach (var pr in prResult.Value)
-                {
-                    // Use PR URL as unique identifier
-                    if (processedPRIds.Add(pr.PRUrl))
-                    {
-                        allMergeRequests.Add(pr);
-                    }
-                }
+                // 去重複 - 使用明確的 Where 過濾
+                var uniquePRs = prResult.Value.Where(pr => processedPRIds.Add(pr.PRUrl));
+                allMergeRequests.AddRange(uniquePRs);
             }
         }
 
