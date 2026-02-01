@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Moq;
 using Moq.Protected;
+using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Domain.ValueObjects;
 using ReleaseKit.Infrastructure.SourceControl.Bitbucket;
@@ -532,7 +533,7 @@ public class BitbucketRepositoryTests
                 }
 
                 var response = responseQueue.Dequeue();
-                var json = JsonSerializer.Serialize(response);
+                var json = response.ToJson();
 
                 return new HttpResponseMessage
                 {
@@ -564,7 +565,7 @@ public class BitbucketRepositoryTests
                 }
 
                 var response = responseQueue.Dequeue();
-                var json = JsonSerializer.Serialize(response);
+                var json = response.ToJson();
 
                 return new HttpResponseMessage
                 {
@@ -580,11 +581,11 @@ public class BitbucketRepositoryTests
         params BitbucketPageResponse<BitbucketPullRequestResponse>[] prResponses)
     {
         var responseQueue = new Queue<string>();
-        responseQueue.Enqueue(JsonSerializer.Serialize(commitsResponse));
+        responseQueue.Enqueue(commitsResponse.ToJson());
         
         foreach (var prResponse in prResponses)
         {
-            responseQueue.Enqueue(JsonSerializer.Serialize(prResponse));
+            responseQueue.Enqueue(prResponse.ToJson());
         }
 
         handlerMock.Protected()
