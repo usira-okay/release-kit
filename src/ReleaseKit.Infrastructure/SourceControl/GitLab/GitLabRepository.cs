@@ -80,10 +80,11 @@ public class GitLabRepository : ISourceControlRepository
             allMergeRequests.AddRange(filteredMergeRequests);
 
             // 使用 X-Next-Page header 判斷是否有下一頁
-            // 如果 header 存在且有值，表示還有下一頁
-            if (!response.Headers.TryGetValues("X-Next-Page", out var nextPageValues) ||
-                !nextPageValues.Any() ||
-                string.IsNullOrWhiteSpace(nextPageValues.First()))
+            var hasNextPage = response.Headers.TryGetValues("X-Next-Page", out var nextPageValues) &&
+                              nextPageValues.Any() &&
+                              !string.IsNullOrWhiteSpace(nextPageValues.First());
+
+            if (!hasNextPage)
             {
                 break;
             }
@@ -197,10 +198,11 @@ public class GitLabRepository : ISourceControlRepository
             allBranches.AddRange(branchNames);
 
             // 使用 X-Next-Page header 判斷是否有下一頁
-            // 如果 header 存在且有值，表示還有下一頁
-            if (!response.Headers.TryGetValues("X-Next-Page", out var nextPageValues) ||
-                !nextPageValues.Any() ||
-                string.IsNullOrWhiteSpace(nextPageValues.First()))
+            var hasNextPage = response.Headers.TryGetValues("X-Next-Page", out var nextPageValues) &&
+                              nextPageValues.Any() &&
+                              !string.IsNullOrWhiteSpace(nextPageValues.First());
+
+            if (!hasNextPage)
             {
                 break;
             }
