@@ -133,14 +133,9 @@ public class GitLabRepository : ISourceControlRepository
             var mrResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Id, cancellationToken);
             if (mrResult.IsSuccess && mrResult.Value != null)
             {
-                // 去重複：使用 PRUrl 作為唯一鍵
-                foreach (var mr in mrResult.Value)
-                {
-                    if (processedMRUrls.Add(mr.PRUrl))
-                    {
-                        allMergeRequests.Add(mr);
-                    }
-                }
+                // 去重複 - 使用明確的 Where 過濾
+                var uniqueMRs = mrResult.Value.Where(mr => processedMRUrls.Add(mr.PRUrl));
+                allMergeRequests.AddRange(uniqueMRs);
             }
         }
 
