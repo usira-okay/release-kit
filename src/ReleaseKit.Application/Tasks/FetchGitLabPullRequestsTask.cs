@@ -1,17 +1,43 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ReleaseKit.Common.Configuration;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tasks;
 
 /// <summary>
 /// 拉取 GitLab Pull Request 資訊任務
 /// </summary>
-public class FetchGitLabPullRequestsTask : ITask
+public class FetchGitLabPullRequestsTask : BaseFetchPullRequestsTask<GitLabOptions, GitLabProjectOptions>
 {
     /// <summary>
-    /// 執行拉取 GitLab Pull Request 資訊任務
+    /// 建構子
     /// </summary>
-    public Task ExecuteAsync()
+    /// <param name="serviceProvider">服務提供者</param>
+    /// <param name="logger">日誌記錄器</param>
+    /// <param name="gitLabOptions">GitLab 配置選項</param>
+    /// <param name="fetchModeOptions">拉取模式配置選項</param>
+    public FetchGitLabPullRequestsTask(
+        IServiceProvider serviceProvider,
+        ILogger<FetchGitLabPullRequestsTask> logger,
+        IOptions<GitLabOptions> gitLabOptions,
+        IOptions<FetchModeOptions> fetchModeOptions)
+        : base(
+            serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("GitLab"),
+            logger,
+            gitLabOptions.Value,
+            fetchModeOptions)
     {
-        throw new NotImplementedException("拉取 GitLab Pull Request 資訊功能尚未實作");
     }
+
+    /// <inheritdoc />
+    protected override string PlatformName => "GitLab";
+
+    /// <inheritdoc />
+    protected override SourceControlPlatform Platform => SourceControlPlatform.GitLab;
+
+    /// <inheritdoc />
+    protected override IEnumerable<GitLabProjectOptions> GetProjects() => PlatformOptions.Projects;
 }
