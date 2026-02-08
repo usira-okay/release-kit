@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "dotnet: build",
+            "program": "${workspaceFolder}/src/ReleaseKit.Console/bin/Debug/net9.0/ReleaseKit.Console.dll",
+            "args": [
+                "fetch-gitlab-pr"
+            ],
+            "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
+    ]
+}
