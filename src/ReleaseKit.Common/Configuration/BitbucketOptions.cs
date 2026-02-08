@@ -11,6 +11,11 @@ public class BitbucketOptions
     public string ApiUrl { get; init; } = string.Empty;
 
     /// <summary>
+    /// Bitbucket 帳戶 Email
+    /// </summary>
+    public string Email { get; init; } = string.Empty;
+
+    /// <summary>
     /// Bitbucket Access Token / App Password
     /// </summary>
     public string AccessToken { get; init; } = string.Empty;
