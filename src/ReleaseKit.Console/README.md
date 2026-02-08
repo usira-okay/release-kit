@@ -105,7 +105,6 @@ GitLab__AccessToken="your-gitlab-token-here" ./ReleaseKit.Console fetch-gitlab-p
 {
   "Bitbucket": {
     "ApiUrl": "https://api.bitbucket.org/2.0",
-    "Email": "",
     "AccessToken": "",
     "Projects": [
       {
@@ -118,7 +117,6 @@ GitLab__AccessToken="your-gitlab-token-here" ./ReleaseKit.Console fetch-gitlab-p
 ```
 
 - **ApiUrl**: Bitbucket API 端點 URL（必須是有效的 URL）
-- **Email**: Bitbucket 帳號電子郵件（必須是有效的電子郵件地址，建議透過環境變數設定）
 - **AccessToken**: Bitbucket App 密碼或存取權杖（建議透過環境變數設定）
 - **Projects**: 要追蹤的 Bitbucket 專案清單
   - **ProjectPath**: 專案路徑（格式：群組名稱/專案名稱）
@@ -126,7 +124,6 @@ GitLab__AccessToken="your-gitlab-token-here" ./ReleaseKit.Console fetch-gitlab-p
 
 **環境變數設定範例：**
 ```bash
-Bitbucket__Email="your-email@example.com" \
 Bitbucket__AccessToken="your-bitbucket-token" \
 ./ReleaseKit.Console fetch-bitbucket-pr
 ```

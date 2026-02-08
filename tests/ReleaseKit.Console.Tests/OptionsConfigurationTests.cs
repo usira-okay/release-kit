@@ -58,7 +58,6 @@ public class OptionsConfigurationTests
         // Assert
         Assert.NotNull(options);
         Assert.Equal("https://api.bitbucket.org/2.0", options.ApiUrl);
-        Assert.Empty(options.Email);
         Assert.Empty(options.AccessToken);
         Assert.NotEmpty(options.Projects);
         Assert.Single(options.Projects);
@@ -141,7 +140,6 @@ public class OptionsConfigurationTests
         var basePath = GetProjectBasePath();
         var envVars = new Dictionary<string, string>
         {
-            { "Bitbucket__Email", "test@example.com" },
             { "Bitbucket__AccessToken", "bitbucket-token-456" }
         };
 
@@ -166,7 +164,6 @@ public class OptionsConfigurationTests
             var options = serviceProvider.GetRequiredService<IOptions<BitbucketOptions>>().Value;
             
             // Assert
-            Assert.Equal("test@example.com", options.Email);
             Assert.Equal("bitbucket-token-456", options.AccessToken);
         }
         finally

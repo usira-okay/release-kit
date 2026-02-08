@@ -23,7 +23,6 @@ public class BitbucketOptionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bitbucket:ApiUrl"] = "https://api.bitbucket.org/2.0",
-                ["Bitbucket:Email"] = "user@example.com",
                 ["Bitbucket:AccessToken"] = "test-app-password",
                 ["Bitbucket:Projects:0:ProjectPath"] = "workspace/repo1",
                 ["Bitbucket:Projects:0:TargetBranch"] = "main",
@@ -48,7 +47,6 @@ public class BitbucketOptionsTests
 
         // Assert
         options.ApiUrl.Should().Be("https://api.bitbucket.org/2.0");
-        options.Email.Should().Be("user@example.com");
         options.AccessToken.Should().Be("test-app-password");
         options.Projects.Should().HaveCount(2);
         options.Projects[0].ProjectPath.Should().Be("workspace/repo1");
@@ -70,7 +68,6 @@ public class BitbucketOptionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bitbucket:ApiUrl"] = "https://api.bitbucket.org/2.0",
-                ["Bitbucket:Email"] = "user@example.com",
                 ["Bitbucket:AccessToken"] = "original-password"
             })
             .AddInMemoryCollection(new Dictionary<string, string?>
