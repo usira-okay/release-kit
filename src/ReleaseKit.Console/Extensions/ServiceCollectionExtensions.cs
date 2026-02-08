@@ -129,6 +129,11 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException("缺少必要的組態鍵: Bitbucket:AccessToken");
             }
 
+            if (string.IsNullOrWhiteSpace(bitbucketOptions.Email))
+            {
+                throw new InvalidOperationException("缺少必要的組態鍵: Bitbucket:Email");
+            }
+
             var apiUri = new Uri(bitbucketOptions.ApiUrl);
 
             // 確保使用 HTTPS
@@ -140,9 +145,12 @@ public static class ServiceCollectionExtensions
 
             client.BaseAddress = apiUri;
 
+            var credentials = Convert.ToBase64String(
+                            System.Text.Encoding.ASCII.GetBytes($"{bitbucketOptions.Email}:{bitbucketOptions.AccessToken}"));
+            
             // 設定存取權杖；詳細格式與有效性交由 Bitbucket API 驗證
             client.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bitbucketOptions.AccessToken);
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
         });
 
         return services;

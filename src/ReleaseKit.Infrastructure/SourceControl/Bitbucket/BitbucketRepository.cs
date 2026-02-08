@@ -36,9 +36,16 @@ public class BitbucketRepository : ISourceControlRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
         var allMergeRequests = new List<MergeRequest>();
 
+        // 使用 q 參數進行日期篩選與狀態過濾
+        // BitBucket API 查詢語法: updated_on >= "2025-01-01" AND state="MERGED"
+        var query = $"updated_on>={startDateTime:yyyy-MM-ddTHH:mm:ss.fffZ} AND state=\"MERGED\"";
+
         // Bitbucket API 路徑格式: /2.0/repositories/{workspace}/{repo_slug}/pullrequests
-        var url = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/pullrequests?" +
-                  $"state=MERGED&" +
+        
+        var url = $"/2.0/repositories/{projectPath}/pullrequests?" +
+                  $"q={Uri.EscapeDataString(query)}&" +
+                  $"sort=-updated_on&" +
+                  $"pagelen=50&" +
                   $"fields=*.*";
 
         while (!string.IsNullOrEmpty(url))
