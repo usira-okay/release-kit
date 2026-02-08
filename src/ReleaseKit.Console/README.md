@@ -74,7 +74,7 @@ $ dotnet run -- fetch-gitlab-pr extra-arg
 ```json
 {
   "GitLab": {
-    "ApiUrl": "https://gitlab.com/api/v4",
+    "ApiUrl": "https://gitlab.com",
     "AccessToken": "",
     "Projects": [
       {
@@ -104,7 +104,7 @@ GitLab__AccessToken="your-gitlab-token-here" ./ReleaseKit.Console fetch-gitlab-p
 ```json
 {
   "Bitbucket": {
-    "ApiUrl": "https://api.bitbucket.org/2.0",
+    "ApiUrl": "https://api.bitbucket.org",
     "Email": "",
     "AccessToken": "",
     "Projects": [
