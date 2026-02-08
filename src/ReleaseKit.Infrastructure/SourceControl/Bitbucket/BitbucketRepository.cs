@@ -228,7 +228,7 @@ public class BitbucketRepository : ISourceControlRepository
 
         // 2. 對每個 commit 取得關聯的 PR
         var allMergeRequests = new List<MergeRequest>();
-        var processedPRIds = new HashSet<string>();
+        var processedPRUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var commit in allCommits)
         {
@@ -236,8 +236,8 @@ public class BitbucketRepository : ISourceControlRepository
             if (prResult.IsSuccess && prResult.Value != null)
             {
                 // 去重複：HashSet.Add() 只在元素尚不存在時才回傳 true，
-                // 利用此特性在 Where 過濾器中實現去重邏輯
-                var uniquePRs = prResult.Value.Where(pr => processedPRIds.Add(pr.PRUrl));
+                // 利用此特性在 Where 過濾器中實現去重邏輯，並立即執行以確保重複項目被過濾
+                var uniquePRs = prResult.Value.Where(pr => processedPRUrls.Add(pr.PRUrl)).ToList();
                 allMergeRequests.AddRange(uniquePRs);
             }
         }
