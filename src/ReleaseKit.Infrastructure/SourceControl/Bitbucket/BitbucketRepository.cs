@@ -36,8 +36,8 @@ public class BitbucketRepository : ISourceControlRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
         var allMergeRequests = new List<MergeRequest>();
 
-        // Bitbucket API 路徑格式: repositories/{workspace}/{repo_slug}/pullrequests
-        var url = $"repositories/{HttpUtility.UrlEncode(projectPath)}/pullrequests?" +
+        // Bitbucket API 路徑格式: /2.0/repositories/{workspace}/{repo_slug}/pullrequests
+        var url = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/pullrequests?" +
                   $"state=MERGED&" +
                   $"fields=*.*";
 
@@ -88,8 +88,8 @@ public class BitbucketRepository : ISourceControlRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
         var allBranches = new List<string>();
 
-        // Bitbucket API: GET /2.0/repositories/{workspace}/{repo_slug}/refs/branches
-        var url = $"repositories/{HttpUtility.UrlEncode(projectPath)}/refs/branches?pagelen=100";
+        // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/refs/branches
+        var url = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/refs/branches?pagelen=100";
 
         while (!string.IsNullOrEmpty(url))
         {
@@ -139,8 +139,8 @@ public class BitbucketRepository : ISourceControlRepository
     {
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
 
-        // Bitbucket API: GET /2.0/repositories/{workspace}/{repo_slug}/commit/{commit}/pullrequests
-        var url = $"repositories/{HttpUtility.UrlEncode(projectPath)}/commit/{commitSha}/pullrequests?fields=*.*";
+        // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/commit/{commit}/pullrequests
+        var url = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/commit/{commitSha}/pullrequests?fields=*.*";
 
         var response = await httpClient.GetAsync(url, cancellationToken);
 
@@ -180,9 +180,9 @@ public class BitbucketRepository : ISourceControlRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
 
         // 1. 取得兩個分支之間的 commits
-        // Bitbucket API: GET /2.0/repositories/{workspace}/{repo_slug}/commits/{revision}
+        // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/commits/{revision}
         // Use exclude parameter to get commits in target but not in source
-        var commitsUrl = $"repositories/{HttpUtility.UrlEncode(projectPath)}/commits/{HttpUtility.UrlEncode(targetBranch)}?" +
+        var commitsUrl = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/commits/{HttpUtility.UrlEncode(targetBranch)}?" +
                          $"exclude={HttpUtility.UrlEncode(sourceBranch)}&" +
                          $"pagelen=100";
 
