@@ -96,7 +96,7 @@ public class BitbucketRepository : ISourceControlRepository
         var allBranches = new List<string>();
 
         // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/refs/branches
-        var url = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/refs/branches?pagelen=100";
+        var url = $"/2.0/repositories/{projectPath}/refs/branches?pagelen=100";
 
         while (!string.IsNullOrEmpty(url))
         {
@@ -147,7 +147,7 @@ public class BitbucketRepository : ISourceControlRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
 
         // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/commit/{commit}/pullrequests
-        var url = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/commit/{commitSha}/pullrequests?fields=*.*";
+        var url = $"/2.0/repositories/{projectPath}/commit/{commitSha}/pullrequests?fields=*.*";
 
         var response = await httpClient.GetAsync(url, cancellationToken);
 
@@ -189,7 +189,7 @@ public class BitbucketRepository : ISourceControlRepository
         // 1. 取得兩個分支之間的 commits
         // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/commits/{revision}
         // Use exclude parameter to get commits in target but not in source
-        var commitsUrl = $"/2.0/repositories/{HttpUtility.UrlEncode(projectPath)}/commits/{HttpUtility.UrlEncode(targetBranch)}?" +
+        var commitsUrl = $"/2.0/repositories/{projectPath}/commits/{HttpUtility.UrlEncode(targetBranch)}?" +
                          $"exclude={HttpUtility.UrlEncode(sourceBranch)}&" +
                          $"pagelen=100";
 

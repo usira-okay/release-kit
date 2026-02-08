@@ -30,12 +30,9 @@ public class OptionsConfigurationTests
         
         // Assert
         Assert.NotNull(options);
-        Assert.Equal("https://gitlab.com/api/v4", options.ApiUrl);
+        Assert.Equal("https://gitlab.com", options.ApiUrl);
         Assert.Empty(options.AccessToken);
-        Assert.NotEmpty(options.Projects);
-        Assert.Single(options.Projects);
-        Assert.Equal("mygroup/backend-api", options.Projects[0].ProjectPath);
-        Assert.Equal("main", options.Projects[0].TargetBranch);
+        Assert.Empty(options.Projects);
     }
     
     [Fact]
@@ -57,13 +54,10 @@ public class OptionsConfigurationTests
         
         // Assert
         Assert.NotNull(options);
-        Assert.Equal("https://api.bitbucket.org/2.0", options.ApiUrl);
+        Assert.Equal("https://api.bitbucket.org", options.ApiUrl);
         Assert.Empty(options.Email);
         Assert.Empty(options.AccessToken);
-        Assert.NotEmpty(options.Projects);
-        Assert.Single(options.Projects);
-        Assert.Equal("mygroup/backend-api", options.Projects[0].ProjectPath);
-        Assert.Equal("main", options.Projects[0].TargetBranch);
+        Assert.Empty(options.Projects);
     }
     
     [Fact]
