@@ -42,7 +42,7 @@ public class GitLabRepository : ISourceControlRepository
 
         while (true)
         {
-            var url = $"projects/{encodedProjectPath}/merge_requests?" +
+            var url = $"/api/v4/projects/{encodedProjectPath}/merge_requests?" +
                       $"state=merged&" +
                       $"target_branch={HttpUtility.UrlEncode(targetBranch)}&" +
                       $"updated_after={startDateTime:yyyy-MM-ddTHH:mm:ssZ}&" +
@@ -106,7 +106,7 @@ public class GitLabRepository : ISourceControlRepository
         var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
 
         // 1. 取得分支差異的 commits
-        var compareUrl = $"projects/{encodedProjectPath}/repository/compare?" +
+        var compareUrl = $"/api/v4/projects/{encodedProjectPath}/repository/compare?" +
                          $"from={HttpUtility.UrlEncode(sourceBranch)}&" +
                          $"to={HttpUtility.UrlEncode(targetBranch)}&" +
                          $"straight=false";
@@ -163,7 +163,7 @@ public class GitLabRepository : ISourceControlRepository
 
         while (true)
         {
-            var url = $"projects/{encodedProjectPath}/repository/branches?" +
+            var url = $"/api/v4/projects/{encodedProjectPath}/repository/branches?" +
                       $"page={page}&" +
                       $"per_page={perPage}";
 
@@ -231,7 +231,7 @@ public class GitLabRepository : ISourceControlRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
         var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
 
-        var url = $"projects/{encodedProjectPath}/repository/commits/{commitSha}/merge_requests";
+        var url = $"/api/v4/projects/{encodedProjectPath}/repository/commits/{commitSha}/merge_requests";
 
         var response = await httpClient.GetAsync(url, cancellationToken);
 
