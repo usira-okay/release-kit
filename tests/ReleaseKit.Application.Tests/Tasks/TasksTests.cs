@@ -26,6 +26,11 @@ public class TasksTests
         // Mock keyed repository service
         var repositoryMock = new Mock<ReleaseKit.Domain.Abstractions.ISourceControlRepository>();
         
+        // Mock Redis service
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        
         services.AddSingleton(gitLabOptions);
         services.AddSingleton(fetchModeOptions);
         services.AddSingleton(loggerMock.Object);
@@ -36,6 +41,7 @@ public class TasksTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
+            redisServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
@@ -67,6 +73,11 @@ public class TasksTests
         // Mock keyed repository service
         var repositoryMock = new Mock<ReleaseKit.Domain.Abstractions.ISourceControlRepository>();
         
+        // Mock Redis service
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        
         services.AddSingleton(bitbucketOptions);
         services.AddSingleton(fetchModeOptions);
         services.AddSingleton(loggerMock.Object);
@@ -77,6 +88,7 @@ public class TasksTests
         var task = new FetchBitbucketPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
+            redisServiceMock.Object,
             bitbucketOptions,
             fetchModeOptions);
 
@@ -148,6 +160,11 @@ public class TasksTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ReleaseKit.Domain.Common.Result<IReadOnlyList<ReleaseKit.Domain.Entities.MergeRequest>>.Success(mockMergeRequests));
         
+        // Mock Redis service
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        
         services.AddSingleton(gitLabOptions);
         services.AddSingleton(fetchModeOptions);
         services.AddSingleton(loggerMock.Object);
@@ -158,6 +175,7 @@ public class TasksTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
+            redisServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
@@ -237,6 +255,11 @@ public class TasksTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ReleaseKit.Domain.Common.Result<IReadOnlyList<ReleaseKit.Domain.Entities.MergeRequest>>.Success(mockMergeRequests));
         
+        // Mock Redis service
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        
         services.AddSingleton(gitLabOptions);
         services.AddSingleton(fetchModeOptions);
         services.AddSingleton(loggerMock.Object);
@@ -247,6 +270,7 @@ public class TasksTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
+            redisServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
@@ -327,6 +351,11 @@ public class TasksTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ReleaseKit.Domain.Common.Result<IReadOnlyList<ReleaseKit.Domain.Entities.MergeRequest>>.Success(mockMergeRequests));
         
+        // Mock Redis service
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        
         services.AddSingleton(bitbucketOptions);
         services.AddSingleton(fetchModeOptions);
         services.AddSingleton(loggerMock.Object);
@@ -337,6 +366,7 @@ public class TasksTests
         var task = new FetchBitbucketPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
+            redisServiceMock.Object,
             bitbucketOptions,
             fetchModeOptions);
 
@@ -416,6 +446,11 @@ public class TasksTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ReleaseKit.Domain.Common.Result<IReadOnlyList<ReleaseKit.Domain.Entities.MergeRequest>>.Success(mockMergeRequests));
         
+        // Mock Redis service
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        
         services.AddSingleton(bitbucketOptions);
         services.AddSingleton(fetchModeOptions);
         services.AddSingleton(loggerMock.Object);
@@ -426,6 +461,7 @@ public class TasksTests
         var task = new FetchBitbucketPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
+            redisServiceMock.Object,
             bitbucketOptions,
             fetchModeOptions);
 

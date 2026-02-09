@@ -37,6 +37,12 @@ public class TaskFactoryTests
         services.AddKeyedSingleton<ISourceControlRepository>("GitLab", mockGitLabRepository.Object);
         services.AddKeyedSingleton<ISourceControlRepository>("Bitbucket", mockBitbucketRepository.Object);
         
+        // 註冊 IRedisService mock
+        var mockRedisService = new Mock<IRedisService>();
+        mockRedisService.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        mockRedisService.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        services.AddSingleton(mockRedisService.Object);
+        
         // 註冊 Tasks
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();
