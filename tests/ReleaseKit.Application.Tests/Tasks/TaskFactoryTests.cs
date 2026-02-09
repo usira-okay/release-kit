@@ -1,5 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using ReleaseKit.Common.Configuration;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Domain.Abstractions;
 using AppTaskFactory = ReleaseKit.Application.Tasks.TaskFactory;
 
 namespace ReleaseKit.Application.Tests.Tasks;
@@ -16,6 +21,23 @@ public class TaskFactoryTests
     {
         // 建立測試用的 DI 容器
         var services = new ServiceCollection();
+        
+        // 註冊必要的配置選項
+        services.AddSingleton(Options.Create(new GitLabOptions()));
+        services.AddSingleton(Options.Create(new BitbucketOptions()));
+        services.AddSingleton(Options.Create(new FetchModeOptions()));
+        
+        // 註冊 Logger mocks
+        services.AddSingleton(new Mock<ILogger<FetchGitLabPullRequestsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<FetchBitbucketPullRequestsTask>>().Object);
+        
+        // 註冊 ISourceControlRepository mock with keyed services
+        var mockGitLabRepository = new Mock<ISourceControlRepository>();
+        var mockBitbucketRepository = new Mock<ISourceControlRepository>();
+        services.AddKeyedSingleton<ISourceControlRepository>("GitLab", mockGitLabRepository.Object);
+        services.AddKeyedSingleton<ISourceControlRepository>("Bitbucket", mockBitbucketRepository.Object);
+        
+        // 註冊 Tasks
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();
         services.AddTransient<FetchAzureDevOpsWorkItemsTask>();

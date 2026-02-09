@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using ReleaseKit.Infrastructure.Configuration;
+using ReleaseKit.Common.Configuration;
 using Xunit;
 
 namespace ReleaseKit.Infrastructure.Tests.Configuration;

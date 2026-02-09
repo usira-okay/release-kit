@@ -1,37 +1,37 @@
-namespace ReleaseKit.Infrastructure.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
-/// GitLab 專案配置選項
+/// 專案配置選項介面
 /// </summary>
-public class GitLabProjectOptions
+public interface IProjectOptions
 {
     /// <summary>
-    /// 專案路徑（如 "group/project"）
+    /// 專案路徑
     /// </summary>
-    public string ProjectPath { get; init; } = string.Empty;
+    string ProjectPath { get; }
 
     /// <summary>
     /// 目標分支名稱
     /// </summary>
-    public string TargetBranch { get; init; } = string.Empty;
+    string TargetBranch { get; }
 
     /// <summary>
     /// 拉取模式：DateTimeRange 或 BranchDiff（可選，若未提供則使用全域設定）
     /// </summary>
-    public FetchMode? FetchMode { get; init; }
+    FetchMode? FetchMode { get; }
 
     /// <summary>
     /// 來源分支名稱（BranchDiff 模式時必填）
     /// </summary>
-    public string? SourceBranch { get; init; }
+    string? SourceBranch { get; }
 
     /// <summary>
     /// 開始時間（DateTimeRange 模式時必填）
     /// </summary>
-    public DateTimeOffset? StartDateTime { get; init; }
+    DateTimeOffset? StartDateTime { get; }
 
     /// <summary>
     /// 結束時間（DateTimeRange 模式時必填）
     /// </summary>
-    public DateTimeOffset? EndDateTime { get; init; }
+    DateTimeOffset? EndDateTime { get; }
 }

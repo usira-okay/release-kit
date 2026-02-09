@@ -1,4 +1,4 @@
-namespace ReleaseKit.Infrastructure.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// 拉取模式列舉
