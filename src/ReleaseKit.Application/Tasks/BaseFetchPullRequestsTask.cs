@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Configuration;
+using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
@@ -19,6 +20,7 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
 {
     private readonly ISourceControlRepository _repository;
     private readonly ILogger _logger;
+    private readonly IRedisService _redisService;
     private readonly FetchModeOptions _fetchModeOptions;
 
     /// <summary>
@@ -31,16 +33,19 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     /// </summary>
     /// <param name="repository">原始碼控制倉儲</param>
     /// <param name="logger">日誌記錄器</param>
+    /// <param name="redisService">Redis 快取服務</param>
     /// <param name="platformOptions">平台配置選項</param>
     /// <param name="fetchModeOptions">拉取模式配置選項</param>
     protected BaseFetchPullRequestsTask(
         ISourceControlRepository repository,
         ILogger logger,
+        IRedisService redisService,
         TOptions platformOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
     {
         _repository = repository;
         _logger = logger;
+        _redisService = redisService;
         PlatformOptions = platformOptions;
         _fetchModeOptions = fetchModeOptions.Value;
     }
@@ -56,6 +61,11 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     protected abstract SourceControlPlatform Platform { get; }
 
     /// <summary>
+    /// 取得 Redis 儲存鍵值
+    /// </summary>
+    protected abstract string RedisKey { get; }
+
+    /// <summary>
     /// 取得專案清單
     /// </summary>
     protected abstract IEnumerable<TProjectOptions> GetProjects();
@@ -66,6 +76,13 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     public async Task ExecuteAsync()
     {
         _logger.LogInformation("開始執行 {Platform} Pull Request 拉取任務", PlatformName);
+
+        // 檢查並清除 Redis 中的舊資料
+        if (await _redisService.ExistsAsync(RedisKey))
+        {
+            _logger.LogInformation("清除 Redis 中的舊資料，Key: {RedisKey}", RedisKey);
+            await _redisService.DeleteAsync(RedisKey);
+        }
 
         var projectResults = new List<ProjectResult>();
 
@@ -140,6 +157,17 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
         // 輸出 JSON 結果
         var json = fetchResult.ToJson();
         System.Console.WriteLine(json);
+
+        // 將結果存入 Redis
+        var saveResult = await _redisService.SetAsync(RedisKey, json);
+        if (saveResult)
+        {
+            _logger.LogInformation("成功將資料存入 Redis，Key: {RedisKey}", RedisKey);
+        }
+        else
+        {
+            _logger.LogWarning("將資料存入 Redis 失敗，Key: {RedisKey}", RedisKey);
+        }
 
         var totalPRs = projectResults.Sum(r => r.PullRequests.Count);
         var failedProjects = projectResults.Count(r => r.Error != null);
