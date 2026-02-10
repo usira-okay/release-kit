@@ -124,7 +124,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
                     return (0, "");
                 
                 // release/yyyyMMdd 格式的 branch 排前面（優先度 2），並依日期降冪排序
-                if (kvp.Key.StartsWith("release/") && kvp.Key.Length == 16 && kvp.Key.Substring(8).All(char.IsDigit))
+                if (kvp.Key.StartsWith("release/", StringComparison.OrdinalIgnoreCase) && kvp.Key.Length == 16 && kvp.Key.Substring(8).All(char.IsDigit))
                     return (2, kvp.Key);
                 
                 // 其他 branch（優先度 1），隨便排

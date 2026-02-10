@@ -707,5 +707,79 @@ public class FetchGitLabReleaseBranchTaskTests
         Assert.True(indexOfHotfix < indexOfNotFound, "非標準 branch 應該在 NotFound 之前");
     }
 
+    [Fact]
+    public async Task FetchGitLabReleaseBranchTask_ExecuteAsync_WithDifferentCaseReleaseBranches_ShouldSortCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var gitLabOptions = Options.Create(new GitLabOptions
+        {
+            Projects = new List<GitLabProjectOptions>
+            {
+                new GitLabProjectOptions { ProjectPath = "group/project-lower", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-upper", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-mixed", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-none", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        // 不同大小寫的 release/yyyyMMdd 格式
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-lower", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-upper", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "Release/20260115" }.AsReadOnly()));
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-mixed", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "RELEASE/20260101" }.AsReadOnly()));
+
+        // 沒有 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-none", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
+
+        string? savedJson = null;
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+            .ReturnsAsync(true);
+
+        services.AddKeyedSingleton("GitLab", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchGitLabReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            gitLabOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 驗證不同大小寫的 release branch 都會被正確識別並排序
+        Assert.NotNull(savedJson);
+        var indexOf20260210 = savedJson.IndexOf("release/20260210", StringComparison.OrdinalIgnoreCase);
+        var indexOf20260115 = savedJson.IndexOf("Release/20260115", StringComparison.OrdinalIgnoreCase);
+        var indexOf20260101 = savedJson.IndexOf("RELEASE/20260101", StringComparison.OrdinalIgnoreCase);
+        var indexOfNotFound = savedJson.IndexOf("NotFound", StringComparison.Ordinal);
+
+        // 所有不同大小寫的標準格式 branch 都應該被識別並排在 NotFound 之前
+        Assert.True(indexOf20260210 >= 0, "release/20260210 應該存在");
+        Assert.True(indexOf20260115 >= 0, "Release/20260115 應該存在");
+        Assert.True(indexOf20260101 >= 0, "RELEASE/20260101 應該存在");
+        
+        // 標準格式應該降冪排序：20260210 > 20260115 > 20260101
+        Assert.True(indexOf20260210 < indexOf20260115, "release/20260210 應該在 Release/20260115 之前");
+        Assert.True(indexOf20260115 < indexOf20260101, "Release/20260115 應該在 RELEASE/20260101 之前");
+        
+        // NotFound 應該在最後
+        Assert.True(indexOf20260101 < indexOfNotFound, "所有標準格式 branch 應該在 NotFound 之前");
+    }
+
     #endregion
 }
