@@ -14,4 +14,14 @@ public static class RedisKeys
     /// Bitbucket Pull Request 資料的 Redis Key
     /// </summary>
     public const string BitbucketPullRequests = "Bitbucket:PullRequests";
+
+    /// <summary>
+    /// GitLab Release Branch 資料的 Redis Key
+    /// </summary>
+    public const string GitLabReleaseBranches = "GitLab:ReleaseBranches";
+
+    /// <summary>
+    /// Bitbucket Release Branch 資料的 Redis Key
+    /// </summary>
+    public const string BitbucketReleaseBranches = "Bitbucket:ReleaseBranches";
 }

@@ -178,6 +178,8 @@ public static class ServiceCollectionExtensions
         services.AddTransient<FetchBitbucketPullRequestsTask>();
         services.AddTransient<FetchAzureDevOpsWorkItemsTask>();
         services.AddTransient<UpdateGoogleSheetsTask>();
+        services.AddTransient<FetchGitLabReleaseBranchTask>();
+        services.AddTransient<FetchBitbucketReleaseBranchTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();

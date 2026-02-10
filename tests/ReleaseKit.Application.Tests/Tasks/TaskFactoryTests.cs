@@ -30,6 +30,8 @@ public class TaskFactoryTests
         // 註冊 Logger mocks
         services.AddSingleton(new Mock<ILogger<FetchGitLabPullRequestsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchBitbucketPullRequestsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<FetchGitLabReleaseBranchTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<FetchBitbucketReleaseBranchTask>>().Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
@@ -48,6 +50,8 @@ public class TaskFactoryTests
         services.AddTransient<FetchBitbucketPullRequestsTask>();
         services.AddTransient<FetchAzureDevOpsWorkItemsTask>();
         services.AddTransient<UpdateGoogleSheetsTask>();
+        services.AddTransient<FetchGitLabReleaseBranchTask>();
+        services.AddTransient<FetchBitbucketReleaseBranchTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -103,6 +107,28 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<UpdateGoogleSheetsTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithFetchGitLabReleaseBranches_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.FetchGitLabReleaseBranch);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<FetchGitLabReleaseBranchTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithFetchBitbucketReleaseBranches_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.FetchBitbucketReleaseBranch);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<FetchBitbucketReleaseBranchTask>(task);
     }
 
     [Fact]

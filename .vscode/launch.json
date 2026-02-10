@@ -8,7 +8,9 @@
             "program": "${workspaceFolder}/src/ReleaseKit.Console/bin/Debug/net9.0/ReleaseKit.Console.dll",
             "args": [
                 // "fetch-gitlab-pr"
-                "fetch-bitbucket-pr"
+                // "fetch-bitbucket-pr"
+                // "fetch-gitlab-release-branch"
+                "fetch-bitbucket-release-branch"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

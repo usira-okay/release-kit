@@ -12,7 +12,9 @@ public class CommandLineParser
         { "fetch-gitlab-pr", TaskType.FetchGitLabPullRequests },
         { "fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests },
         { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
-        { "update-googlesheet", TaskType.UpdateGoogleSheets }
+        { "update-googlesheet", TaskType.UpdateGoogleSheets },
+        { "fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranch },
+        { "fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch }
     };
 
     /// <summary>
