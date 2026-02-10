@@ -62,6 +62,8 @@ public class CommandLineParserTests
     [InlineData("fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests)]
     [InlineData("fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems)]
     [InlineData("update-googlesheet", TaskType.UpdateGoogleSheets)]
+    [InlineData("fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranches)]
+    [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranches)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -81,6 +83,8 @@ public class CommandLineParserTests
     [InlineData("FeTcH-BiTbUcKeT-pR", TaskType.FetchBitbucketPullRequests)]
     [InlineData("FETCH-AZURE-WORKITEMS", TaskType.FetchAzureDevOpsWorkItems)]
     [InlineData("UPDATE-GOOGLESHEET", TaskType.UpdateGoogleSheets)]
+    [InlineData("FETCH-GITLAB-RELEASE-BRANCH", TaskType.FetchGitLabReleaseBranches)]
+    [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranches)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -124,5 +128,7 @@ public class CommandLineParserTests
         Assert.Contains("fetch-bitbucket-pr", result.ErrorMessage);
         Assert.Contains("fetch-azure-workitems", result.ErrorMessage);
         Assert.Contains("update-googlesheet", result.ErrorMessage);
+        Assert.Contains("fetch-gitlab-release-branch", result.ErrorMessage);
+        Assert.Contains("fetch-bitbucket-release-branch", result.ErrorMessage);
     }
 }
