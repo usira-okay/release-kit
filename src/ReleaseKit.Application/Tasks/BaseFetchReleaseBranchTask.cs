@@ -115,8 +115,25 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
             branchGroups["NotFound"] = notFoundProjects;
         }
 
+        // 排序：release/yyyyMMdd 格式的 branch 由新到舊排在前面，其餘的隨便排，NotFound 排最後
+        var sortedBranchGroups = branchGroups
+            .OrderByDescending(kvp =>
+            {
+                // NotFound 排最後（優先度 0）
+                if (kvp.Key == "NotFound")
+                    return (0, "");
+                
+                // release/yyyyMMdd 格式的 branch 排前面（優先度 2），並依日期降冪排序
+                if (kvp.Key.StartsWith("release/", StringComparison.OrdinalIgnoreCase) && kvp.Key.Length == 16 && kvp.Key.Substring(8).All(char.IsDigit))
+                    return (2, kvp.Key);
+                
+                // 其他 branch（優先度 1），隨便排
+                return (1, kvp.Key);
+            })
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
         // 序列化並輸出到 Console
-        var json = branchGroups.ToJson();
+        var json = sortedBranchGroups.ToJson();
         Console.WriteLine(json);
 
         // 存入 Redis
