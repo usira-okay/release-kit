@@ -62,8 +62,8 @@ public class CommandLineParserTests
     [InlineData("fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests)]
     [InlineData("fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems)]
     [InlineData("update-googlesheet", TaskType.UpdateGoogleSheets)]
-    [InlineData("fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranches)]
-    [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranches)]
+    [InlineData("fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranch)]
+    [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -83,8 +83,8 @@ public class CommandLineParserTests
     [InlineData("FeTcH-BiTbUcKeT-pR", TaskType.FetchBitbucketPullRequests)]
     [InlineData("FETCH-AZURE-WORKITEMS", TaskType.FetchAzureDevOpsWorkItems)]
     [InlineData("UPDATE-GOOGLESHEET", TaskType.UpdateGoogleSheets)]
-    [InlineData("FETCH-GITLAB-RELEASE-BRANCH", TaskType.FetchGitLabReleaseBranches)]
-    [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranches)]
+    [InlineData("FETCH-GITLAB-RELEASE-BRANCH", TaskType.FetchGitLabReleaseBranch)]
+    [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranch)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange

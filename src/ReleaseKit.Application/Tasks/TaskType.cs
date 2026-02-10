@@ -28,10 +28,10 @@ public enum TaskType
     /// <summary>
     /// 取得 GitLab 各專案最新 Release Branch
     /// </summary>
-    FetchGitLabReleaseBranches,
+    FetchGitLabReleaseBranch,
     
     /// <summary>
     /// 取得 Bitbucket 各專案最新 Release Branch
     /// </summary>
-    FetchBitbucketReleaseBranches
+    FetchBitbucketReleaseBranch
 }

@@ -113,7 +113,7 @@ public class TaskFactoryTests
     public void CreateTask_WithFetchGitLabReleaseBranches_ShouldReturnCorrectTaskType()
     {
         // Act
-        var task = _factory.CreateTask(TaskType.FetchGitLabReleaseBranches);
+        var task = _factory.CreateTask(TaskType.FetchGitLabReleaseBranch);
 
         // Assert
         Assert.NotNull(task);
@@ -124,7 +124,7 @@ public class TaskFactoryTests
     public void CreateTask_WithFetchBitbucketReleaseBranches_ShouldReturnCorrectTaskType()
     {
         // Act
-        var task = _factory.CreateTask(TaskType.FetchBitbucketReleaseBranches);
+        var task = _factory.CreateTask(TaskType.FetchBitbucketReleaseBranch);
 
         // Assert
         Assert.NotNull(task);
