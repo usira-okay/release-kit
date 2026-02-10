@@ -6,6 +6,7 @@ using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Domain.Helpers;
 using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tasks;
@@ -255,6 +256,59 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
         if (string.IsNullOrEmpty(targetBranch))
         {
             throw new InvalidOperationException($"專案 {project.ProjectPath} 缺少必填參數: TargetBranch");
+        }
+
+        // 如果 SourceBranch 是 release/yyyyMMdd 格式，動態調整 TargetBranch
+        if (ReleaseBranchHelper.IsReleaseBranch(sourceBranch))
+        {
+            _logger.LogInformation(
+                "偵測到 SourceBranch 為 release branch 格式: {SourceBranch}，開始拉取所有 release branches",
+                sourceBranch);
+
+            var branchesResult = await repository.GetBranchesAsync(project.ProjectPath, "release/");
+            if (branchesResult.IsSuccess && branchesResult.Value != null && branchesResult.Value.Count > 0)
+            {
+                var allReleaseBranches = branchesResult.Value.ToList();
+                _logger.LogInformation(
+                    "找到 {Count} 個 release branches",
+                    allReleaseBranches.Count(ReleaseBranchHelper.IsReleaseBranch));
+
+                // 判斷 SourceBranch 是否為最新的 release branch
+                if (ReleaseBranchHelper.IsLatestReleaseBranch(sourceBranch, allReleaseBranches))
+                {
+                    _logger.LogInformation(
+                        "SourceBranch {SourceBranch} 是最新的 release branch，保持 TargetBranch 為 {TargetBranch}",
+                        sourceBranch,
+                        targetBranch);
+                }
+                else
+                {
+                    // 找出下一個較新的 release branch
+                    var nextNewerBranch = ReleaseBranchHelper.FindNextNewerReleaseBranch(sourceBranch, allReleaseBranches);
+                    if (nextNewerBranch != null)
+                    {
+                        _logger.LogInformation(
+                            "SourceBranch {SourceBranch} 不是最新的 release branch，將 TargetBranch 從 {OldTargetBranch} 改為 {NewTargetBranch}",
+                            sourceBranch,
+                            targetBranch,
+                            nextNewerBranch);
+                        targetBranch = nextNewerBranch;
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "無法找到比 {SourceBranch} 更新的 release branch，保持 TargetBranch 為 {TargetBranch}",
+                            sourceBranch,
+                            targetBranch);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "無法拉取 release branches 或沒有找到任何 release branch，保持 TargetBranch 為 {TargetBranch}",
+                    targetBranch);
+            }
         }
 
         _logger.LogInformation(
