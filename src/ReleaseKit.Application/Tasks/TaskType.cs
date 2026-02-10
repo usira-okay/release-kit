@@ -23,5 +23,15 @@ public enum TaskType
     /// <summary>
     /// 更新 Google Sheets 資訊
     /// </summary>
-    UpdateGoogleSheets
+    UpdateGoogleSheets,
+    
+    /// <summary>
+    /// 取得 GitLab 各專案最新 Release Branch
+    /// </summary>
+    FetchGitLabReleaseBranches,
+    
+    /// <summary>
+    /// 取得 Bitbucket 各專案最新 Release Branch
+    /// </summary>
+    FetchBitbucketReleaseBranches
 }
