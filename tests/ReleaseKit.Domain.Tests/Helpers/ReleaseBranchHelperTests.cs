@@ -12,6 +12,9 @@ public class ReleaseBranchHelperTests
     [InlineData("release/20250101", true)]
     [InlineData("release/20241231", true)]
     [InlineData("release/20990101", true)]
+    [InlineData("Release/20250101", true)]  // 大寫 R
+    [InlineData("RELEASE/20250101", true)]  // 全大寫
+    [InlineData("ReLease/20250101", true)]  // 混合大小寫
     [InlineData("release/2025010", false)]  // 7 位數字
     [InlineData("release/202501011", false)]  // 9 位數字
     [InlineData("release/abcd1234", false)]  // 非數字

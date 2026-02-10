@@ -8,7 +8,7 @@ namespace ReleaseKit.Domain.Helpers;
 /// </summary>
 public static class ReleaseBranchHelper
 {
-    private static readonly Regex ReleaseBranchPattern = new(@"^release/(\d{8})$", RegexOptions.Compiled);
+    private static readonly Regex ReleaseBranchPattern = new(@"^release/(\d{8})$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>
     /// 檢查分支名稱是否符合 release/yyyyMMdd 格式
