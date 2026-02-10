@@ -115,8 +115,13 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
             branchGroups["NotFound"] = notFoundProjects;
         }
 
+        // 排序：release branch 由新到舊，NotFound 排最後
+        var sortedBranchGroups = branchGroups
+            .OrderByDescending(kvp => kvp.Key == "NotFound" ? "" : kvp.Key)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
         // 序列化並輸出到 Console
-        var json = branchGroups.ToJson();
+        var json = sortedBranchGroups.ToJson();
         Console.WriteLine(json);
 
         // 存入 Redis
