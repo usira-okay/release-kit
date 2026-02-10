@@ -20,13 +20,13 @@
 
 **Purpose**: 新增所有 User Story 共用的常數、列舉值與 DTO
 
-- [ ] T001 [P] 在 `src/ReleaseKit.Common/Constants/RedisKeys.cs` 新增 `GitLabReleaseBranches = "GitLab:ReleaseBranches"` 與 `BitbucketReleaseBranches = "Bitbucket:ReleaseBranches"` 常數
+- [x] T001 [P] 在 `src/ReleaseKit.Common/Constants/RedisKeys.cs` 新增 `GitLabReleaseBranches = "GitLab:ReleaseBranches"` 與 `BitbucketReleaseBranches = "Bitbucket:ReleaseBranches"` 常數
   - 建置: ✅ 可建置 | 測試: ✅ 通過（既有測試不受影響）
 
-- [ ] T002 [P] 在 `src/ReleaseKit.Application/Tasks/TaskType.cs` 新增 `FetchGitLabReleaseBranches` 與 `FetchBitbucketReleaseBranches` 列舉值，加入 XML summary 註解（繁體中文）
+- [x] T002 [P] 在 `src/ReleaseKit.Application/Tasks/TaskType.cs` 新增 `FetchGitLabReleaseBranches` 與 `FetchBitbucketReleaseBranches` 列舉值，加入 XML summary 註解（繁體中文）
   - 建置: ✅ 可建置 | 測試: ✅ 通過（既有測試不受影響）
 
-- [ ] T003 [P] 建立 `src/ReleaseKit.Application/Common/ReleaseBranchResult.cs`，定義 `sealed record ReleaseBranchResult`，包含 `Dictionary<string, List<string>> Branches` 屬性，加入 XML summary 註解（繁體中文）
+- [x] T003 [P] 建立 `src/ReleaseKit.Application/Common/ReleaseBranchResult.cs`，定義 `sealed record ReleaseBranchResult`，包含 `Dictionary<string, List<string>> Branches` 屬性，加入 XML summary 註解（繁體中文）
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
 **Checkpoint**: 共用基礎元件就緒
@@ -39,7 +39,7 @@
 
 **⚠️ CRITICAL**: US1、US2 的具體任務必須等此階段完成後才能實作
 
-- [ ] T004 建立 `src/ReleaseKit.Application/Tasks/BaseFetchReleaseBranchTask.cs`，實作抽象泛型基底類別 `BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : ITask where TProjectOptions : IProjectOptions`
+- [x] T004 建立 `src/ReleaseKit.Application/Tasks/BaseFetchReleaseBranchTask.cs`，實作抽象泛型基底類別 `BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : ITask where TProjectOptions : IProjectOptions`
   - 依賴注入: `ISourceControlRepository`、`ILogger`、`IRedisService`、`TOptions`
   - 抽象屬性: `PlatformName`、`RedisKey`
   - 抽象方法: `GetProjects()` 回傳 `IEnumerable<TProjectOptions>`
@@ -69,7 +69,7 @@
 
 > **NOTE: 先撰寫測試，確認測試失敗，再進行實作**
 
-- [ ] T005 [US1] 建立 `tests/ReleaseKit.Application.Tests/Tasks/FetchGitLabReleaseBranchTaskTests.cs`，撰寫以下測試案例（此時測試應全部失敗）:
+- [x] T005 [US1] 建立 `tests/ReleaseKit.Application.Tests/Tasks/FetchGitLabReleaseBranchTaskTests.cs`，撰寫以下測試案例（此時測試應全部失敗）:
   1. `FetchGitLabReleaseBranchTask_ExecuteAsync_WithEmptyProjects_ShouldCompleteSuccessfully` — 空專案清單應正常完成
   2. `FetchGitLabReleaseBranchTask_ExecuteAsync_WithProjectsHavingReleaseBranches_ShouldGroupByBranchName` — 有 release branch 的專案應依分支名稱分組
   3. `FetchGitLabReleaseBranchTask_ExecuteAsync_WithProjectsWithoutReleaseBranches_ShouldAddToNotFound` — 無 release branch 的專案應歸入 NotFound
@@ -81,7 +81,7 @@
 
 ### Implementation for User Story 1 (TDD Green Phase)
 
-- [ ] T006 [US1] 建立 `src/ReleaseKit.Application/Tasks/FetchGitLabReleaseBranchTask.cs`，繼承 `BaseFetchReleaseBranchTask<GitLabOptions, GitLabProjectOptions>`
+- [x] T006 [US1] 建立 `src/ReleaseKit.Application/Tasks/FetchGitLabReleaseBranchTask.cs`，繼承 `BaseFetchReleaseBranchTask<GitLabOptions, GitLabProjectOptions>`
   - 建構子接收: `IServiceProvider`、`ILogger<FetchGitLabReleaseBranchTask>`、`IRedisService`、`IOptions<GitLabOptions>`
   - 透過 `serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("GitLab")` 取得 Repository
   - `PlatformName` = `"GitLab"`
@@ -90,7 +90,7 @@
   - 所有公開類別與方法加入 XML summary 註解（繁體中文）
   - 建置: ✅ 可建置 | 測試: ✅ 通過（T005 測試應全部通過）
 
-- [ ] T007 [US1] 建立 `tests/ReleaseKit.Application.Tests/Tasks/ReleaseBranchRedisIntegrationTests.cs`，撰寫 GitLab Redis 整合測試（TDD Red → Green）:
+- [x] T007 [US1] 建立 `tests/ReleaseKit.Application.Tests/Tasks/ReleaseBranchRedisIntegrationTests.cs`，撰寫 GitLab Redis 整合測試（TDD Red → Green）:
   1. `FetchGitLabReleaseBranchTask_ShouldClearOldRedisData_WhenDataExists` — 有舊資料時應先清除
   2. `FetchGitLabReleaseBranchTask_ShouldNotDeleteRedisData_WhenNoDataExists` — 無舊資料時不應呼叫 Delete
   3. `FetchGitLabReleaseBranchTask_ShouldSaveDataToRedis_AfterFetch` — 擷取後應存入 Redis
@@ -98,20 +98,20 @@
   - 測試模式參考: `tests/ReleaseKit.Application.Tests/Tasks/RedisIntegrationTests.cs`
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
-- [ ] T008 [US1] 在 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs` 新增測試（TDD Red → Green）:
+- [x] T008 [US1] 在 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs` 新增測試（TDD Red → Green）:
   1. `CreateTask_WithFetchGitLabReleaseBranches_ShouldReturnCorrectTaskType` — 驗證 TaskFactory 能建立 FetchGitLabReleaseBranchTask
   - 更新 `TaskFactoryTests` 建構子，註冊 `FetchGitLabReleaseBranchTask`
   - 同時在 `src/ReleaseKit.Application/Tasks/TaskFactory.cs` 新增 `TaskType.FetchGitLabReleaseBranches` case
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
-- [ ] T009 [US1] 在 `tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs` 新增測試（TDD Red → Green）:
+- [x] T009 [US1] 在 `tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs` 新增測試（TDD Red → Green）:
   1. 在 `Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType` Theory 新增 `[InlineData("fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranches)]`
   2. 在 `Parse_WithValidTaskName_ShouldBeCaseInsensitive` Theory 新增 `[InlineData("FETCH-GITLAB-RELEASE-BRANCH", TaskType.FetchGitLabReleaseBranches)]`
   3. 更新 `Parse_WithInvalidTaskName_ShouldShowValidTasks` 驗證包含 `fetch-gitlab-release-branch`
   - 同時在 `src/ReleaseKit.Console/Parsers/CommandLineParser.cs` 新增 `{ "fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranches }` 對應
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
-- [ ] T010 [US1] 在 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法中註冊 `services.AddTransient<FetchGitLabReleaseBranchTask>()`
+- [x] T010 [US1] 在 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法中註冊 `services.AddTransient<FetchGitLabReleaseBranchTask>()`
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
 **Checkpoint**: User Story 1 完成。可獨立執行 `fetch-gitlab-release-branch` 指令並驗證功能
@@ -128,7 +128,7 @@
 
 > **NOTE: 先撰寫測試，確認測試失敗，再進行實作**
 
-- [ ] T011 [US2] 建立 `tests/ReleaseKit.Application.Tests/Tasks/FetchBitbucketReleaseBranchTaskTests.cs`，撰寫以下測試案例（此時測試應全部失敗）:
+- [x] T011 [US2] 建立 `tests/ReleaseKit.Application.Tests/Tasks/FetchBitbucketReleaseBranchTaskTests.cs`，撰寫以下測試案例（此時測試應全部失敗）:
   1. `FetchBitbucketReleaseBranchTask_ExecuteAsync_WithEmptyProjects_ShouldCompleteSuccessfully` — 空專案清單應正常完成
   2. `FetchBitbucketReleaseBranchTask_ExecuteAsync_WithProjectsHavingReleaseBranches_ShouldGroupByBranchName` — 有 release branch 的專案應依分支名稱分組
   3. `FetchBitbucketReleaseBranchTask_ExecuteAsync_WithProjectsWithoutReleaseBranches_ShouldAddToNotFound` — 無 release branch 的專案應歸入 NotFound
@@ -140,7 +140,7 @@
 
 ### Implementation for User Story 2 (TDD Green Phase)
 
-- [ ] T012 [US2] 建立 `src/ReleaseKit.Application/Tasks/FetchBitbucketReleaseBranchTask.cs`，繼承 `BaseFetchReleaseBranchTask<BitbucketOptions, BitbucketProjectOptions>`
+- [x] T012 [US2] 建立 `src/ReleaseKit.Application/Tasks/FetchBitbucketReleaseBranchTask.cs`，繼承 `BaseFetchReleaseBranchTask<BitbucketOptions, BitbucketProjectOptions>`
   - 建構子接收: `IServiceProvider`、`ILogger<FetchBitbucketReleaseBranchTask>`、`IRedisService`、`IOptions<BitbucketOptions>`
   - 透過 `serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("Bitbucket")` 取得 Repository
   - `PlatformName` = `"Bitbucket"`
@@ -149,27 +149,27 @@
   - 所有公開類別與方法加入 XML summary 註解（繁體中文）
   - 建置: ✅ 可建置 | 測試: ✅ 通過（T011 測試應全部通過）
 
-- [ ] T013 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/ReleaseBranchRedisIntegrationTests.cs` 新增 Bitbucket Redis 整合測試（TDD Red → Green）:
+- [x] T013 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/ReleaseBranchRedisIntegrationTests.cs` 新增 Bitbucket Redis 整合測試（TDD Red → Green）:
   1. `FetchBitbucketReleaseBranchTask_ShouldClearOldRedisData_WhenDataExists`
   2. `FetchBitbucketReleaseBranchTask_ShouldNotDeleteRedisData_WhenNoDataExists`
   3. `FetchBitbucketReleaseBranchTask_ShouldSaveDataToRedis_AfterFetch`
   4. `FetchBitbucketReleaseBranchTask_ShouldUseCorrectRedisKey` — 應使用 `Bitbucket:ReleaseBranches` key，不應使用 GitLab key
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
-- [ ] T014 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs` 新增測試（TDD Red → Green）:
+- [x] T014 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs` 新增測試（TDD Red → Green）:
   1. `CreateTask_WithFetchBitbucketReleaseBranches_ShouldReturnCorrectTaskType`
   - 更新 `TaskFactoryTests` 建構子，註冊 `FetchBitbucketReleaseBranchTask`
   - 同時在 `src/ReleaseKit.Application/Tasks/TaskFactory.cs` 新增 `TaskType.FetchBitbucketReleaseBranches` case
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
-- [ ] T015 [US2] 在 `tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs` 新增測試（TDD Red → Green）:
+- [x] T015 [US2] 在 `tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs` 新增測試（TDD Red → Green）:
   1. 在 `Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType` Theory 新增 `[InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranches)]`
   2. 在 `Parse_WithValidTaskName_ShouldBeCaseInsensitive` Theory 新增 `[InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranches)]`
   3. 更新 `Parse_WithInvalidTaskName_ShouldShowValidTasks` 驗證包含 `fetch-bitbucket-release-branch`
   - 同時在 `src/ReleaseKit.Console/Parsers/CommandLineParser.cs` 新增 `{ "fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranches }` 對應
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
-- [ ] T016 [US2] 在 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法中註冊 `services.AddTransient<FetchBitbucketReleaseBranchTask>()`
+- [x] T016 [US2] 在 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法中註冊 `services.AddTransient<FetchBitbucketReleaseBranchTask>()`
   - 建置: ✅ 可建置 | 測試: ✅ 通過
 
 **Checkpoint**: User Story 2 完成。可獨立執行 `fetch-bitbucket-release-branch` 指令並驗證功能
@@ -184,13 +184,13 @@
 
 ### Tests for User Story 3 (分組邏輯邊界案例驗證)
 
-- [ ] T017 [P] [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchGitLabReleaseBranchTaskTests.cs` 新增分組邊界案例測試（TDD Red → Green）:
+- [x] T017 [P] [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchGitLabReleaseBranchTaskTests.cs` 新增分組邊界案例測試（TDD Red → Green）:
   1. `FetchGitLabReleaseBranchTask_ExecuteAsync_WithMultipleProjectsSameBranch_ShouldGroupTogether` — 多個專案有相同最新 release branch 時應歸在同一組
   2. `FetchGitLabReleaseBranchTask_ExecuteAsync_WithMixedResults_ShouldGroupCorrectly` — 混合情境（有分支 + 無分支 + 錯誤）應正確分組
   3. `FetchGitLabReleaseBranchTask_ExecuteAsync_OutputJson_ShouldMatchExpectedFormat` — 驗證序列化後的 JSON 結構與預期格式一致
   - 建置: ✅ 可建置 | 測試: ✅ 通過（分組邏輯已在 Phase 2 BaseFetchReleaseBranchTask 中實作）
 
-- [ ] T018 [P] [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchBitbucketReleaseBranchTaskTests.cs` 新增分組邊界案例測試（TDD Red → Green）:
+- [x] T018 [P] [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchBitbucketReleaseBranchTaskTests.cs` 新增分組邊界案例測試（TDD Red → Green）:
   1. `FetchBitbucketReleaseBranchTask_ExecuteAsync_WithMultipleProjectsSameBranch_ShouldGroupTogether`
   2. `FetchBitbucketReleaseBranchTask_ExecuteAsync_WithMixedResults_ShouldGroupCorrectly`
   - 建置: ✅ 可建置 | 測試: ✅ 通過
@@ -203,13 +203,13 @@
 
 **Purpose**: 建置驗證、全量測試、品質確認
 
-- [ ] T019 執行 `dotnet build` 驗證整體方案可正確建置
+- [x] T019 執行 `dotnet build` 驗證整體方案可正確建置
   - 建置: ✅ 可建置
 
-- [ ] T020 執行 `dotnet test` 驗證所有測試通過（含既有測試與新增測試）
+- [x] T020 執行 `dotnet test` 驗證所有測試通過（含既有測試與新增測試）
   - 測試: ✅ 通過
 
-- [ ] T021 依 `specs/002-fetch-release-branch/quickstart.md` 驗證使用方式描述與實際行為一致
+- [x] T021 依 `specs/002-fetch-release-branch/quickstart.md` 驗證使用方式描述與實際行為一致
 
 ---
 
