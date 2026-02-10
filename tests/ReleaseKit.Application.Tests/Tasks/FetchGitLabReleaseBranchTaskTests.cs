@@ -270,4 +270,183 @@ public class FetchGitLabReleaseBranchTaskTests
                 It.IsAny<TimeSpan?>()),
             Times.Once);
     }
+
+    #region Edge Cases for Grouping Logic (US3)
+
+    [Fact]
+    public async Task FetchGitLabReleaseBranchTask_ExecuteAsync_WithMultipleProjectsSameBranch_ShouldGroupTogether()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var gitLabOptions = Options.Create(new GitLabOptions
+        {
+            Projects = new List<GitLabProjectOptions>
+            {
+                new GitLabProjectOptions { ProjectPath = "group/project1", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project2", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project3", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        // 設定所有專案都有相同的最新 release branch
+        var sameBranch = "release/20260210";
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync(It.IsAny<string>(), "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { sameBranch }.AsReadOnly()));
+
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+
+        services.AddKeyedSingleton("GitLab", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchGitLabReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            gitLabOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 所有專案應該歸在同一組
+        redisServiceMock.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.Is<string>(json => 
+                    json.Contains("release/20260210") && 
+                    json.Contains("group/project1") && 
+                    json.Contains("group/project2") && 
+                    json.Contains("group/project3") &&
+                    !json.Contains("NotFound")),
+                It.IsAny<TimeSpan?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task FetchGitLabReleaseBranchTask_ExecuteAsync_WithMixedResults_ShouldGroupCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var gitLabOptions = Options.Create(new GitLabOptions
+        {
+            Projects = new List<GitLabProjectOptions>
+            {
+                new GitLabProjectOptions { ProjectPath = "group/project-old", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-new", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-none", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-error", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        // project-old: 有舊版本 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-old", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260101" }.AsReadOnly()));
+
+        // project-new: 有新版本 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-new", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
+
+        // project-none: 沒有 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-none", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
+
+        // project-error: API 錯誤
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-error", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Error")));
+
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+
+        services.AddKeyedSingleton("GitLab", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchGitLabReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            gitLabOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 混合情境應該正確分組
+        redisServiceMock.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.Is<string>(json => 
+                    json.Contains("release/20260101") && json.Contains("group/project-old") &&
+                    json.Contains("release/20260210") && json.Contains("group/project-new") &&
+                    json.Contains("NotFound") && json.Contains("group/project-none") && json.Contains("group/project-error")),
+                It.IsAny<TimeSpan?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task FetchGitLabReleaseBranchTask_ExecuteAsync_OutputJson_ShouldMatchExpectedFormat()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var gitLabOptions = Options.Create(new GitLabOptions
+        {
+            Projects = new List<GitLabProjectOptions>
+            {
+                new GitLabProjectOptions { ProjectPath = "group/project1", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project2", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project1", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
+
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project2", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
+
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+
+        services.AddKeyedSingleton("GitLab", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchGitLabReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            gitLabOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - JSON 結構應該符合預期格式: { "branch": ["proj1", "proj2"], "NotFound": ["proj3"] }
+        redisServiceMock.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.Is<string>(json => 
+                    json.StartsWith("{") && json.EndsWith("}") &&  // 應該是 JSON 物件
+                    json.Contains("\"release/20260210\"") &&       // 包含分支名稱
+                    json.Contains("[") && json.Contains("]") &&    // 包含陣列
+                    json.Contains("\"NotFound\"")),                // 包含 NotFound key
+                It.IsAny<TimeSpan?>()),
+            Times.Once);
+    }
+
+    #endregion
 }

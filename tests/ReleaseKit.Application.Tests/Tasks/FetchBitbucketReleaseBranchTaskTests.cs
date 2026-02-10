@@ -270,4 +270,129 @@ public class FetchBitbucketReleaseBranchTaskTests
                 It.IsAny<TimeSpan?>()),
             Times.Once);
     }
+
+    #region Edge Cases for Grouping Logic (US3)
+
+    [Fact]
+    public async Task FetchBitbucketReleaseBranchTask_ExecuteAsync_WithMultipleProjectsSameBranch_ShouldGroupTogether()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var bitbucketOptions = Options.Create(new BitbucketOptions
+        {
+            Projects = new List<BitbucketProjectOptions>
+            {
+                new BitbucketProjectOptions { ProjectPath = "workspace/project1", TargetBranch = "main" },
+                new BitbucketProjectOptions { ProjectPath = "workspace/project2", TargetBranch = "main" },
+                new BitbucketProjectOptions { ProjectPath = "workspace/project3", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        // 設定所有專案都有相同的最新 release branch
+        var sameBranch = "release/20260210";
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync(It.IsAny<string>(), "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { sameBranch }.AsReadOnly()));
+
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+
+        services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchBitbucketReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            bitbucketOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 所有專案應該歸在同一組
+        redisServiceMock.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.Is<string>(json => 
+                    json.Contains("release/20260210") && 
+                    json.Contains("workspace/project1") && 
+                    json.Contains("workspace/project2") && 
+                    json.Contains("workspace/project3") &&
+                    !json.Contains("NotFound")),
+                It.IsAny<TimeSpan?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task FetchBitbucketReleaseBranchTask_ExecuteAsync_WithMixedResults_ShouldGroupCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var bitbucketOptions = Options.Create(new BitbucketOptions
+        {
+            Projects = new List<BitbucketProjectOptions>
+            {
+                new BitbucketProjectOptions { ProjectPath = "workspace/project-old", TargetBranch = "main" },
+                new BitbucketProjectOptions { ProjectPath = "workspace/project-new", TargetBranch = "main" },
+                new BitbucketProjectOptions { ProjectPath = "workspace/project-none", TargetBranch = "main" },
+                new BitbucketProjectOptions { ProjectPath = "workspace/project-error", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        // project-old: 有舊版本 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("workspace/project-old", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260101" }.AsReadOnly()));
+
+        // project-new: 有新版本 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("workspace/project-new", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
+
+        // project-none: 沒有 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("workspace/project-none", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
+
+        // project-error: API 錯誤
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("workspace/project-error", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Error")));
+
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+
+        services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchBitbucketReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            bitbucketOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 混合情境應該正確分組
+        redisServiceMock.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.Is<string>(json => 
+                    json.Contains("release/20260101") && json.Contains("workspace/project-old") &&
+                    json.Contains("release/20260210") && json.Contains("workspace/project-new") &&
+                    json.Contains("NotFound") && json.Contains("workspace/project-none") && json.Contains("workspace/project-error")),
+                It.IsAny<TimeSpan?>()),
+            Times.Once);
+    }
+
+    #endregion
 }
