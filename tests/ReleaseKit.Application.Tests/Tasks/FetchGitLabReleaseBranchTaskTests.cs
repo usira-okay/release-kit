@@ -627,5 +627,85 @@ public class FetchGitLabReleaseBranchTaskTests
         Assert.True(indexOf20250101 < indexOfNotFound, "release/20250101 應該在 NotFound 之前");
     }
 
+    [Fact]
+    public async Task FetchGitLabReleaseBranchTask_ExecuteAsync_WithNonStandardBranches_ShouldSortCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var gitLabOptions = Options.Create(new GitLabOptions
+        {
+            Projects = new List<GitLabProjectOptions>
+            {
+                new GitLabProjectOptions { ProjectPath = "group/project-standard1", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-standard2", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-custom1", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-custom2", TargetBranch = "main" },
+                new GitLabProjectOptions { ProjectPath = "group/project-none", TargetBranch = "main" }
+            }
+        });
+
+        var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
+        var repositoryMock = new Mock<ISourceControlRepository>();
+        var redisServiceMock = new Mock<IRedisService>();
+
+        // 標準 release/yyyyMMdd 格式
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-standard1", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-standard2", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260115" }.AsReadOnly()));
+
+        // 非標準格式的 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-custom1", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/v2.0" }.AsReadOnly()));
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-custom2", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/hotfix" }.AsReadOnly()));
+
+        // 沒有 release branch
+        repositoryMock
+            .Setup(x => x.GetBranchesAsync("group/project-none", "release/", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
+
+        string? savedJson = null;
+        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+            .ReturnsAsync(true);
+
+        services.AddKeyedSingleton("GitLab", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchGitLabReleaseBranchTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            gitLabOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 驗證排序：標準 release/yyyyMMdd 在前面且降冪排序，非標準的在中間，NotFound 最後
+        Assert.NotNull(savedJson);
+        var indexOf20260210 = savedJson.IndexOf("release/20260210", StringComparison.Ordinal);
+        var indexOf20260115 = savedJson.IndexOf("release/20260115", StringComparison.Ordinal);
+        var indexOfV2 = savedJson.IndexOf("release/v2.0", StringComparison.Ordinal);
+        var indexOfHotfix = savedJson.IndexOf("release/hotfix", StringComparison.Ordinal);
+        var indexOfNotFound = savedJson.IndexOf("NotFound", StringComparison.Ordinal);
+
+        // 標準格式的 branch 應該在最前面且降冪排序
+        Assert.True(indexOf20260210 < indexOf20260115, "release/20260210 應該在 release/20260115 之前");
+        
+        // 標準格式應該在非標準格式之前
+        Assert.True(indexOf20260115 < indexOfV2, "標準格式應該在非標準格式之前");
+        Assert.True(indexOf20260115 < indexOfHotfix, "標準格式應該在非標準格式之前");
+        
+        // NotFound 應該在最後
+        Assert.True(indexOfV2 < indexOfNotFound, "非標準 branch 應該在 NotFound 之前");
+        Assert.True(indexOfHotfix < indexOfNotFound, "非標準 branch 應該在 NotFound 之前");
+    }
+
     #endregion
 }
