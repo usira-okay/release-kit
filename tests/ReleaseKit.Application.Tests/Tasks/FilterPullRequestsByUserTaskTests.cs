@@ -261,4 +261,169 @@ public class FilterPullRequestsByUserTaskTests
         Assert.Single(result.Results);
         Assert.Equal(SourceControlPlatform.GitLab, result.Results[0].Platform);
     }
+    
+    /// <summary>
+    /// T008: Bitbucket 過濾測試 - Redis 中有 PR 資料且使用者清單有匹配項，驗證過濾後僅保留匹配使用者的 PR
+    /// </summary>
+    [Fact]
+    public async Task FilterBitbucketPullRequestsByUser_ShouldFilterByUserIds_WhenUserIdsMatch()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>();
+        var redisServiceMock = new Mock<IRedisService>();
+        
+        // 準備 Redis 中的 PR 資料
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "workspace/repo1",
+                    Platform = SourceControlPlatform.Bitbucket,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        new MergeRequestOutput
+                        {
+                            Title = "PR 1",
+                            AuthorUserId = "{abc-def-123}",
+                            AuthorName = "John Doe",
+                            SourceBranch = "feature/test",
+                            TargetBranch = "main",
+                            State = "merged",
+                            PRUrl = "https://bitbucket.org/workspace/repo1/pull-requests/1",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        },
+                        new MergeRequestOutput
+                        {
+                            Title = "PR 2",
+                            AuthorUserId = "{xyz-789}",
+                            AuthorName = "Jane Smith",
+                            SourceBranch = "feature/test2",
+                            TargetBranch = "main",
+                            State = "merged",
+                            PRUrl = "https://bitbucket.org/workspace/repo1/pull-requests/2",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        },
+                        new MergeRequestOutput
+                        {
+                            Title = "PR 3",
+                            AuthorUserId = "{other-999}",
+                            AuthorName = "Other User",
+                            SourceBranch = "feature/test3",
+                            TargetBranch = "main",
+                            State = "merged",
+                            PRUrl = "https://bitbucket.org/workspace/repo1/pull-requests/3",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        }
+                    }
+                }
+            }
+        };
+        
+        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequests))
+            .ReturnsAsync(fetchResult.ToJson());
+        
+        var userMappingOptions = Options.Create(new UserMappingOptions
+        {
+            Mappings = new List<UserMapping>
+            {
+                new UserMapping { BitbucketUserId = "{abc-def-123}", DisplayName = "John Doe" },
+                new UserMapping { BitbucketUserId = "{xyz-789}", DisplayName = "Jane Smith" }
+            }
+        });
+        
+        var task = new FilterBitbucketPullRequestsByUserTask(
+            loggerMock.Object,
+            redisServiceMock.Object,
+            userMappingOptions);
+        
+        string? capturedJson = null;
+        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.BitbucketPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+            .ReturnsAsync(true);
+        
+        // Act
+        await task.ExecuteAsync();
+        
+        // Assert
+        redisServiceMock.Verify(x => x.GetAsync(RedisKeys.BitbucketPullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.BitbucketPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Once);
+        
+        // 驗證寫入的資料僅包含匹配的 PR
+        Assert.NotNull(capturedJson);
+        var result = capturedJson.ToTypedObject<FetchResult>();
+        Assert.NotNull(result);
+        Assert.Single(result.Results);
+        Assert.Equal(2, result.Results[0].PullRequests.Count);
+        Assert.All(result.Results[0].PullRequests, pr => 
+            Assert.True(pr.AuthorUserId == "{abc-def-123}" || pr.AuthorUserId == "{xyz-789}"));
+    }
+    
+    /// <summary>
+    /// T009: Bitbucket 過濾後寫入 Redis 測試 - 驗證結果寫入 Bitbucket:PullRequests:ByUser 且格式為 FetchResult
+    /// </summary>
+    [Fact]
+    public async Task FilterBitbucketPullRequestsByUser_ShouldWriteToCorrectRedisKey_WhenFilterComplete()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>();
+        var redisServiceMock = new Mock<IRedisService>();
+        
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "workspace/repo",
+                    Platform = SourceControlPlatform.Bitbucket,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        new MergeRequestOutput { Title = "PR 1", AuthorUserId = "{abc-def-123}", AuthorName = "John", SourceBranch = "feature", TargetBranch = "main", State = "merged", PRUrl = "url", CreatedAt = DateTimeOffset.UtcNow }
+                    }
+                }
+            }
+        };
+        
+        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequests))
+            .ReturnsAsync(fetchResult.ToJson());
+        
+        string? capturedKey = null;
+        string? capturedJson = null;
+        
+        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+            .Callback<string, string, TimeSpan?>((key, json, ttl) =>
+            {
+                capturedKey = key;
+                capturedJson = json;
+            })
+            .ReturnsAsync(true);
+        
+        var userMappingOptions = Options.Create(new UserMappingOptions
+        {
+            Mappings = new List<UserMapping>
+            {
+                new UserMapping { BitbucketUserId = "{abc-def-123}", DisplayName = "John Doe" }
+            }
+        });
+        
+        var task = new FilterBitbucketPullRequestsByUserTask(
+            loggerMock.Object,
+            redisServiceMock.Object,
+            userMappingOptions);
+        
+        // Act
+        await task.ExecuteAsync();
+        
+        // Assert
+        Assert.Equal(RedisKeys.BitbucketPullRequestsByUser, capturedKey);
+        Assert.NotNull(capturedJson);
+        
+        var result = capturedJson.ToTypedObject<FetchResult>();
+        Assert.NotNull(result);
+        Assert.NotNull(result.Results);
+        Assert.Single(result.Results);
+        Assert.Equal(SourceControlPlatform.Bitbucket, result.Results[0].Platform);
+    }
 }
