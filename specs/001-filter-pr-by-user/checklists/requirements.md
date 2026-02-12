@@ -1,7 +1,7 @@
-# Specification Quality Checklist: 取得各 Repository 最新 Release Branch 名稱
+# Specification Quality Checklist: Filter Pull Requests by User
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-02-10
+**Created**: 2026-02-12
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -32,5 +32,4 @@
 ## Notes
 
 - All items pass validation. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
-- FR-009 mentions existing design pattern names (ITask, TaskFactory, TaskType, CommandLineParser) which are architectural conventions rather than implementation details - these are acceptable as they define the integration contract.
-- FR-010 references `GetBranchesAsync` as an existing capability to reuse - this is acceptable as it describes an existing system boundary, not a new implementation detail.
+- Spec uses domain terminology (Redis Key names, FetchResult) which are part of the ubiquitous language, not implementation details.
