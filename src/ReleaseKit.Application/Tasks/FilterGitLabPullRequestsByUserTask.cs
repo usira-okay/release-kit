@@ -28,7 +28,8 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
         : base(
             logger,
             redisService,
-            ExtractGitLabUserIds(userMappingOptions.Value))
+            ExtractGitLabUserIds(userMappingOptions.Value),
+            ExtractGitLabUserIdToDisplayName(userMappingOptions.Value))
     {
     }
 
@@ -52,5 +53,17 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
             .Select(m => m.GitLabUserId)
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .ToList();
+    }
+
+    /// <summary>
+    /// 從 UserMappingOptions 中提取 GitLab 使用者 ID 與 DisplayName 的對應字典
+    /// </summary>
+    /// <param name="options">使用者對應設定</param>
+    /// <returns>GitLab 使用者 ID 與 DisplayName 的對應字典</returns>
+    private static IReadOnlyDictionary<string, string> ExtractGitLabUserIdToDisplayName(UserMappingOptions options)
+    {
+        return options.Mappings
+            .Where(m => !string.IsNullOrWhiteSpace(m.GitLabUserId) && !string.IsNullOrWhiteSpace(m.DisplayName))
+            .ToDictionary(m => m.GitLabUserId, m => m.DisplayName);
     }
 }
