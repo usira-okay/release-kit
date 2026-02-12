@@ -64,6 +64,7 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
     {
         return options.Mappings
             .Where(m => !string.IsNullOrWhiteSpace(m.GitLabUserId) && !string.IsNullOrWhiteSpace(m.DisplayName))
-            .ToDictionary(m => m.GitLabUserId, m => m.DisplayName);
+            .GroupBy(m => m.GitLabUserId)
+            .ToDictionary(g => g.Key, g => g.First().DisplayName);
     }
 }

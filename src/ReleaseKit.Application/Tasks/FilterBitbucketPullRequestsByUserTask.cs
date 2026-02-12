@@ -64,6 +64,7 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
     {
         return options.Mappings
             .Where(m => !string.IsNullOrWhiteSpace(m.BitbucketUserId) && !string.IsNullOrWhiteSpace(m.DisplayName))
-            .ToDictionary(m => m.BitbucketUserId, m => m.DisplayName);
+            .GroupBy(m => m.BitbucketUserId)
+            .ToDictionary(g => g.Key, g => g.First().DisplayName);
     }
 }
