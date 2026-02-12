@@ -180,6 +180,8 @@ public static class ServiceCollectionExtensions
         services.AddTransient<UpdateGoogleSheetsTask>();
         services.AddTransient<FetchGitLabReleaseBranchTask>();
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
+        services.AddTransient<FilterGitLabPullRequestsByUserTask>();
+        services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();

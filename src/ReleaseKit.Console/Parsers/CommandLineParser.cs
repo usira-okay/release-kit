@@ -14,7 +14,9 @@ public class CommandLineParser
         { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
         { "update-googlesheet", TaskType.UpdateGoogleSheets },
         { "fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranch },
-        { "fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch }
+        { "fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch },
+        { "filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser },
+        { "filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser }
     };
 
     /// <summary>
