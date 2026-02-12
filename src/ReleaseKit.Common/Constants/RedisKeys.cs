@@ -24,4 +24,14 @@ public static class RedisKeys
     /// Bitbucket Release Branch 資料的 Redis Key
     /// </summary>
     public const string BitbucketReleaseBranches = "Bitbucket:ReleaseBranches";
+
+    /// <summary>
+    /// 過濾後的 GitLab Pull Request 資料（依使用者）的 Redis Key
+    /// </summary>
+    public const string GitLabPullRequestsByUser = "GitLab:PullRequests:ByUser";
+
+    /// <summary>
+    /// 過濾後的 Bitbucket Pull Request 資料（依使用者）的 Redis Key
+    /// </summary>
+    public const string BitbucketPullRequestsByUser = "Bitbucket:PullRequests:ByUser";
 }
