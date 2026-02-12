@@ -31,6 +31,8 @@ public class TaskFactory
             TaskType.UpdateGoogleSheets => _serviceProvider.GetRequiredService<UpdateGoogleSheetsTask>(),
             TaskType.FetchGitLabReleaseBranch => _serviceProvider.GetRequiredService<FetchGitLabReleaseBranchTask>(),
             TaskType.FetchBitbucketReleaseBranch => _serviceProvider.GetRequiredService<FetchBitbucketReleaseBranchTask>(),
+            TaskType.FilterGitLabPullRequestsByUser => _serviceProvider.GetRequiredService<FilterGitLabPullRequestsByUserTask>(),
+            TaskType.FilterBitbucketPullRequestsByUser => _serviceProvider.GetRequiredService<FilterBitbucketPullRequestsByUserTask>(),
             _ => throw new ArgumentException($"不支援的任務類型: {taskType}", nameof(taskType))
         };
     }

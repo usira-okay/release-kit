@@ -33,5 +33,15 @@ public enum TaskType
     /// <summary>
     /// 取得 Bitbucket 各專案最新 Release Branch
     /// </summary>
-    FetchBitbucketReleaseBranch
+    FetchBitbucketReleaseBranch,
+    
+    /// <summary>
+    /// 過濾 GitLab Pull Request 依使用者
+    /// </summary>
+    FilterGitLabPullRequestsByUser,
+    
+    /// <summary>
+    /// 過濾 Bitbucket Pull Request 依使用者
+    /// </summary>
+    FilterBitbucketPullRequestsByUser
 }
