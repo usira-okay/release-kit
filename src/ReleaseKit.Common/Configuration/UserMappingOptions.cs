@@ -1,4 +1,4 @@
-namespace ReleaseKit.Console.Options;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// 使用者對應設定選項
