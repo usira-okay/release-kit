@@ -44,7 +44,7 @@ services:
       dockerfile: Dockerfile
     container_name: release-kit-app
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=docker
       - Redis__ConnectionString=redis:6379
       - Seq__ServerUrl=http://seq:80
     depends_on:
@@ -55,7 +55,7 @@ services:
     networks:
       - release-kit-network
     volumes:
-      - ./appsettings.docker.json:/app/appsettings.Development.json:ro
+      - ./appsettings.docker.json:/app/appsettings.docker.json:ro
 
 networks:
   release-kit-network:
