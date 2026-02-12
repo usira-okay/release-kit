@@ -28,7 +28,6 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
         : base(
             logger,
             redisService,
-            ExtractBitbucketUserIds(userMappingOptions.Value),
             ExtractBitbucketUserIdToDisplayName(userMappingOptions.Value))
     {
     }
@@ -41,19 +40,6 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
 
     /// <inheritdoc />
     protected override string PlatformName => "Bitbucket";
-
-    /// <summary>
-    /// 從 UserMappingOptions 中提取 Bitbucket 使用者 ID 清單
-    /// </summary>
-    /// <param name="options">使用者對應設定</param>
-    /// <returns>非空的 Bitbucket 使用者 ID 清單</returns>
-    private static IReadOnlyList<string> ExtractBitbucketUserIds(UserMappingOptions options)
-    {
-        return options.Mappings
-            .Select(m => m.BitbucketUserId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToList();
-    }
 
     /// <summary>
     /// 從 UserMappingOptions 中提取 Bitbucket 使用者 ID 與 DisplayName 的對應字典

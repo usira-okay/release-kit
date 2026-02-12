@@ -28,7 +28,6 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
         : base(
             logger,
             redisService,
-            ExtractGitLabUserIds(userMappingOptions.Value),
             ExtractGitLabUserIdToDisplayName(userMappingOptions.Value))
     {
     }
@@ -41,19 +40,6 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
 
     /// <inheritdoc />
     protected override string PlatformName => "GitLab";
-
-    /// <summary>
-    /// 從 UserMappingOptions 中提取 GitLab 使用者 ID 清單
-    /// </summary>
-    /// <param name="options">使用者對應設定</param>
-    /// <returns>非空的 GitLab 使用者 ID 清單</returns>
-    private static IReadOnlyList<string> ExtractGitLabUserIds(UserMappingOptions options)
-    {
-        return options.Mappings
-            .Select(m => m.GitLabUserId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToList();
-    }
 
     /// <summary>
     /// 從 UserMappingOptions 中提取 GitLab 使用者 ID 與 DisplayName 的對應字典

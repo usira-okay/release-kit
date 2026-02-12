@@ -25,11 +25,6 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     protected readonly IRedisService RedisService;
 
     /// <summary>
-    /// 使用者 ID 清單（用於過濾）
-    /// </summary>
-    protected readonly IReadOnlyList<string> UserIds;
-
-    /// <summary>
     /// 使用者 ID 與 DisplayName 的對應字典
     /// </summary>
     protected readonly IReadOnlyDictionary<string, string> UserIdToDisplayName;
@@ -39,17 +34,14 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
     /// <param name="redisService">Redis 服務</param>
-    /// <param name="userIds">使用者 ID 清單</param>
     /// <param name="userIdToDisplayName">使用者 ID 與 DisplayName 的對應字典</param>
     protected BaseFilterPullRequestsByUserTask(
         ILogger logger,
         IRedisService redisService,
-        IReadOnlyList<string> userIds,
         IReadOnlyDictionary<string, string> userIdToDisplayName)
     {
         Logger = logger;
         RedisService = redisService;
-        UserIds = userIds;
         UserIdToDisplayName = userIdToDisplayName;
     }
 
@@ -91,13 +83,13 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         }
 
         // 2. 檢查使用者清單
-        if (UserIds.Count == 0)
+        if (UserIdToDisplayName.Count == 0)
         {
             Logger.LogWarning("使用者清單為空，略過過濾");
             return;
         }
 
-        Logger.LogInformation("使用者清單包含 {Count} 個 ID，開始過濾", UserIds.Count);
+        Logger.LogInformation("使用者清單包含 {Count} 個 ID，開始過濾", UserIdToDisplayName.Count);
 
         // 3. 過濾每個專案的 PR
         var filteredResults = new List<ProjectResult>();
@@ -112,9 +104,9 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
                 continue;
             }
 
-            // 過濾 PR：保留 AuthorUserId 在使用者清單中的 PR，並將 AuthorName 替換為 DisplayName
+            // 過濾 PR：保留 AuthorUserId 在使用者字典中的 PR，並將 AuthorName 替換為 DisplayName
             var filteredPRs = projectResult.PullRequests
-                .Where(pr => UserIds.Contains(pr.AuthorUserId))
+                .Where(pr => UserIdToDisplayName.ContainsKey(pr.AuthorUserId))
                 .Select(pr =>
                 {
                     // 若找到對應的 DisplayName，則替換 AuthorName
