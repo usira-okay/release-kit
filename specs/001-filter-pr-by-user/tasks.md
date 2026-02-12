@@ -19,8 +19,8 @@
 
 **Purpose**: 新增常數與列舉值，為後續實作提供基礎
 
-- [ ] T001 [P] 在 `src/ReleaseKit.Common/Constants/RedisKeys.cs` 新增 `GitLabPullRequestsByUser` 和 `BitbucketPullRequestsByUser` 常數
-- [ ] T002 [P] 在 `src/ReleaseKit.Application/Tasks/TaskType.cs` 新增 `FilterGitLabPullRequestsByUser` 和 `FilterBitbucketPullRequestsByUser` 列舉值
+- [X] T001 [P] 在 `src/ReleaseKit.Common/Constants/RedisKeys.cs` 新增 `GitLabPullRequestsByUser` 和 `BitbucketPullRequestsByUser` 常數
+- [X] T002 [P] 在 `src/ReleaseKit.Application/Tasks/TaskType.cs` 新增 `FilterGitLabPullRequestsByUser` 和 `FilterBitbucketPullRequestsByUser` 列舉值
 
 ✅ 可建置 / ⚠️ 待補測試
 
@@ -32,18 +32,18 @@
 
 **Independent Test**: 在 Redis 中預先存入 GitLab PR 資料並執行 `filter-gitlab-pr-by-user`，驗證過濾結果僅包含指定使用者的 PR
 
-### Tests for User Story 1 ⚠️
+### Tests for User Story 1 ✅
 
 > **NOTE: 先撰寫測試並確認失敗，再進行實作（Red-Green-Refactor）**
 
-- [ ] T003 [US1] 在 `tests/ReleaseKit.Application.Tests/Tasks/FilterPullRequestsByUserTaskTests.cs` 撰寫 GitLab 過濾測試：Redis 中有 PR 資料且使用者清單有匹配項，驗證過濾後僅保留匹配使用者的 PR
-- [ ] T004 [US1] 在同一測試檔案撰寫 GitLab 多專案過濾測試：驗證多個 ProjectResult 各自獨立過濾
-- [ ] T005 [US1] 在同一測試檔案撰寫 GitLab 過濾後寫入 Redis 測試：驗證結果寫入 `GitLab:PullRequests:ByUser` 且格式為 FetchResult
+- [X] T003 [US1] 在 `tests/ReleaseKit.Application.Tests/Tasks/FilterPullRequestsByUserTaskTests.cs` 撰寫 GitLab 過濾測試：Redis 中有 PR 資料且使用者清單有匹配項，驗證過濾後僅保留匹配使用者的 PR
+- [X] T004 [US1] 在同一測試檔案撰寫 GitLab 多專案過濾測試：驗證多個 ProjectResult 各自獨立過濾
+- [X] T005 [US1] 在同一測試檔案撰寫 GitLab 過濾後寫入 Redis 測試：驗證結果寫入 `GitLab:PullRequests:ByUser` 且格式為 FetchResult
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] 建立 `src/ReleaseKit.Application/Tasks/BaseFilterPullRequestsByUserTask.cs` 抽象基底類別，封裝讀取 Redis → 反序列化 FetchResult → 過濾 PR → 序列化 → 寫入 Redis 與 stdout 的共用邏輯。子類別需提供：來源 Redis Key、目標 Redis Key、平台名稱、使用者 ID 清單
-- [ ] T007 [US1] 建立 `src/ReleaseKit.Application/Tasks/FilterGitLabPullRequestsByUserTask.cs`，繼承基底類別，注入 `IOptions<UserMappingOptions>` 並從 `Mappings` 中提取非空的 `GitLabUserId` 清單，設定來源 Key 為 `RedisKeys.GitLabPullRequests`，目標 Key 為 `RedisKeys.GitLabPullRequestsByUser`
+- [X] T006 [US1] 建立 `src/ReleaseKit.Application/Tasks/BaseFilterPullRequestsByUserTask.cs` 抽象基底類別，封裝讀取 Redis → 反序列化 FetchResult → 過濾 PR → 序列化 → 寫入 Redis 與 stdout 的共用邏輯。子類別需提供：來源 Redis Key、目標 Redis Key、平台名稱、使用者 ID 清單
+- [X] T007 [US1] 建立 `src/ReleaseKit.Application/Tasks/FilterGitLabPullRequestsByUserTask.cs`，繼承基底類別，注入 `IOptions<UserMappingOptions>` 並從 `Mappings` 中提取非空的 `GitLabUserId` 清單，設定來源 Key 為 `RedisKeys.GitLabPullRequests`，目標 Key 為 `RedisKeys.GitLabPullRequestsByUser`
 
 **Checkpoint**: 測試應由 Red 轉為 Green。執行建置與測試驗證。
 
@@ -57,16 +57,16 @@
 
 **Independent Test**: 在 Redis 中預先存入 Bitbucket PR 資料並執行 `filter-bitbucket-pr-by-user`，驗證過濾結果僅包含指定使用者的 PR
 
-### Tests for User Story 2 ⚠️
+### Tests for User Story 2 ✅
 
 > **NOTE: 先撰寫測試並確認失敗，再進行實作（Red-Green-Refactor）**
 
-- [ ] T008 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/FilterPullRequestsByUserTaskTests.cs` 撰寫 Bitbucket 過濾測試：Redis 中有 PR 資料且使用者清單有匹配項，驗證過濾後僅保留匹配使用者的 PR
-- [ ] T009 [US2] 在同一測試檔案撰寫 Bitbucket 過濾後寫入 Redis 測試：驗證結果寫入 `Bitbucket:PullRequests:ByUser` 且格式為 FetchResult
+- [X] T008 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/FilterPullRequestsByUserTaskTests.cs` 撰寫 Bitbucket 過濾測試：Redis 中有 PR 資料且使用者清單有匹配項，驗證過濾後僅保留匹配使用者的 PR
+- [X] T009 [US2] 在同一測試檔案撰寫 Bitbucket 過濾後寫入 Redis 測試：驗證結果寫入 `Bitbucket:PullRequests:ByUser` 且格式為 FetchResult
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] 建立 `src/ReleaseKit.Application/Tasks/FilterBitbucketPullRequestsByUserTask.cs`，繼承基底類別，注入 `IOptions<UserMappingOptions>` 並從 `Mappings` 中提取非空的 `BitbucketUserId` 清單，設定來源 Key 為 `RedisKeys.BitbucketPullRequests`，目標 Key 為 `RedisKeys.BitbucketPullRequestsByUser`
+- [X] T010 [US2] 建立 `src/ReleaseKit.Application/Tasks/FilterBitbucketPullRequestsByUserTask.cs`，繼承基底類別，注入 `IOptions<UserMappingOptions>` 並從 `Mappings` 中提取非空的 `BitbucketUserId` 清單，設定來源 Key 為 `RedisKeys.BitbucketPullRequests`，目標 Key 為 `RedisKeys.BitbucketPullRequestsByUser`
 
 **Checkpoint**: 測試應由 Red 轉為 Green。執行建置與測試驗證。
 
@@ -80,18 +80,18 @@
 
 **Independent Test**: 清空 Redis 中的 PR 資料或移除使用者清單，驗證系統產生警告日誌且不寫入新 Redis Key
 
-### Tests for User Story 3 ⚠️
+### Tests for User Story 3 ✅
 
 > **NOTE: 先撰寫測試並確認失敗，再進行實作（Red-Green-Refactor）**
 
-- [ ] T011 [P] [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/FilterPullRequestsByUserTaskTests.cs` 撰寫無 PR 資料測試：Redis 中不存在 PR 資料時，驗證記錄警告日誌且不寫入新 Redis Key
-- [ ] T012 [P] [US3] 在同一測試檔案撰寫空使用者清單測試：UserMapping.Mappings 為空時，驗證記錄警告日誌且不寫入新 Redis Key
-- [ ] T013 [P] [US3] 在同一測試檔案撰寫含 Error 的 ProjectResult 測試：驗證含 Error 的 ProjectResult 保留原樣不進行 PR 過濾
-- [ ] T014 [P] [US3] 在同一測試檔案撰寫空 UserId 過濾測試：UserMapping 中某 UserId 為空字串時，驗證該項目不參與過濾比對
+- [X] T011 [P] [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/FilterPullRequestsByUserTaskTests.cs` 撰寫無 PR 資料測試：Redis 中不存在 PR 資料時，驗證記錄警告日誌且不寫入新 Redis Key
+- [X] T012 [P] [US3] 在同一測試檔案撰寫空使用者清單測試：UserMapping.Mappings 為空時，驗證記錄警告日誌且不寫入新 Redis Key
+- [X] T013 [P] [US3] 在同一測試檔案撰寫含 Error 的 ProjectResult 測試：驗證含 Error 的 ProjectResult 保留原樣不進行 PR 過濾
+- [X] T014 [P] [US3] 在同一測試檔案撰寫空 UserId 過濾測試：UserMapping 中某 UserId 為空字串時，驗證該項目不參與過濾比對
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] 更新 `src/ReleaseKit.Application/Tasks/BaseFilterPullRequestsByUserTask.cs`，加入邊界條件處理：Redis 無資料時記錄警告並提前返回、使用者清單為空時記錄警告並提前返回、含 Error 的 ProjectResult 保留原樣
+- [X] T015 [US3] 更新 `src/ReleaseKit.Application/Tasks/BaseFilterPullRequestsByUserTask.cs`，加入邊界條件處理：Redis 無資料時記錄警告並提前返回、使用者清單為空時記錄警告並提前返回、含 Error 的 ProjectResult 保留原樣
 
 **Checkpoint**: 測試應由 Red 轉為 Green。執行建置與測試驗證。
 
@@ -103,12 +103,12 @@
 
 **Purpose**: 完成 CLI 指令註冊、DI 註冊、建置與測試最終驗證
 
-- [ ] T016 [P] 在 `src/ReleaseKit.Console/Parsers/CommandLineParser.cs` 新增 `filter-gitlab-pr-by-user` 和 `filter-bitbucket-pr-by-user` 指令對應
-- [ ] T017 [P] 在 `src/ReleaseKit.Application/Tasks/TaskFactory.cs` 新增 `FilterGitLabPullRequestsByUser` 和 `FilterBitbucketPullRequestsByUser` 的 case
-- [ ] T018 在 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法中新增 `FilterGitLabPullRequestsByUserTask` 和 `FilterBitbucketPullRequestsByUserTask` 的 Transient 註冊
-- [ ] T019 在 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs` 補充 TaskFactory 對新 TaskType 的測試
-- [ ] T020 執行完整建置驗證 `dotnet build src/release-kit.sln` 並確認無錯誤
-- [ ] T021 執行完整測試驗證 `dotnet test` 並確認所有測試通過
+- [X] T016 [P] 在 `src/ReleaseKit.Console/Parsers/CommandLineParser.cs` 新增 `filter-gitlab-pr-by-user` 和 `filter-bitbucket-pr-by-user` 指令對應
+- [X] T017 [P] 在 `src/ReleaseKit.Application/Tasks/TaskFactory.cs` 新增 `FilterGitLabPullRequestsByUser` 和 `FilterBitbucketPullRequestsByUser` 的 case
+- [X] T018 在 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法中新增 `FilterGitLabPullRequestsByUserTask` 和 `FilterBitbucketPullRequestsByUserTask` 的 Transient 註冊
+- [X] T019 在 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs` 補充 TaskFactory 對新 TaskType 的測試
+- [X] T020 執行完整建置驗證 `dotnet build src/release-kit.sln` 並確認無錯誤
+- [X] T021 執行完整測試驗證 `dotnet test` 並確認所有測試通過
 
 ✅ 可建置 / ✅ 測試通過
 
