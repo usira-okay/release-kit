@@ -14,4 +14,9 @@ public static class HttpClientNames
     /// Bitbucket HttpClient 名稱
     /// </summary>
     public const string Bitbucket = "Bitbucket";
+
+    /// <summary>
+    /// Azure DevOps HttpClient 名稱
+    /// </summary>
+    public const string AzureDevOps = "AzureDevOps";
 }
