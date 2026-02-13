@@ -107,15 +107,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
             // 過濾 PR：保留 AuthorUserId 在使用者字典中的 PR，並將 AuthorName 替換為 DisplayName
             var filteredPRs = projectResult.PullRequests
                 .Where(pr => UserIdToDisplayName.ContainsKey(pr.AuthorUserId))
-                .Select(pr =>
-                {
-                    // 若找到對應的 DisplayName，則替換 AuthorName
-                    if (UserIdToDisplayName.TryGetValue(pr.AuthorUserId, out var displayName))
-                    {
-                        return pr with { AuthorName = displayName };
-                    }
-                    return pr;
-                })
+                .Select(pr => pr with { AuthorName = UserIdToDisplayName[pr.AuthorUserId] })
                 .ToList();
 
             Logger.LogInformation("專案 {Project} 原有 {Original} 個 PR，過濾後剩餘 {Filtered} 個",
