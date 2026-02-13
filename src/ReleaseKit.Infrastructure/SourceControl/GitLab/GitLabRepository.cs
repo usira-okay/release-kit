@@ -142,7 +142,7 @@ public class GitLabRepository : ISourceControlRepository
         foreach (var commit in compareResult.Commits)
         {
             processedCount++;
-            _logger.LogDebug("處理 commit {CurrentCount}/{TotalCount}：{CommitId}", processedCount, compareResult.Commits.Count, commit.Id);
+            _logger.LogInformation("處理 commit {CurrentCount}/{TotalCount}：{CommitId}", processedCount, compareResult.Commits.Count, commit.Id);
             
             var mrResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Id, cancellationToken);
             if (mrResult.IsSuccess && mrResult.Value != null)
@@ -154,7 +154,7 @@ public class GitLabRepository : ISourceControlRepository
                 
                 if (uniqueMRs.Count > 0)
                 {
-                    _logger.LogDebug("commit {CommitId} 找到 {MRCount} 個 MR", commit.Id, uniqueMRs.Count);
+                    _logger.LogInformation("commit {CommitId} 找到 {MRCount} 個 MR", commit.Id, uniqueMRs.Count);
                 }
             }
         }

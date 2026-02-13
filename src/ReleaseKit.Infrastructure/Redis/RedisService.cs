@@ -32,7 +32,7 @@ public class RedisService : IRedisService
     {
         var fullKey = GetFullKey(key);
         var result = await _database.StringSetAsync(fullKey, value, expiry);
-        _logger.LogDebug("Redis SET: {Key} = {Value}, Expiry: {Expiry}, Result: {Result}", fullKey, value, expiry, result);
+        _logger.LogInformation("Redis SET: {Key} = {Value}, Expiry: {Expiry}, Result: {Result}", fullKey, value, expiry, result);
         return result;
     }
 
@@ -43,7 +43,7 @@ public class RedisService : IRedisService
     {
         var fullKey = GetFullKey(key);
         var value = await _database.StringGetAsync(fullKey);
-        _logger.LogDebug("Redis GET: {Key} = {Value}", fullKey, value.HasValue ? value.ToString() : "(null)");
+        _logger.LogInformation("Redis GET: {Key} = {Value}", fullKey, value.HasValue ? value.ToString() : "(null)");
         return value.HasValue ? value.ToString() : null;
     }
 
@@ -54,7 +54,7 @@ public class RedisService : IRedisService
     {
         var fullKey = GetFullKey(key);
         var result = await _database.KeyDeleteAsync(fullKey);
-        _logger.LogDebug("Redis DELETE: {Key}, Result: {Result}", fullKey, result);
+        _logger.LogInformation("Redis DELETE: {Key}, Result: {Result}", fullKey, result);
         return result;
     }
 
@@ -65,7 +65,7 @@ public class RedisService : IRedisService
     {
         var fullKey = GetFullKey(key);
         var result = await _database.KeyExistsAsync(fullKey);
-        _logger.LogDebug("Redis EXISTS: {Key} = {Result}", fullKey, result);
+        _logger.LogInformation("Redis EXISTS: {Key} = {Result}", fullKey, result);
         return result;
     }
 
