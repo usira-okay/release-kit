@@ -35,12 +35,17 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FetchBitbucketReleaseBranchTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>().Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
         var mockBitbucketRepository = new Mock<ISourceControlRepository>();
         services.AddKeyedSingleton<ISourceControlRepository>("GitLab", mockGitLabRepository.Object);
         services.AddKeyedSingleton<ISourceControlRepository>("Bitbucket", mockBitbucketRepository.Object);
+        
+        // 註冊 IAzureDevOpsRepository mock
+        var mockAzureDevOpsRepository = new Mock<IAzureDevOpsRepository>();
+        services.AddSingleton(mockAzureDevOpsRepository.Object);
         
         // 註冊 IRedisService mock
         var mockRedisService = new Mock<IRedisService>();

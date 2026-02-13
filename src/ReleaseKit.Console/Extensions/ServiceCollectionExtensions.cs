@@ -153,6 +153,42 @@ public static class ServiceCollectionExtensions
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
         });
 
+        // 註冊 Azure DevOps HttpClient
+        services.AddHttpClient(HttpClientNames.AzureDevOps, (sp, client) =>
+        {
+            var azureDevOpsSection = configuration.GetSection("AzureDevOps");
+            var azureDevOpsOptions = azureDevOpsSection.Get<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>();
+
+            // 依 AGENTS.md 規範，必要組態不提供預設值，缺失時應立即拋出例外並指出缺少的組態鍵
+            if (azureDevOpsOptions == null || string.IsNullOrWhiteSpace(azureDevOpsOptions.OrganizationUrl))
+            {
+                throw new InvalidOperationException("缺少必要的組態鍵: AzureDevOps:OrganizationUrl");
+            }
+
+            if (string.IsNullOrWhiteSpace(azureDevOpsOptions.PersonalAccessToken))
+            {
+                throw new InvalidOperationException("缺少必要的組態鍵: AzureDevOps:PersonalAccessToken");
+            }
+
+            var orgUri = new Uri(azureDevOpsOptions.OrganizationUrl);
+
+            // 確保使用 HTTPS
+            if (orgUri.Scheme != Uri.UriSchemeHttps)
+            {
+                throw new InvalidOperationException(
+                    $"Azure DevOps 組織 URL 必須使用 HTTPS 協定。目前使用的協定: {orgUri.Scheme}");
+            }
+
+            client.BaseAddress = orgUri;
+
+            // Azure DevOps 使用 Basic Auth，username 為空字串，password 為 PAT
+            var credentials = Convert.ToBase64String(
+                System.Text.Encoding.ASCII.GetBytes($":{azureDevOpsOptions.PersonalAccessToken}"));
+            
+            client.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+        });
+
         return services;
     }
 
@@ -172,6 +208,10 @@ public static class ServiceCollectionExtensions
             ReleaseKit.Infrastructure.SourceControl.GitLab.GitLabRepository>(HttpClientNames.GitLab);
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
             ReleaseKit.Infrastructure.SourceControl.Bitbucket.BitbucketRepository>(HttpClientNames.Bitbucket);
+        
+        // 註冊 Azure DevOps Repository
+        services.AddTransient<ReleaseKit.Domain.Abstractions.IAzureDevOpsRepository, 
+            ReleaseKit.Infrastructure.AzureDevOps.AzureDevOpsRepository>();
         
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();

@@ -66,11 +66,11 @@
 
 ### Tests (RED)
 
-- [ ] T013 [US1] Write FetchAzureDevOpsWorkItemsTask unit tests for VSTS ID parsing and full flow: (1) single VSTS ID in title, (2) multiple VSTS IDs in one title (VSTS111 and VSTS222), (3) dedup same ID across multiple PRs, (4) no VSTS ID in title returns empty, (5) invalid formats (VSTSabc, vsts123, VSTS without number) are ignored, (6) successful end-to-end: Redis read → parse → API call → Redis write, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
+- [X] T013 [US1] Write FetchAzureDevOpsWorkItemsTask unit tests for VSTS ID parsing and full flow: (1) single VSTS ID in title, (2) multiple VSTS IDs in one title (VSTS111 and VSTS222), (3) dedup same ID across multiple PRs, (4) no VSTS ID in title returns empty, (5) invalid formats (VSTSabc, vsts123, VSTS without number) are ignored, (6) successful end-to-end: Redis read → parse → API call → Redis write, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
 
 ### Implementation (GREEN)
 
-- [ ] T014 [US1] Implement FetchAzureDevOpsWorkItemsTask.ExecuteAsync: inject IRedisService + IAzureDevOpsRepository + ILogger, read from Redis keys (GitLab:PullRequests:ByUser, Bitbucket:PullRequests:ByUser), deserialize as FetchResult using ToTypedObject, parse all PR titles with Regex VSTS(\d+), deduplicate IDs with HashSet, call GetWorkItemAsync for each ID sequentially, map Result to WorkItemOutput (success/failure), assemble WorkItemFetchResult with statistics, write to Redis AzureDevOps:WorkItems using ToJson (no TTL), output to Console, in `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs`
+- [X] T014 [US1] Implement FetchAzureDevOpsWorkItemsTask.ExecuteAsync: inject IRedisService + IAzureDevOpsRepository + ILogger, read from Redis keys (GitLab:PullRequests:ByUser, Bitbucket:PullRequests:ByUser), deserialize as FetchResult using ToTypedObject, parse all PR titles with Regex VSTS(\d+), deduplicate IDs with HashSet, call GetWorkItemAsync for each ID sequentially, map Result to WorkItemOutput (success/failure), assemble WorkItemFetchResult with statistics, write to Redis AzureDevOps:WorkItems using ToJson (no TTL), output to Console, in `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs`
 
 **Checkpoint**: ✅ 可建置 / ✅ 測試通過 (FetchAzureDevOpsWorkItemsTaskTests - parsing + flow)
 
@@ -84,7 +84,7 @@
 
 ### Tests (RED → should be GREEN from T014 implementation)
 
-- [ ] T015 [US3] Write additional FetchAzureDevOpsWorkItemsTask tests for output: (1) Redis write JSON matches contract format (camelCase, all fields), (2) statistics correctly count success/failure, (3) TotalPRsAnalyzed counts all PRs from both platforms, (4) Redis SetAsync called with key AzureDevOps:WorkItems and no TTL (null expiry), (5) mixed success and failure WorkItemOutputs have correct IsSuccess and ErrorMessage, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
+- [X] T015 [US3] Write additional FetchAzureDevOpsWorkItemsTask tests for output: (1) Redis write JSON matches contract format (camelCase, all fields), (2) statistics correctly count success/failure, (3) TotalPRsAnalyzed counts all PRs from both platforms, (4) Redis SetAsync called with key AzureDevOps:WorkItems and no TTL (null expiry), (5) mixed success and failure WorkItemOutputs have correct IsSuccess and ErrorMessage, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
 
 **Checkpoint**: ✅ 可建置 / ✅ 測試通過
 
@@ -98,7 +98,7 @@
 
 ### Tests (RED → should be GREEN from T014 implementation)
 
-- [ ] T016 [US4] Write additional FetchAzureDevOpsWorkItemsTask tests for partial data: (1) only GitLab key exists - processes GitLab PRs, logs warning for missing Bitbucket, (2) only Bitbucket key exists - processes Bitbucket PRs, logs warning for missing GitLab, (3) both keys missing - logs warning and exits gracefully without API calls, (4) one key returns null and other has data - processes available data, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
+- [X] T016 [US4] Write additional FetchAzureDevOpsWorkItemsTask tests for partial data: (1) only GitLab key exists - processes GitLab PRs, logs warning for missing Bitbucket, (2) only Bitbucket key exists - processes Bitbucket PRs, logs warning for missing GitLab, (3) both keys missing - logs warning and exits gracefully without API calls, (4) one key returns null and other has data - processes available data, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
 
 **Checkpoint**: ✅ 可建置 / ✅ 測試通過
 
@@ -108,8 +108,8 @@
 
 **Purpose**: 最終建置驗證與全部測試通過確認
 
-- [ ] T017 Execute full build verification with `dotnet build src/release-kit.sln` and confirm zero errors
-- [ ] T018 Execute all unit tests with `dotnet test` and confirm 100% pass rate across all test projects
+- [X] T017 Execute full build verification with `dotnet build src/release-kit.sln` and confirm zero errors
+- [X] T018 Execute all unit tests with `dotnet test` and confirm 100% pass rate across all test projects
 
 **Checkpoint**: ✅ 可建置 / ✅ 測試通過 (全部)
 
