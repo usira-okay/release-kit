@@ -60,7 +60,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             return;
         }
 
-        _logger.LogInformation($"從 {allPullRequests.Count} 個 PR 中解析出 {workItemIds.Count} 個不重複的 Work Item ID");
+        _logger.LogInformation("從 {PRCount} 個 PR 中解析出 {WorkItemCount} 個不重複的 Work Item ID", allPullRequests.Count, workItemIds.Count);
 
         // 逐一查詢 Work Item
         var workItemOutputs = await FetchWorkItemsAsync(workItemIds);
@@ -83,7 +83,8 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         await _redisService.SetAsync(RedisKeys.AzureDevOpsWorkItems, result.ToJson(), null);
 
         _logger.LogInformation(
-            $"完成 Work Item 查詢：總計 {workItemIds.Count} 個，成功 {successCount} 個，失敗 {failureCount} 個");
+            "完成 Work Item 查詢：總計 {TotalCount} 個，成功 {SuccessCount} 個，失敗 {FailureCount} 個", 
+            workItemIds.Count, successCount, failureCount);
     }
 
     /// <summary>
@@ -114,7 +115,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
-                _logger.LogWarning($"Redis Key '{key}' 不存在或為空");
+                _logger.LogWarning("Redis Key {RedisKey} 不存在或為空", key);
             }
         }
 
