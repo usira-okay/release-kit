@@ -64,6 +64,8 @@ public class CommandLineParserTests
     [InlineData("update-googlesheet", TaskType.UpdateGoogleSheets)]
     [InlineData("fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranch)]
     [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch)]
+    [InlineData("filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser)]
+    [InlineData("filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -85,6 +87,8 @@ public class CommandLineParserTests
     [InlineData("UPDATE-GOOGLESHEET", TaskType.UpdateGoogleSheets)]
     [InlineData("FETCH-GITLAB-RELEASE-BRANCH", TaskType.FetchGitLabReleaseBranch)]
     [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranch)]
+    [InlineData("FILTER-GITLAB-PR-BY-USER", TaskType.FilterGitLabPullRequestsByUser)]
+    [InlineData("FiLtEr-BiTbUcKeT-pR-bY-uSeR", TaskType.FilterBitbucketPullRequestsByUser)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -130,5 +134,7 @@ public class CommandLineParserTests
         Assert.Contains("update-googlesheet", result.ErrorMessage);
         Assert.Contains("fetch-gitlab-release-branch", result.ErrorMessage);
         Assert.Contains("fetch-bitbucket-release-branch", result.ErrorMessage);
+        Assert.Contains("filter-gitlab-pr-by-user", result.ErrorMessage);
+        Assert.Contains("filter-bitbucket-pr-by-user", result.ErrorMessage);
     }
 }
