@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ReleaseKit.Common.Extensions;
@@ -16,11 +17,13 @@ public class GitLabRepositoryTests
 {
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<ILogger<GitLabRepository>> _loggerMock;
 
     public GitLabRepositoryTests()
     {
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        _loggerMock = new Mock<ILogger<GitLabRepository>>();
     }
 
     [Fact]
@@ -53,7 +56,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByDateRangeAsync(
@@ -83,7 +86,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByDateRangeAsync(
@@ -120,7 +123,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByDateRangeAsync(
@@ -174,7 +177,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByDateRangeAsync(
@@ -249,7 +252,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetBranchesAsync("mygroup/myproject", "release/");
@@ -282,7 +285,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetBranchesAsync("mygroup/myproject");
@@ -353,7 +356,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByBranchDiffAsync(
@@ -411,7 +414,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByBranchDiffAsync(
@@ -457,7 +460,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByCommitAsync(
@@ -484,7 +487,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByCommitAsync(
@@ -543,7 +546,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByDateRangeAsync(
@@ -584,7 +587,7 @@ public class GitLabRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
 
-        var repository = new GitLabRepository(_httpClientFactoryMock.Object);
+        var repository = new GitLabRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetBranchesAsync("mygroup/myproject");

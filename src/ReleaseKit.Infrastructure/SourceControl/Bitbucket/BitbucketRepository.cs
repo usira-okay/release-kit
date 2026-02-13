@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using Microsoft.Extensions.Logging;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
@@ -15,14 +16,17 @@ namespace ReleaseKit.Infrastructure.SourceControl.Bitbucket;
 public class BitbucketRepository : ISourceControlRepository
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<BitbucketRepository> _logger;
 
     /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="httpClientFactory">HttpClient 工廠</param>
-    public BitbucketRepository(IHttpClientFactory httpClientFactory)
+    /// <param name="logger">日誌記錄器</param>
+    public BitbucketRepository(IHttpClientFactory httpClientFactory, ILogger<BitbucketRepository> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -230,8 +234,13 @@ public class BitbucketRepository : ISourceControlRepository
         var allMergeRequests = new List<MergeRequest>();
         var processedPRUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        _logger.LogInformation("開始查詢 {CommitCount} 個 commit 的關聯 PR", allCommits.Count);
+        var processedCount = 0;
         foreach (var commit in allCommits)
         {
+            processedCount++;
+            _logger.LogDebug("處理 commit {CurrentCount}/{TotalCount}：{CommitHash}", processedCount, allCommits.Count, commit.Hash);
+            
             var prResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Hash, cancellationToken);
             if (prResult.IsSuccess && prResult.Value != null)
             {
@@ -239,8 +248,14 @@ public class BitbucketRepository : ISourceControlRepository
                 // 利用此特性在 Where 過濾器中實現去重邏輯，並立即執行以確保過濾重複項目
                 var uniquePRs = prResult.Value.Where(pr => processedPRUrls.Add(pr.PRUrl)).ToList();
                 allMergeRequests.AddRange(uniquePRs);
+                
+                if (uniquePRs.Count > 0)
+                {
+                    _logger.LogDebug("commit {CommitHash} 找到 {PRCount} 個 PR", commit.Hash, uniquePRs.Count);
+                }
             }
         }
+        _logger.LogInformation("完成 commit PR 查詢，共找到 {TotalPRCount} 個不重複的 PR", allMergeRequests.Count);
 
         return Result<IReadOnlyList<MergeRequest>>.Success(allMergeRequests);
     }

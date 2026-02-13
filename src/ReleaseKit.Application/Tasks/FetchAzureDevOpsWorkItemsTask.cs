@@ -150,8 +150,13 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     {
         var outputs = new List<WorkItemOutput>();
 
+        _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemIds.Count);
+        var processedCount = 0;
         foreach (var workItemId in workItemIds)
         {
+            processedCount++;
+            _logger.LogDebug("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemIds.Count, workItemId);
+            
             var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
 
             if (result.IsSuccess)
@@ -170,6 +175,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
+                _logger.LogWarning("查詢 Work Item {WorkItemId} 失敗：{ErrorMessage}", workItemId, result.Error.Message);
                 outputs.Add(new WorkItemOutput
                 {
                     WorkItemId = workItemId,
