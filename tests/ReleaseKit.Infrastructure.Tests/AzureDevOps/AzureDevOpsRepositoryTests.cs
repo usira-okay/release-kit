@@ -143,19 +143,22 @@ public class AzureDevOpsRepositoryTests
 
     private void SetupHttpResponse(HttpStatusCode statusCode, AzureDevOpsWorkItemResponse? response)
     {
-        var httpResponseMessage = new HttpResponseMessage(statusCode);
-
-        if (response is not null)
-        {
-            httpResponseMessage.Content = new StringContent(response.ToJson());
-        }
-
         _httpMessageHandlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(httpResponseMessage);
+            .ReturnsAsync(() =>
+            {
+                var httpResponseMessage = new HttpResponseMessage(statusCode);
+
+                if (response is not null)
+                {
+                    httpResponseMessage.Content = new StringContent(response.ToJson());
+                }
+
+                return httpResponseMessage;
+            });
     }
 }
