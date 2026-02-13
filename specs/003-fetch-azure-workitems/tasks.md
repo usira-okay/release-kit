@@ -66,11 +66,11 @@
 
 ### Tests (RED)
 
-- [ ] T013 [US1] Write FetchAzureDevOpsWorkItemsTask unit tests for VSTS ID parsing and full flow: (1) single VSTS ID in title, (2) multiple VSTS IDs in one title (VSTS111 and VSTS222), (3) dedup same ID across multiple PRs, (4) no VSTS ID in title returns empty, (5) invalid formats (VSTSabc, vsts123, VSTS without number) are ignored, (6) successful end-to-end: Redis read → parse → API call → Redis write, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
+- [X] T013 [US1] Write FetchAzureDevOpsWorkItemsTask unit tests for VSTS ID parsing and full flow: (1) single VSTS ID in title, (2) multiple VSTS IDs in one title (VSTS111 and VSTS222), (3) dedup same ID across multiple PRs, (4) no VSTS ID in title returns empty, (5) invalid formats (VSTSabc, vsts123, VSTS without number) are ignored, (6) successful end-to-end: Redis read → parse → API call → Redis write, in `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs`
 
 ### Implementation (GREEN)
 
-- [ ] T014 [US1] Implement FetchAzureDevOpsWorkItemsTask.ExecuteAsync: inject IRedisService + IAzureDevOpsRepository + ILogger, read from Redis keys (GitLab:PullRequests:ByUser, Bitbucket:PullRequests:ByUser), deserialize as FetchResult using ToTypedObject, parse all PR titles with Regex VSTS(\d+), deduplicate IDs with HashSet, call GetWorkItemAsync for each ID sequentially, map Result to WorkItemOutput (success/failure), assemble WorkItemFetchResult with statistics, write to Redis AzureDevOps:WorkItems using ToJson (no TTL), output to Console, in `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs`
+- [X] T014 [US1] Implement FetchAzureDevOpsWorkItemsTask.ExecuteAsync: inject IRedisService + IAzureDevOpsRepository + ILogger, read from Redis keys (GitLab:PullRequests:ByUser, Bitbucket:PullRequests:ByUser), deserialize as FetchResult using ToTypedObject, parse all PR titles with Regex VSTS(\d+), deduplicate IDs with HashSet, call GetWorkItemAsync for each ID sequentially, map Result to WorkItemOutput (success/failure), assemble WorkItemFetchResult with statistics, write to Redis AzureDevOps:WorkItems using ToJson (no TTL), output to Console, in `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs`
 
 **Checkpoint**: ✅ 可建置 / ✅ 測試通過 (FetchAzureDevOpsWorkItemsTaskTests - parsing + flow)
 
