@@ -136,8 +136,9 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             var matches = regex.Matches(pr.Title);
             var parsedIds = matches
                 .Cast<Match>()
-                .Where(match => int.TryParse(match.Groups[1].Value, out _))
-                .Select(match => int.Parse(match.Groups[1].Value));
+                .Select(match => (Success: int.TryParse(match.Groups[1].Value, out var id), Id: id))
+                .Where(result => result.Success)
+                .Select(result => result.Id);
 
             foreach (var workItemId in parsedIds)
             {
