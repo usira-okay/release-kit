@@ -39,6 +39,9 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     {
         _logger.LogInformation("開始拉取 Azure DevOps Work Item 資訊");
 
+        // 清除舊的 Azure DevOps Work Item 資料
+        await _redisService.DeleteAsync(RedisKeys.AzureDevOpsWorkItems);
+
         // 從 Redis 讀取 PR 資料
         var allPullRequests = await LoadPullRequestsFromRedisAsync();
         
@@ -53,8 +56,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         
         if (workItemIds.Count == 0)
         {
-            _logger.LogInformation("未從 PR 標題中解析到任何 VSTS ID，寫入空結果");
-            await WriteEmptyResultToRedisAsync(allPullRequests.Count);
+            _logger.LogInformation("未從 PR 標題中解析到任何 VSTS ID，任務結束");
             return;
         }
 
@@ -91,34 +93,29 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     {
         var allPullRequests = new List<MergeRequestOutput>();
 
-        // 讀取 GitLab PR
-        var gitLabJson = await _redisService.GetAsync(RedisKeys.GitLabPullRequestsByUser);
-        if (gitLabJson is not null)
+        // 定義要讀取的 Redis Key
+        var redisKeys = new[]
         {
-            var gitLabResult = gitLabJson.ToTypedObject<FetchResult>();
-            if (gitLabResult is not null)
-            {
-                allPullRequests.AddRange(gitLabResult.Results.SelectMany(r => r.PullRequests));
-            }
-        }
-        else
-        {
-            _logger.LogWarning($"Redis Key '{RedisKeys.GitLabPullRequestsByUser}' 不存在或為空");
-        }
+            (Key: RedisKeys.GitLabPullRequestsByUser, Platform: "GitLab"),
+            (Key: RedisKeys.BitbucketPullRequestsByUser, Platform: "Bitbucket")
+        };
 
-        // 讀取 Bitbucket PR
-        var bitbucketJson = await _redisService.GetAsync(RedisKeys.BitbucketPullRequestsByUser);
-        if (bitbucketJson is not null)
+        // 迴圈處理所有平台
+        foreach (var (key, platform) in redisKeys)
         {
-            var bitbucketResult = bitbucketJson.ToTypedObject<FetchResult>();
-            if (bitbucketResult is not null)
+            var json = await _redisService.GetAsync(key);
+            if (json is not null)
             {
-                allPullRequests.AddRange(bitbucketResult.Results.SelectMany(r => r.PullRequests));
+                var result = json.ToTypedObject<FetchResult>();
+                if (result is not null)
+                {
+                    allPullRequests.AddRange(result.Results.SelectMany(r => r.PullRequests));
+                }
             }
-        }
-        else
-        {
-            _logger.LogWarning($"Redis Key '{RedisKeys.BitbucketPullRequestsByUser}' 不存在或為空");
+            else
+            {
+                _logger.LogWarning($"Redis Key '{key}' 不存在或為空");
+            }
         }
 
         return allPullRequests;
@@ -193,23 +190,5 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         }
 
         return outputs;
-    }
-
-    /// <summary>
-    /// 寫入空結果至 Redis
-    /// </summary>
-    /// <param name="totalPRs">分析的 PR 總數</param>
-    private async Task WriteEmptyResultToRedisAsync(int totalPRs)
-    {
-        var emptyResult = new WorkItemFetchResult
-        {
-            WorkItems = new List<WorkItemOutput>(),
-            TotalPRsAnalyzed = totalPRs,
-            TotalWorkItemsFound = 0,
-            SuccessCount = 0,
-            FailureCount = 0
-        };
-
-        await _redisService.SetAsync(RedisKeys.AzureDevOpsWorkItems, emptyResult.ToJson(), null);
     }
 }

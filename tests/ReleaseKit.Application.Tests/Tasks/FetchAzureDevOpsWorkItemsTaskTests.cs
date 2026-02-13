@@ -128,7 +128,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithNoVSTSIdInTitle_ShouldReturnEmptyResult()
+    public async Task ExecuteAsync_WithNoVSTSIdInTitle_ShouldNotWriteToRedis()
     {
         // Arrange
         var fetchResult = CreateFetchResult("No work item ID here", "feature/test", "main");
@@ -141,13 +141,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
         // Assert
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
-        VerifyRedisWrite(result =>
-        {
-            Assert.Empty(result.WorkItems);
-            Assert.Equal(0, result.TotalWorkItemsFound);
-            Assert.Equal(0, result.SuccessCount);
-            Assert.Equal(0, result.FailureCount);
-        });
+        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null), Times.Never);
     }
 
     [Fact]
@@ -361,6 +355,9 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
     private void SetupRedis(FetchResult? gitLabData, FetchResult? bitbucketData = null)
     {
+        _redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.AzureDevOpsWorkItems))
+            .ReturnsAsync(true);
+        
         _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequestsByUser))
             .ReturnsAsync(gitLabData?.ToJson());
         _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequestsByUser))
