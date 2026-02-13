@@ -77,7 +77,7 @@ public class AzureDevOpsRepositoryTests
         var workItemId = 99999;
         SetupHttpResponse(HttpStatusCode.NotFound, null);
 
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        using var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
         {
             BaseAddress = new Uri("https://dev.azure.com/org/")
         };
@@ -101,7 +101,7 @@ public class AzureDevOpsRepositoryTests
         var workItemId = 12345;
         SetupHttpResponse(HttpStatusCode.Unauthorized, null);
 
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        using var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
         {
             BaseAddress = new Uri("https://dev.azure.com/org/")
         };
@@ -124,7 +124,7 @@ public class AzureDevOpsRepositoryTests
         var workItemId = 12345;
         SetupHttpResponse(HttpStatusCode.InternalServerError, null);
 
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        using var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
         {
             BaseAddress = new Uri("https://dev.azure.com/org/")
         };
