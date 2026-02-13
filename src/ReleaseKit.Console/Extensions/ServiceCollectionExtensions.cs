@@ -3,8 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
-using ReleaseKit.Console.Options;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
@@ -180,6 +180,8 @@ public static class ServiceCollectionExtensions
         services.AddTransient<UpdateGoogleSheetsTask>();
         services.AddTransient<FetchGitLabReleaseBranchTask>();
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
+        services.AddTransient<FilterGitLabPullRequestsByUserTask>();
+        services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();

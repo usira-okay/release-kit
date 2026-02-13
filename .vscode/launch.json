@@ -10,7 +10,9 @@
                 // "fetch-gitlab-pr"
                 // "fetch-bitbucket-pr"
                 // "fetch-gitlab-release-branch"
-                "fetch-bitbucket-release-branch"
+                // "fetch-bitbucket-release-branch"
+                // "filter-gitlab-pr-by-user"
+                // "filter-bitbucket-pr-by-user"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

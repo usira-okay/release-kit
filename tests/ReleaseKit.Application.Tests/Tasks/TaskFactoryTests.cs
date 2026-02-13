@@ -26,12 +26,15 @@ public class TaskFactoryTests
         services.AddSingleton(Options.Create(new GitLabOptions()));
         services.AddSingleton(Options.Create(new BitbucketOptions()));
         services.AddSingleton(Options.Create(new FetchModeOptions()));
+        services.AddSingleton(Options.Create(new UserMappingOptions()));
         
         // 註冊 Logger mocks
         services.AddSingleton(new Mock<ILogger<FetchGitLabPullRequestsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchBitbucketPullRequestsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchGitLabReleaseBranchTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchBitbucketReleaseBranchTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>().Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
@@ -52,6 +55,8 @@ public class TaskFactoryTests
         services.AddTransient<UpdateGoogleSheetsTask>();
         services.AddTransient<FetchGitLabReleaseBranchTask>();
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
+        services.AddTransient<FilterGitLabPullRequestsByUserTask>();
+        services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -129,6 +134,28 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<FetchBitbucketReleaseBranchTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithFilterGitLabPullRequestsByUser_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.FilterGitLabPullRequestsByUser);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<FilterGitLabPullRequestsByUserTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithFilterBitbucketPullRequestsByUser_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.FilterBitbucketPullRequestsByUser);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<FilterBitbucketPullRequestsByUserTask>(task);
     }
 
     [Fact]
