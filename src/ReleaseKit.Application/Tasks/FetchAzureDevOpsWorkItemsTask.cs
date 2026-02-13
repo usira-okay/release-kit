@@ -134,12 +134,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         foreach (var pr in pullRequests)
         {
             var matches = regex.Matches(pr.Title);
-            foreach (Match match in matches)
+            var parsedIds = matches
+                .Cast<Match>()
+                .Where(match => int.TryParse(match.Groups[1].Value, out _))
+                .Select(match => int.Parse(match.Groups[1].Value));
+
+            foreach (var workItemId in parsedIds)
             {
-                if (int.TryParse(match.Groups[1].Value, out var workItemId))
-                {
-                    workItemIds.Add(workItemId);
-                }
+                workItemIds.Add(workItemId);
             }
         }
 
