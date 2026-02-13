@@ -23,7 +23,7 @@ public static class AzureDevOpsWorkItemMapper
             Type = GetFieldValue(response.Fields, "System.WorkItemType"),
             State = GetFieldValue(response.Fields, "System.State"),
             Url = response.Links?.Html?.Href ?? string.Empty,
-            OriginalTeamName = GetFieldValue(response.Fields, "System.AreaPath")
+            OriginalTeamName = GetFieldValue(response.Fields, "System.AreaPath").Split('\\').LastOrDefault() ?? string.Empty,
         };
     }
 
