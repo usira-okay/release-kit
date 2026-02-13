@@ -148,7 +148,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithInvalidVSTSFormats_ShouldIgnoreThem()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTSabc vsts123 VSTS (no number) VSTS456 works", "feature/test", "main");
+        var fetchResult = CreateFetchResult("VSTSabc VSTS (no number) VSTS456 works", "feature/test", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem = CreateWorkItem(456, "Valid", "Bug", "Active");
@@ -166,6 +166,41 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         {
             Assert.Single(result.WorkItems);
             Assert.Equal(1, result.TotalWorkItemsFound);
+        });
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithCaseInsensitiveVSTSIds_ShouldMatchAllVariants()
+    {
+        // Arrange
+        var fetchResult = CreateFetchResult("VSTS111 vsts222 Vsts333 VsTs444", "feature/test", "main");
+        SetupRedis(gitLabData: fetchResult);
+        
+        var workItem1 = CreateWorkItem(111, "Uppercase", "Bug", "Active");
+        var workItem2 = CreateWorkItem(222, "Lowercase", "Task", "Active");
+        var workItem3 = CreateWorkItem(333, "Capitalized", "Bug", "Active");
+        var workItem4 = CreateWorkItem(444, "Mixed", "Task", "Active");
+        
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(111)).ReturnsAsync(Result<WorkItem>.Success(workItem1));
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(222)).ReturnsAsync(Result<WorkItem>.Success(workItem2));
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(333)).ReturnsAsync(Result<WorkItem>.Success(workItem3));
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(444)).ReturnsAsync(Result<WorkItem>.Success(workItem4));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(111), Times.Once);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(222), Times.Once);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(333), Times.Once);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(444), Times.Once);
+        VerifyRedisWrite(result =>
+        {
+            Assert.Equal(4, result.WorkItems.Count);
+            Assert.Equal(4, result.TotalWorkItemsFound);
+            Assert.Equal(4, result.SuccessCount);
         });
     }
 

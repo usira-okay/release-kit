@@ -12,6 +12,8 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 public class FetchAzureDevOpsWorkItemsTask : ITask
 {
+    private static readonly Regex VstsIdPattern = new(@"VSTS(\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    
     private readonly ILogger<FetchAzureDevOpsWorkItemsTask> _logger;
     private readonly IRedisService _redisService;
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
@@ -129,11 +131,10 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     private HashSet<int> ParseVSTSIdsFromPRs(List<MergeRequestOutput> pullRequests)
     {
         var workItemIds = new HashSet<int>();
-        var regex = new Regex(@"VSTS(\d+)", RegexOptions.None);
 
         foreach (var pr in pullRequests)
         {
-            var matches = regex.Matches(pr.Title);
+            var matches = VstsIdPattern.Matches(pr.Title);
             foreach (Match match in matches)
             {
                 if (int.TryParse(match.Groups[1].Value, out var workItemId))
