@@ -128,20 +128,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <returns>不重複的 Work Item ID 清單</returns>
     private HashSet<int> ParseVSTSIdsFromPRs(List<MergeRequestOutput> pullRequests)
     {
-        var workItemIds = new HashSet<int>();
         var regex = new Regex(@"VSTS(\d+)", RegexOptions.None);
 
-        foreach (var pr in pullRequests)
-        {
-            var matches = regex.Matches(pr.Title);
-            foreach (Match match in matches)
-            {
-                if (int.TryParse(match.Groups[1].Value, out var workItemId))
-                {
-                    workItemIds.Add(workItemId);
-                }
-            }
-        }
+        var workItemIds = pullRequests
+            .SelectMany(pr => regex.Matches(pr.Title).Cast<Match>())
+            .Select(match => (Success: int.TryParse(match.Groups[1].Value, out var id), Id: id))
+            .Where(result => result.Success)
+            .Select(result => result.Id)
+            .ToHashSet();
 
         return workItemIds;
     }
