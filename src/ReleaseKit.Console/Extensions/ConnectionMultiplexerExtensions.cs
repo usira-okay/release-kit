@@ -31,7 +31,7 @@ public static class ConnectionMultiplexerExtensions
             if (attempt > 0)
             {
                 var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
-                logger.LogWarning("Redis 連線失敗，等待 {Delay}ms 後重試 (嘗試 {Attempt}/{MaxRetries})", 
+                logger.LogWarning("Redis 連線失敗，等待 {DelayMs}ms 後重試 (嘗試 {Attempt}/{MaxRetries})", 
                     delay.TotalMilliseconds, attempt, maxRetries);
                 Thread.Sleep(delay);
             }
@@ -39,7 +39,7 @@ public static class ConnectionMultiplexerExtensions
             var connection = ConnectionMultiplexer.Connect(configOptions);
             if (connection.IsConnected)
             {
-                logger.LogInformation("Redis 連線成功 (嘗試 {Attempt}/{MaxRetries})", attempt + 1, maxRetries + 1);
+                logger.LogInformation("Redis 連線成功 (嘗試 {Attempt}/{TotalAttempts})", attempt + 1, maxRetries + 1);
                 return connection;
             }
 

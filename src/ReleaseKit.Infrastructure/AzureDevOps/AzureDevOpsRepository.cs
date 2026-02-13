@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
@@ -15,14 +16,17 @@ namespace ReleaseKit.Infrastructure.AzureDevOps;
 public class AzureDevOpsRepository : IAzureDevOpsRepository
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<AzureDevOpsRepository> _logger;
 
     /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="httpClientFactory">HttpClient 工廠</param>
-    public AzureDevOpsRepository(IHttpClientFactory httpClientFactory)
+    /// <param name="logger">日誌記錄器</param>
+    public AzureDevOpsRepository(IHttpClientFactory httpClientFactory, ILogger<AzureDevOpsRepository> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     /// <inheritdoc />

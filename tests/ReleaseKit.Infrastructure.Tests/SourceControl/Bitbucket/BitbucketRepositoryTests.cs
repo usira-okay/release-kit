@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ReleaseKit.Common.Extensions;
@@ -16,11 +17,13 @@ public class BitbucketRepositoryTests
 {
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<ILogger<BitbucketRepository>> _loggerMock;
 
     public BitbucketRepositoryTests()
     {
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        _loggerMock = new Mock<ILogger<BitbucketRepository>>();
     }
 
     [Fact]
@@ -54,7 +57,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
         var startDateTime = new DateTimeOffset(2024, 1, 15, 0, 0, 0, TimeSpan.Zero);
         var endDateTime = new DateTimeOffset(2024, 1, 25, 0, 0, 0, TimeSpan.Zero);
 
@@ -93,7 +96,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
         var startDateTime = DateTimeOffset.UtcNow.AddDays(-7);
         var endDateTime = DateTimeOffset.UtcNow;
 
@@ -130,7 +133,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
         var startDateTime = DateTimeOffset.UtcNow.AddDays(-7);
         var endDateTime = DateTimeOffset.UtcNow;
 
@@ -167,7 +170,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
         var startDateTime = DateTimeOffset.UtcNow.AddDays(-7);
         var endDateTime = DateTimeOffset.UtcNow;
 
@@ -212,7 +215,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
         var startDateTime = new DateTimeOffset(2024, 1, 10, 9, 0, 0, TimeSpan.Zero);
         var endDateTime = new DateTimeOffset(2024, 1, 20, 0, 0, 0, TimeSpan.Zero);
 
@@ -257,7 +260,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetBranchesAsync("test/repo", "release/");
@@ -293,7 +296,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetBranchesAsync("test/repo");
@@ -345,7 +348,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByBranchDiffAsync(
@@ -394,7 +397,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByBranchDiffAsync(
@@ -430,7 +433,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByCommitAsync(
@@ -461,7 +464,7 @@ public class BitbucketRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
 
-        var repository = new BitbucketRepository(_httpClientFactoryMock.Object);
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetMergeRequestsByCommitAsync(

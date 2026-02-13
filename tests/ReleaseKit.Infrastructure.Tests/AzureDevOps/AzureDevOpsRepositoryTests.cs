@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ReleaseKit.Common.Extensions;
@@ -15,11 +16,13 @@ public class AzureDevOpsRepositoryTests
 {
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<ILogger<AzureDevOpsRepository>> _loggerMock;
 
     public AzureDevOpsRepositoryTests()
     {
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        _loggerMock = new Mock<ILogger<AzureDevOpsRepository>>();
     }
 
     [Fact]
@@ -54,7 +57,7 @@ public class AzureDevOpsRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("AzureDevOps")).Returns(httpClient);
 
-        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object);
+        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetWorkItemAsync(workItemId);
@@ -83,7 +86,7 @@ public class AzureDevOpsRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("AzureDevOps")).Returns(httpClient);
 
-        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object);
+        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetWorkItemAsync(workItemId);
@@ -107,7 +110,7 @@ public class AzureDevOpsRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("AzureDevOps")).Returns(httpClient);
 
-        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object);
+        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetWorkItemAsync(workItemId);
@@ -130,7 +133,7 @@ public class AzureDevOpsRepositoryTests
         };
         _httpClientFactoryMock.Setup(x => x.CreateClient("AzureDevOps")).Returns(httpClient);
 
-        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object);
+        var repository = new AzureDevOpsRepository(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
         var result = await repository.GetWorkItemAsync(workItemId);

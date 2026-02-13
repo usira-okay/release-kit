@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using Microsoft.Extensions.Logging;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
@@ -15,14 +16,17 @@ namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
 public class GitLabRepository : ISourceControlRepository
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<GitLabRepository> _logger;
 
     /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="httpClientFactory">HttpClient 工廠</param>
-    public GitLabRepository(IHttpClientFactory httpClientFactory)
+    /// <param name="logger">日誌記錄器</param>
+    public GitLabRepository(IHttpClientFactory httpClientFactory, ILogger<GitLabRepository> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -133,8 +137,13 @@ public class GitLabRepository : ISourceControlRepository
         var allMergeRequests = new List<MergeRequest>();
         var processedMRUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        _logger.LogInformation("開始查詢 {CommitCount} 個 commit 的關聯 MR", compareResult.Commits.Count);
+        var processedCount = 0;
         foreach (var commit in compareResult.Commits)
         {
+            processedCount++;
+            _logger.LogDebug("處理 commit {CurrentCount}/{TotalCount}：{CommitId}", processedCount, compareResult.Commits.Count, commit.Id);
+            
             var mrResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Id, cancellationToken);
             if (mrResult.IsSuccess && mrResult.Value != null)
             {
@@ -142,8 +151,14 @@ public class GitLabRepository : ISourceControlRepository
                 // 利用此特性在 Where 過濾器中實現去重邏輯，並立即執行以確保重複項目被過濾
                 var uniqueMRs = mrResult.Value.Where(mr => processedMRUrls.Add(mr.PRUrl)).ToList();
                 allMergeRequests.AddRange(uniqueMRs);
+                
+                if (uniqueMRs.Count > 0)
+                {
+                    _logger.LogDebug("commit {CommitId} 找到 {MRCount} 個 MR", commit.Id, uniqueMRs.Count);
+                }
             }
         }
+        _logger.LogInformation("完成 commit MR 查詢，共找到 {TotalMRCount} 個不重複的 MR", allMergeRequests.Count);
 
         return Result<IReadOnlyList<MergeRequest>>.Success(allMergeRequests);
     }
