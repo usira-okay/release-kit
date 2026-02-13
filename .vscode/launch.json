@@ -13,6 +13,7 @@
                 // "fetch-bitbucket-release-branch"
                 // "filter-gitlab-pr-by-user"
                 // "filter-bitbucket-pr-by-user"
+                // "fetch-azure-workitems"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

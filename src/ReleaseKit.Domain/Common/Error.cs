@@ -109,4 +109,44 @@ public sealed record Error(string Code, string Message)
         public static Error ProjectNotFound(string projectPath) =>
             new("SourceControl.ProjectNotFound", $"專案 '{projectPath}' 不存在");
     }
+
+    /// <summary>
+    /// Azure DevOps 相關錯誤
+    /// </summary>
+    /// <remarks>
+    /// 包含與 Azure DevOps REST API 互動時可能發生的各類錯誤。
+    /// </remarks>
+    public static class AzureDevOps
+    {
+        /// <summary>
+        /// Work Item 不存在或無權限存取錯誤
+        /// </summary>
+        /// <param name="workItemId">Work Item 識別碼</param>
+        /// <returns>錯誤物件</returns>
+        /// <remarks>
+        /// 當指定的 Work Item 在 Azure DevOps 中不存在或使用者無權限存取時使用此錯誤（HTTP 404 Not Found）。
+        /// </remarks>
+        public static Error WorkItemNotFound(int workItemId) =>
+            new("AzureDevOps.WorkItemNotFound", $"Work Item '{workItemId}' 不存在或無權限存取");
+
+        /// <summary>
+        /// API 呼叫失敗錯誤
+        /// </summary>
+        /// <param name="message">詳細錯誤訊息</param>
+        /// <returns>錯誤物件</returns>
+        /// <remarks>
+        /// 通用的 Azure DevOps API 錯誤，用於包裝 HTTP 錯誤或其他 API 相關問題。
+        /// </remarks>
+        public static Error ApiError(string message) =>
+            new("AzureDevOps.ApiError", $"Azure DevOps API 呼叫失敗：{message}");
+
+        /// <summary>
+        /// API 驗證失敗錯誤
+        /// </summary>
+        /// <remarks>
+        /// 當 Personal Access Token (PAT) 無效、過期或權限不足時使用此錯誤（HTTP 401 Unauthorized）。
+        /// </remarks>
+        public static Error Unauthorized =>
+            new("AzureDevOps.Unauthorized", "Azure DevOps API 驗證失敗，請檢查 Personal Access Token");
+    }
 }

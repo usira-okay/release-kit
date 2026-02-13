@@ -34,4 +34,9 @@ public static class RedisKeys
     /// 過濾後的 Bitbucket Pull Request 資料（依使用者）的 Redis Key
     /// </summary>
     public const string BitbucketPullRequestsByUser = "Bitbucket:PullRequests:ByUser";
+
+    /// <summary>
+    /// Azure DevOps Work Items 資料的 Redis Key
+    /// </summary>
+    public const string AzureDevOpsWorkItems = "AzureDevOps:WorkItems";
 }
