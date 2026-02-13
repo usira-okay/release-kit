@@ -114,7 +114,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
-                _logger.LogWarning($"Redis Key '{key}' 不存在或為空");
+                _logger.LogWarning("Redis Key {RedisKey} 不存在或為空", key);
             }
         }
 
