@@ -48,7 +48,7 @@ public class AzureDevOpsRepositoryTests
 
         SetupHttpResponse(HttpStatusCode.OK, response);
 
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        using var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
         {
             BaseAddress = new Uri("https://dev.azure.com/org/")
         };
