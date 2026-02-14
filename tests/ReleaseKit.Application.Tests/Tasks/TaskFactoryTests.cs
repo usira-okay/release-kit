@@ -36,6 +36,7 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<GetUserStoryTask>>().Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
@@ -62,6 +63,7 @@ public class TaskFactoryTests
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
+        services.AddTransient<GetUserStoryTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -161,6 +163,17 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<FilterBitbucketPullRequestsByUserTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithGetUserStory_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.GetUserStory);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<GetUserStoryTask>(task);
     }
 
     [Fact]

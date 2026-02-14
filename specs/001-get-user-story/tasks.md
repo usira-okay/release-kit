@@ -103,15 +103,15 @@
 
 ### Structural Changes for US3
 
-- [ ] T017 [P] [US3] Create UserStoryOutput DTO (WorkItemId int, OriginalWorkItemId int, Title string?, Type string?, State string?, Url string?, OriginalTeamName string?, IsSuccess bool, ErrorMessage string?) with XML Summary in src/ReleaseKit.Application/Common/UserStoryOutput.cs
-- [ ] T018 [P] [US3] Create UserStoryFetchResult DTO (UserStories List&lt;UserStoryOutput&gt;, TotalWorkItemsProcessed int, AlreadyUserStoryCount int, ResolvedCount int, KeptOriginalCount int) with XML Summary in src/ReleaseKit.Application/Common/UserStoryFetchResult.cs
-- [ ] T019 [P] [US3] Add `AzureDevOpsUserStories = "AzureDevOps:UserStories"` constant to RedisKeys in src/ReleaseKit.Common/Constants/RedisKeys.cs
+- [x] T017 [P] [US3] Create UserStoryOutput DTO (WorkItemId int, OriginalWorkItemId int, Title string?, Type string?, State string?, Url string?, OriginalTeamName string?, IsSuccess bool, ErrorMessage string?) with XML Summary in src/ReleaseKit.Application/Common/UserStoryOutput.cs
+- [x] T018 [P] [US3] Create UserStoryFetchResult DTO (UserStories List&lt;UserStoryOutput&gt;, TotalWorkItemsProcessed int, AlreadyUserStoryCount int, ResolvedCount int, KeptOriginalCount int) with XML Summary in src/ReleaseKit.Application/Common/UserStoryFetchResult.cs
+- [x] T019 [P] [US3] Add `AzureDevOpsUserStories = "AzureDevOps:UserStories"` constant to RedisKeys in src/ReleaseKit.Common/Constants/RedisKeys.cs
 
 ### Tests for US3 (Red Phase) 🔴
 
 > **Write tests FIRST. They MUST fail before implementation.**
 
-- [ ] T020 [US3] Write comprehensive GetUserStoryTask tests covering all acceptance scenarios and edge cases in tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs:
+- [x] T020 [US3] Write comprehensive GetUserStoryTask tests covering all acceptance scenarios and edge cases in tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs:
   - 已是 User Story 的 WorkItem → 直接保留，不查詢 API
   - 已是 Feature 的 WorkItem → 直接保留
   - 已是 Epic 的 WorkItem → 直接保留
@@ -125,12 +125,12 @@
   - 遞迴查詢中 API 失敗 → 保留原始 WorkItem 資料
   - 重複 Work Item ID → Dictionary 快取，API 僅查詢一次
   - 統計數字驗證：TotalWorkItemsProcessed == AlreadyUserStoryCount + ResolvedCount + KeptOriginalCount
-- [ ] T021 [P] [US3] Write GetUserStory case test (TaskType.GetUserStory → returns GetUserStoryTask instance) in tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs
-- [ ] T022 [P] [US3] Write get-user-story mapping test ("get-user-story" → TaskType.GetUserStory) in tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs
+- [x] T021 [P] [US3] Write GetUserStory case test (TaskType.GetUserStory → returns GetUserStoryTask instance) in tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs
+- [x] T022 [P] [US3] Write get-user-story mapping test ("get-user-story" → TaskType.GetUserStory) in tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs
 
 ### Implementation for US3 (Green Phase) 🟢
 
-- [ ] T023 [P] [US3] Implement GetUserStoryTask (ITask) in src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs:
+- [x] T023 [P] [US3] Implement GetUserStoryTask (ITask) in src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs:
   - 注入 IRedisService, IAzureDevOpsRepository, ILogger
   - 從 Redis 讀取 WorkItemFetchResult (key: AzureDevOps:WorkItems)
   - 定義高層級類型 HashSet&lt;string&gt;(OrdinalIgnoreCase): "User Story", "Feature", "Epic"
@@ -140,10 +140,10 @@
   - 使用 Result Pattern 處理 API 回傳
   - 組建 UserStoryFetchResult 寫入 Redis (key: AzureDevOps:UserStories)
   - 所有公開成員加入 XML Summary 繁體中文註解
-- [ ] T024 [P] [US3] Add `GetUserStory` value to TaskType enum in src/ReleaseKit.Application/Tasks/TaskType.cs
-- [ ] T025 [US3] Add `TaskType.GetUserStory` case to TaskFactory, resolve GetUserStoryTask from DI container in src/ReleaseKit.Application/Tasks/TaskFactory.cs
-- [ ] T026 [P] [US3] Add "get-user-story" → TaskType.GetUserStory mapping to CommandLineParser in src/ReleaseKit.Console/Parsers/CommandLineParser.cs
-- [ ] T027 [US3] Register GetUserStoryTask as transient in DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
+- [x] T024 [P] [US3] Add `GetUserStory` value to TaskType enum in src/ReleaseKit.Application/Tasks/TaskType.cs
+- [x] T025 [US3] Add `TaskType.GetUserStory` case to TaskFactory, resolve GetUserStoryTask from DI container in src/ReleaseKit.Application/Tasks/TaskFactory.cs
+- [x] T026 [P] [US3] Add "get-user-story" → TaskType.GetUserStory mapping to CommandLineParser in src/ReleaseKit.Console/Parsers/CommandLineParser.cs
+- [x] T027 [US3] Register GetUserStoryTask as transient in DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
 
 **Checkpoint**: US3 完成。get-user-story 指令可正確解析 WorkItem 至 User Story 層級，結果存入 Redis。✅ 可建置 ✅ 測試通過
 
@@ -153,9 +153,9 @@
 
 **Purpose**: 最終驗證與整體品質確認
 
-- [ ] T028 Verify solution builds successfully with `dotnet build src/release-kit.sln`
-- [ ] T029 Verify all unit tests pass with `dotnet test src/release-kit.sln`
-- [ ] T030 Run quickstart.md validation scenarios end-to-end
+- [x] T028 Verify solution builds successfully with `dotnet build src/release-kit.sln`
+- [x] T029 Verify all unit tests pass with `dotnet test src/release-kit.sln`
+- [x] T030 Run quickstart.md validation scenarios end-to-end
 
 ---
 
