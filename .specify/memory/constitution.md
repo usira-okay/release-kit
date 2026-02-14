@@ -2,15 +2,19 @@
 ================================================================================
 Sync Impact Report
 ================================================================================
-Version change: 1.0.0 → 1.1.0 (MINOR - 新增原則)
-Modified principles: N/A
+Version change: 1.1.0 → 1.2.0 (MINOR - 新增原則與規範強化)
+Modified principles:
+  - VI. 效能與快取優先 → 擴充為涵蓋資料存取最佳實踐
+  - IX. JSON 序列化規範 → 新增 JsonExtensions 優先順序
 Added sections:
-  - XI. 檔案組織規範（一個檔案只會有一個類別）
+  - XII. RESTful API 規範（API 路徑設計與快取策略）
+  - XIII. 組態管理規範（domain/設定檔管理原則）
+  - XIV. 程式碼重用原則（Plan 與 Task 指令優先搜尋現有邏輯）
 Removed sections: N/A
 Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ 已檢視，無需更新
+  - .specify/templates/plan-template.md ✅ 已檢視，與原則 XIV 一致
   - .specify/templates/spec-template.md ✅ 已檢視，無需更新
-  - .specify/templates/tasks-template.md ✅ 已檢視，無需更新
+  - .specify/templates/tasks-template.md ✅ 已檢視，與原則 XIV 一致
 Follow-up TODOs: 無
 ================================================================================
 -->
@@ -79,11 +83,12 @@ TDD 為強制性開發流程，所有功能實作 MUST 遵循 Red-Green-Refactor
 資料存取 MUST 遵循效能優先原則：
 
 - 撈取資料前 MUST 確認是否有現成邏輯可重複使用
+- 避免直接使用 DbContext 撈取資料，MUST 優先使用既有的 Repository 或 Service 方法
 - 如有快取機制可用，MUST 優先使用快取取得資料
 - 避免 N+1 查詢問題
 - 資料庫查詢 MUST 有適當的索引支援
 
-**理由**: 確保系統效能，提升使用者體驗。
+**理由**: 確保系統效能，提升使用者體驗，並維持資料存取邏輯的一致性。
 
 ### VII. 避免硬編碼
 
@@ -137,6 +142,50 @@ program.cs MUST 保持整潔：
 - 禁止將多個公開類別放在同一檔案中
 
 **理由**: 提升程式碼可搜尋性與可維護性，便於快速定位類別定義。
+
+### XII. RESTful API 規範
+
+API 設計 MUST 遵循 RESTful 原則：
+
+- 新增 API 路徑 MUST 遵循 RESTful API 規範
+  - 使用標準 HTTP 方法：GET（查詢）、POST（新增）、PUT/PATCH（更新）、DELETE（刪除）
+  - 路徑使用名詞複數表達資源（如 `/api/workitems`）
+  - 使用階層結構表達關聯（如 `/api/workitems/{id}/comments`）
+- GET 方法 MUST 優先使用 `[ResponseCache]` 屬性禁用快取或設定適當的快取策略
+  - 預設禁用快取：`[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]`
+  - 如需快取則明確設定時間與位置
+- 狀態碼 MUST 語意正確：200（成功）、201（已建立）、204（無內容）、400（錯誤請求）、404（未找到）、500（伺服器錯誤）
+
+**理由**: 統一 API 設計風格，提升 API 可預測性與可維護性，避免快取導致的資料不一致問題。
+
+### XIII. 組態管理規範
+
+組態管理 MUST 遵循集中化原則：
+
+- 所有 domain、URL、連線字串等設定 MUST 設定至 `appsettings.json` 或 `settings.json`
+- 根據專案內容選擇適當的組態檔：
+  - ASP.NET Core 專案使用 `appsettings.json`
+  - Console 或通用專案使用 `settings.json` 或 `appsettings.json`
+- 敏感資訊（API Token、密碼）MUST 透過環境變數或 Secret Manager 管理
+- 組態鍵值 MUST 使用階層式命名（如 `Redis:ConnectionString`）
+- 禁止在程式碼中硬編碼環境相關的設定值
+
+**理由**: 便於環境切換（開發、測試、正式），提升部署彈性，避免敏感資訊洩漏。
+
+### XIV. 程式碼重用原則
+
+開發流程 MUST 優先重用現有程式碼：
+
+- **Plan 指令**：規劃新功能時 MUST 優先搜尋並重複使用現有的邏輯與元件
+  - 使用 grep/glob 工具搜尋相似功能
+  - 記錄可重用的元件清單於計畫文件中
+  - 避免重複造輪子
+- **Task 指令**：執行任務時 MUST 標註階段性任務的建置與測試狀態
+  - 程式是否可以正確建置：✅ 可建置 / ❌ 無法建置
+  - 單元測試是否會通過：✅ 通過 / ❌ 失敗 / ⚠️ 部分通過
+  - 每個階段性任務完成後 MUST 執行驗證
+
+**理由**: 提升開發效率，維持程式碼一致性，減少維護成本，確保每個開發階段的品質可控。
 
 ## 程式碼風格規範
 
@@ -201,4 +250,4 @@ Constitution 修訂 MUST 遵循以下程序：
 - 技術術語與程式碼識別符保持原文
 - 註解與文件 MUST 使用繁體中文
 
-**Version**: 1.1.0 | **Ratified**: 2026-01-27 | **Last Amended**: 2026-01-28
+**Version**: 1.2.0 | **Ratified**: 2026-01-27 | **Last Amended**: 2026-02-14
