@@ -101,8 +101,30 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                     Platform = SourceControlPlatform.GitLab,
                     PullRequests = new List<MergeRequestOutput>
                     {
-                        CreateMergeRequest("VSTS123 Fix issue"),
-                        CreateMergeRequest("VSTS123 另一個 PR 提到相同 WorkItem")
+                        new()
+                        {
+                            PullRequestId = 1,
+                            Title = "VSTS123 Fix issue",
+                            SourceBranch = "feature/test",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "12345",
+                            AuthorName = "Test User",
+                            PRUrl = "https://example.com/pr/1",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        },
+                        new()
+                        {
+                            PullRequestId = 2,
+                            Title = "VSTS123 另一個 PR 提到相同 WorkItem",
+                            SourceBranch = "feature/test",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "12345",
+                            AuthorName = "Test User",
+                            PRUrl = "https://example.com/pr/2",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        }
                     }
                 }
             }
@@ -121,9 +143,9 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Once); // 只呼叫一次
         VerifyRedisWrite(result =>
         {
-            Assert.Single(result.WorkItems);
+            Assert.Equal(2, result.WorkItems.Count); // 兩個 PR 對應兩個 WorkItem 輸出
             Assert.Equal(2, result.TotalPRsAnalyzed); // 兩個 PR
-            Assert.Equal(1, result.TotalWorkItemsFound); // 去重複後只有一個 WorkItem
+            Assert.Equal(2, result.TotalWorkItemsFound); // 兩個 (WorkItem, PR) 配對
         });
     }
 
@@ -355,13 +377,27 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
     private void SetupRedis(FetchResult? gitLabData, FetchResult? bitbucketData = null)
     {
+        SetupRedisInternal(gitLabData?.ToJson(), bitbucketData?.ToJson());
+    }
+
+    private void SetupRedisWithPullRequestFetchResult(PullRequestFetchResult? gitLabData, PullRequestFetchResult? bitbucketData = null)
+    {
+        // Convert PullRequestFetchResult to FetchResult for JSON serialization
+        var gitLabFetchResult = gitLabData is not null ? new FetchResult { Results = gitLabData.Projects } : null;
+        var bitbucketFetchResult = bitbucketData is not null ? new FetchResult { Results = bitbucketData.Projects } : null;
+        
+        SetupRedisInternal(gitLabFetchResult?.ToJson(), bitbucketFetchResult?.ToJson());
+    }
+
+    private void SetupRedisInternal(string? gitLabJson, string? bitbucketJson)
+    {
         _redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.AzureDevOpsWorkItems))
             .ReturnsAsync(true);
         
         _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequestsByUser))
-            .ReturnsAsync(gitLabData?.ToJson());
+            .ReturnsAsync(gitLabJson);
         _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequestsByUser))
-            .ReturnsAsync(bitbucketData?.ToJson());
+            .ReturnsAsync(bitbucketJson);
         
         string? capturedJson = null;
         _redisServiceMock.Setup(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null))
@@ -390,5 +426,132 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                     assert(result);
                 }
             });
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithSinglePRSingleWorkItem_ShouldIncludeSourcePRInfo()
+    {
+        // Arrange
+        var fetchResult = CreateFetchResult("VSTS12345 新功能", "feature/test", "main");
+        SetupRedis(gitLabData: fetchResult);
+        
+        var workItem = CreateWorkItem(12345, "新功能", "User Story", "Active");
+        _azureDevOpsRepositoryMock
+            .Setup(x => x.GetWorkItemAsync(12345))
+            .ReturnsAsync(Result<WorkItem>.Success(workItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        VerifyRedisWrite(result =>
+        {
+            Assert.Single(result.WorkItems);
+            var output = result.WorkItems[0];
+            Assert.Equal(12345, output.WorkItemId);
+            Assert.NotNull(output.SourcePullRequestId);
+            Assert.NotNull(output.SourceProjectName);
+            Assert.NotNull(output.SourcePRUrl);
+        });
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithSameWorkItemInTwoPRs_ShouldCreateTwoRecords()
+    {
+        // Arrange
+        var fetchResult = new PullRequestFetchResult
+        {
+            Projects = new List<ProjectResult>
+            {
+                new()
+                {
+                    ProjectPath = "group/project1",
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        new()
+                        {
+                            PullRequestId = 1,
+                            Title = "VSTS12345 PR 1",
+                            SourceBranch = "feature/pr1",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "user1",
+                            AuthorName = "User One",
+                            PRUrl = "https://example.com/pr/1",
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            MergedAt = DateTimeOffset.UtcNow
+                        },
+                        new()
+                        {
+                            PullRequestId = 2,
+                            Title = "VSTS12345 PR 2",
+                            SourceBranch = "feature/pr2",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "user2",
+                            AuthorName = "User Two",
+                            PRUrl = "https://example.com/pr/2",
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            MergedAt = DateTimeOffset.UtcNow
+                        }
+                    }
+                }
+            }
+        };
+        SetupRedisWithPullRequestFetchResult(gitLabData: fetchResult);
+        
+        var workItem = CreateWorkItem(12345, "共用 Work Item", "Task", "Active");
+        _azureDevOpsRepositoryMock
+            .Setup(x => x.GetWorkItemAsync(12345))
+            .ReturnsAsync(Result<WorkItem>.Success(workItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(12345), Times.Once);
+        VerifyRedisWrite(result =>
+        {
+            Assert.Equal(2, result.WorkItems.Count);
+            Assert.All(result.WorkItems, wi => Assert.Equal(12345, wi.WorkItemId));
+            Assert.Equal(1, result.WorkItems[0].SourcePullRequestId);
+            Assert.Equal(2, result.WorkItems[1].SourcePullRequestId);
+            Assert.Equal("https://example.com/pr/1", result.WorkItems[0].SourcePRUrl);
+            Assert.Equal("https://example.com/pr/2", result.WorkItems[1].SourcePRUrl);
+        });
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithAPIFailure_ShouldPreserveSourcePRInfo()
+    {
+        // Arrange
+        var fetchResult = CreateFetchResult("VSTS99999 不存在的項目", "feature/test", "main");
+        SetupRedis(gitLabData: fetchResult);
+        
+        _azureDevOpsRepositoryMock
+            .Setup(x => x.GetWorkItemAsync(99999))
+            .ReturnsAsync(Result<WorkItem>.Failure(new Error("404", "Work Item 不存在")));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        VerifyRedisWrite(result =>
+        {
+            Assert.Single(result.WorkItems);
+            var output = result.WorkItems[0];
+            Assert.Equal(99999, output.WorkItemId);
+            Assert.False(output.IsSuccess);
+            Assert.NotNull(output.ErrorMessage);
+            Assert.NotNull(output.SourcePullRequestId);
+            Assert.NotNull(output.SourceProjectName);
+            Assert.NotNull(output.SourcePRUrl);
+        });
     }
 }

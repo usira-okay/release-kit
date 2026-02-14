@@ -19,6 +19,7 @@ public static class GitLabMergeRequestMapper
     {
         return new MergeRequest
         {
+            PullRequestId = response.Iid,
             Title = response.Title,
             Description = response.Description,
             SourceBranch = response.SourceBranch,

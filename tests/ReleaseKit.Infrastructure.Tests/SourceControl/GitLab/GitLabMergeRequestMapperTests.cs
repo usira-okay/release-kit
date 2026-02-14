@@ -124,4 +124,29 @@ public class GitLabMergeRequestMapperTests
         Assert.Equal("99999", domain.AuthorUserId);
         Assert.IsType<string>(domain.AuthorUserId);
     }
+
+    [Fact]
+    public void ToDomain_ShouldMapIidToPullRequestId()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1000,
+            Iid = 42,
+            Title = "test",
+            SourceBranch = "feature",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" }
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Equal(42, domain.PullRequestId);
+    }
 }

@@ -66,6 +66,7 @@ public class CommandLineParserTests
     [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch)]
     [InlineData("filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser)]
     [InlineData("filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser)]
+    [InlineData("get-user-story", TaskType.GetUserStory)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -89,6 +90,7 @@ public class CommandLineParserTests
     [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranch)]
     [InlineData("FILTER-GITLAB-PR-BY-USER", TaskType.FilterGitLabPullRequestsByUser)]
     [InlineData("FiLtEr-BiTbUcKeT-pR-bY-uSeR", TaskType.FilterBitbucketPullRequestsByUser)]
+    [InlineData("GET-USER-STORY", TaskType.GetUserStory)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange

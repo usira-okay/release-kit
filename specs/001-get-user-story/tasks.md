@@ -25,7 +25,7 @@
 
 **Purpose**: Verify existing project baseline before any changes
 
-- [ ] T001 Verify current solution builds and all tests pass with `dotnet build src/release-kit.sln` and `dotnet test src/release-kit.sln`
+- [x] T001 Verify current solution builds and all tests pass with `dotnet build src/release-kit.sln` and `dotnet test src/release-kit.sln`
 
 ---
 
@@ -37,21 +37,21 @@
 
 ### Structural Changes for US1
 
-- [ ] T002 [P] [US1] Add `PullRequestId` (int) property with XML Summary to MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
-- [ ] T003 [P] [US1] Add `PullRequestId` (int) property to MergeRequestOutput DTO in src/ReleaseKit.Application/Common/MergeRequestOutput.cs
+- [x] T002 [P] [US1] Add `PullRequestId` (int) property with XML Summary to MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
+- [x] T003 [P] [US1] Add `PullRequestId` (int) property to MergeRequestOutput DTO in src/ReleaseKit.Application/Common/MergeRequestOutput.cs
 
 ### Tests for US1 (Red Phase) 🔴
 
 > **Write tests FIRST. They MUST fail before implementation.**
 
-- [ ] T004 [P] [US1] Write PullRequestId mapping test (verify GitLab iid maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabMergeRequestMapperTests.cs
-- [ ] T005 [P] [US1] Write PullRequestId mapping test (verify Bitbucket id maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketPullRequestMapperTests.cs
+- [x] T004 [P] [US1] Write PullRequestId mapping test (verify GitLab iid maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabMergeRequestMapperTests.cs
+- [x] T005 [P] [US1] Write PullRequestId mapping test (verify Bitbucket id maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketPullRequestMapperTests.cs
 
 ### Implementation for US1 (Green Phase) 🟢
 
-- [ ] T006 [P] [US1] Implement PullRequestId mapping from `Iid` field in GitLabMergeRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabMergeRequestMapper.cs
-- [ ] T007 [P] [US1] Implement PullRequestId mapping from `Id` field in BitbucketPullRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketPullRequestMapper.cs
-- [ ] T008 [P] [US1] Add PullRequestId to output mapping in BaseFetchPullRequestsTask in src/ReleaseKit.Application/Tasks/BaseFetchPullRequestsTask.cs
+- [x] T006 [P] [US1] Implement PullRequestId mapping from `Iid` field in GitLabMergeRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabMergeRequestMapper.cs
+- [x] T007 [P] [US1] Implement PullRequestId mapping from `Id` field in BitbucketPullRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketPullRequestMapper.cs
+- [x] T008 [P] [US1] Add PullRequestId to output mapping in BaseFetchPullRequestsTask in src/ReleaseKit.Application/Tasks/BaseFetchPullRequestsTask.cs
 
 **Checkpoint**: US1 完成。PR 資料結構包含 PullRequestId，GitLab 映射 iid、Bitbucket 映射 id。✅ 可建置 ✅ 測試通過
 
@@ -65,29 +65,29 @@
 
 ### Structural Changes for US2
 
-- [ ] T009 [P] [US2] Add `ParentWorkItemId` (int?) property with XML Summary to WorkItem entity in src/ReleaseKit.Domain/Entities/WorkItem.cs
-- [ ] T010 [P] [US2] Create AzureDevOpsRelationResponse model with `Rel` (string, JsonPropertyName "rel") and `Url` (string, JsonPropertyName "url") properties in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsRelationResponse.cs
-- [ ] T011 [US2] Add `Relations` (List&lt;AzureDevOpsRelationResponse&gt;?, JsonPropertyName "relations") to AzureDevOpsWorkItemResponse in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsWorkItemResponse.cs
-- [ ] T012 [P] [US2] Add `SourcePullRequestId` (int?), `SourceProjectName` (string?), `SourcePRUrl` (string?) properties to WorkItemOutput in src/ReleaseKit.Application/Common/WorkItemOutput.cs
+- [x] T009 [P] [US2] Add `ParentWorkItemId` (int?) property with XML Summary to WorkItem entity in src/ReleaseKit.Domain/Entities/WorkItem.cs
+- [x] T010 [P] [US2] Create AzureDevOpsRelationResponse model with `Rel` (string, JsonPropertyName "rel") and `Url` (string, JsonPropertyName "url") properties in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsRelationResponse.cs
+- [x] T011 [US2] Add `Relations` (List&lt;AzureDevOpsRelationResponse&gt;?, JsonPropertyName "relations") to AzureDevOpsWorkItemResponse in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsWorkItemResponse.cs
+- [x] T012 [P] [US2] Add `SourcePullRequestId` (int?), `SourceProjectName` (string?), `SourcePRUrl` (string?) properties to WorkItemOutput in src/ReleaseKit.Application/Common/WorkItemOutput.cs
 
 ### Tests for US2 (Red Phase) 🔴
 
 > **Write tests FIRST. They MUST fail before implementation.**
 
-- [ ] T013 [P] [US2] Write ExtractParentWorkItemId tests in tests/ReleaseKit.Infrastructure.Tests/AzureDevOps/Mappers/AzureDevOpsWorkItemMapperTests.cs:
+- [x] T013 [P] [US2] Write ExtractParentWorkItemId tests in tests/ReleaseKit.Infrastructure.Tests/AzureDevOps/Mappers/AzureDevOpsWorkItemMapperTests.cs:
   - 有 `System.LinkTypes.Hierarchy-Reverse` relation → 從 URL 末段解析 parent ID
   - 無 relations → 回傳 null
   - 多個 relations → 僅取 Hierarchy-Reverse 類型
   - URL 格式異常 → 回傳 null
-- [ ] T014 [P] [US2] Write PR source preservation tests in tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs:
+- [x] T014 [P] [US2] Write PR source preservation tests in tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs:
   - 單一 PR 對應單一 Work Item → 輸出包含 PR 來源欄位
   - 同一 Work Item ID 出現在兩筆 PR → 產生兩筆獨立記錄，API 僅查詢一次
   - API 查詢失敗 → 產生失敗記錄並保留 PR 來源資訊
 
 ### Implementation for US2 (Green Phase) 🟢
 
-- [ ] T015 [US2] Implement `ExtractParentWorkItemId` static method in AzureDevOpsWorkItemMapper: filter relations by `System.LinkTypes.Hierarchy-Reverse`, parse URL last segment as int in src/ReleaseKit.Infrastructure/AzureDevOps/Mappers/AzureDevOpsWorkItemMapper.cs
-- [ ] T016 [US2] Refactor FetchAzureDevOpsWorkItemsTask to produce one-to-one WorkItem-PR records: iterate PR list → extract VSTS IDs → build (WorkItemId, PR) pairs → deduplicate API calls with Dictionary&lt;int, WorkItem&gt; cache → output WorkItemOutput with source PR fields in src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs
+- [x] T015 [US2] Implement `ExtractParentWorkItemId` static method in AzureDevOpsWorkItemMapper: filter relations by `System.LinkTypes.Hierarchy-Reverse`, parse URL last segment as int in src/ReleaseKit.Infrastructure/AzureDevOps/Mappers/AzureDevOpsWorkItemMapper.cs
+- [x] T016 [US2] Refactor FetchAzureDevOpsWorkItemsTask to produce one-to-one WorkItem-PR records: iterate PR list → extract VSTS IDs → build (WorkItemId, PR) pairs → deduplicate API calls with Dictionary&lt;int, WorkItem&gt; cache → output WorkItemOutput with source PR fields in src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs
 
 **Checkpoint**: US2 完成。WorkItem 抓取保留 PR 來源資訊，一對一記錄，API 去重快取。✅ 可建置 ✅ 測試通過
 
@@ -103,15 +103,15 @@
 
 ### Structural Changes for US3
 
-- [ ] T017 [P] [US3] Create UserStoryOutput DTO (WorkItemId int, OriginalWorkItemId int, Title string?, Type string?, State string?, Url string?, OriginalTeamName string?, IsSuccess bool, ErrorMessage string?) with XML Summary in src/ReleaseKit.Application/Common/UserStoryOutput.cs
-- [ ] T018 [P] [US3] Create UserStoryFetchResult DTO (UserStories List&lt;UserStoryOutput&gt;, TotalWorkItemsProcessed int, AlreadyUserStoryCount int, ResolvedCount int, KeptOriginalCount int) with XML Summary in src/ReleaseKit.Application/Common/UserStoryFetchResult.cs
-- [ ] T019 [P] [US3] Add `AzureDevOpsUserStories = "AzureDevOps:UserStories"` constant to RedisKeys in src/ReleaseKit.Common/Constants/RedisKeys.cs
+- [x] T017 [P] [US3] Create UserStoryOutput DTO (WorkItemId int, OriginalWorkItemId int, Title string?, Type string?, State string?, Url string?, OriginalTeamName string?, IsSuccess bool, ErrorMessage string?) with XML Summary in src/ReleaseKit.Application/Common/UserStoryOutput.cs
+- [x] T018 [P] [US3] Create UserStoryFetchResult DTO (UserStories List&lt;UserStoryOutput&gt;, TotalWorkItemsProcessed int, AlreadyUserStoryCount int, ResolvedCount int, KeptOriginalCount int) with XML Summary in src/ReleaseKit.Application/Common/UserStoryFetchResult.cs
+- [x] T019 [P] [US3] Add `AzureDevOpsUserStories = "AzureDevOps:UserStories"` constant to RedisKeys in src/ReleaseKit.Common/Constants/RedisKeys.cs
 
 ### Tests for US3 (Red Phase) 🔴
 
 > **Write tests FIRST. They MUST fail before implementation.**
 
-- [ ] T020 [US3] Write comprehensive GetUserStoryTask tests covering all acceptance scenarios and edge cases in tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs:
+- [x] T020 [US3] Write comprehensive GetUserStoryTask tests covering all acceptance scenarios and edge cases in tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs:
   - 已是 User Story 的 WorkItem → 直接保留，不查詢 API
   - 已是 Feature 的 WorkItem → 直接保留
   - 已是 Epic 的 WorkItem → 直接保留
@@ -125,12 +125,12 @@
   - 遞迴查詢中 API 失敗 → 保留原始 WorkItem 資料
   - 重複 Work Item ID → Dictionary 快取，API 僅查詢一次
   - 統計數字驗證：TotalWorkItemsProcessed == AlreadyUserStoryCount + ResolvedCount + KeptOriginalCount
-- [ ] T021 [P] [US3] Write GetUserStory case test (TaskType.GetUserStory → returns GetUserStoryTask instance) in tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs
-- [ ] T022 [P] [US3] Write get-user-story mapping test ("get-user-story" → TaskType.GetUserStory) in tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs
+- [x] T021 [P] [US3] Write GetUserStory case test (TaskType.GetUserStory → returns GetUserStoryTask instance) in tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs
+- [x] T022 [P] [US3] Write get-user-story mapping test ("get-user-story" → TaskType.GetUserStory) in tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs
 
 ### Implementation for US3 (Green Phase) 🟢
 
-- [ ] T023 [P] [US3] Implement GetUserStoryTask (ITask) in src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs:
+- [x] T023 [P] [US3] Implement GetUserStoryTask (ITask) in src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs:
   - 注入 IRedisService, IAzureDevOpsRepository, ILogger
   - 從 Redis 讀取 WorkItemFetchResult (key: AzureDevOps:WorkItems)
   - 定義高層級類型 HashSet&lt;string&gt;(OrdinalIgnoreCase): "User Story", "Feature", "Epic"
@@ -140,10 +140,10 @@
   - 使用 Result Pattern 處理 API 回傳
   - 組建 UserStoryFetchResult 寫入 Redis (key: AzureDevOps:UserStories)
   - 所有公開成員加入 XML Summary 繁體中文註解
-- [ ] T024 [P] [US3] Add `GetUserStory` value to TaskType enum in src/ReleaseKit.Application/Tasks/TaskType.cs
-- [ ] T025 [US3] Add `TaskType.GetUserStory` case to TaskFactory, resolve GetUserStoryTask from DI container in src/ReleaseKit.Application/Tasks/TaskFactory.cs
-- [ ] T026 [P] [US3] Add "get-user-story" → TaskType.GetUserStory mapping to CommandLineParser in src/ReleaseKit.Console/Parsers/CommandLineParser.cs
-- [ ] T027 [US3] Register GetUserStoryTask as transient in DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
+- [x] T024 [P] [US3] Add `GetUserStory` value to TaskType enum in src/ReleaseKit.Application/Tasks/TaskType.cs
+- [x] T025 [US3] Add `TaskType.GetUserStory` case to TaskFactory, resolve GetUserStoryTask from DI container in src/ReleaseKit.Application/Tasks/TaskFactory.cs
+- [x] T026 [P] [US3] Add "get-user-story" → TaskType.GetUserStory mapping to CommandLineParser in src/ReleaseKit.Console/Parsers/CommandLineParser.cs
+- [x] T027 [US3] Register GetUserStoryTask as transient in DI container in src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
 
 **Checkpoint**: US3 完成。get-user-story 指令可正確解析 WorkItem 至 User Story 層級，結果存入 Redis。✅ 可建置 ✅ 測試通過
 
@@ -153,9 +153,9 @@
 
 **Purpose**: 最終驗證與整體品質確認
 
-- [ ] T028 Verify solution builds successfully with `dotnet build src/release-kit.sln`
-- [ ] T029 Verify all unit tests pass with `dotnet test src/release-kit.sln`
-- [ ] T030 Run quickstart.md validation scenarios end-to-end
+- [x] T028 Verify solution builds successfully with `dotnet build src/release-kit.sln`
+- [x] T029 Verify all unit tests pass with `dotnet test src/release-kit.sln`
+- [x] T030 Run quickstart.md validation scenarios end-to-end
 
 ---
 

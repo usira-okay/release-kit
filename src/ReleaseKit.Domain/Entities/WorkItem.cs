@@ -59,4 +59,14 @@ public sealed record WorkItem
     /// 本階段直接儲存原始值，不做 TeamMapping 轉換。
     /// </remarks>
     public required string OriginalTeamName { get; init; }
+
+    /// <summary>
+    /// 父層 Work Item ID
+    /// </summary>
+    /// <remarks>
+    /// 從 Azure DevOps API 回應中的 relations 陣列解析。
+    /// 對應關聯類型為 "System.LinkTypes.Hierarchy-Reverse" 的 Work Item ID。
+    /// 若無父層 Work Item，則為 null。
+    /// </remarks>
+    public int? ParentWorkItemId { get; init; }
 }
