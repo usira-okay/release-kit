@@ -28,6 +28,12 @@ public sealed record AzureDevOpsWorkItemResponse
     /// </summary>
     [JsonPropertyName("_links")]
     public AzureDevOpsLinksResponse? Links { get; init; }
+
+    /// <summary>
+    /// Work Item 關聯清單
+    /// </summary>
+    [JsonPropertyName("relations")]
+    public List<AzureDevOpsRelationResponse>? Relations { get; init; }
 }
 
 /// <summary>

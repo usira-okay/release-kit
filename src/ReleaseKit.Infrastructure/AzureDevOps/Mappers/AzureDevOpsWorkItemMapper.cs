@@ -24,7 +24,29 @@ public static class AzureDevOpsWorkItemMapper
             State = GetFieldValue(response.Fields, "System.State"),
             Url = response.Links?.Html?.Href ?? string.Empty,
             OriginalTeamName = GetFieldValue(response.Fields, "System.AreaPath"),
+            ParentWorkItemId = ExtractParentWorkItemId(response.Relations)
         };
+    }
+
+    /// <summary>
+    /// 從關聯清單中提取父層 Work Item ID
+    /// </summary>
+    private static int? ExtractParentWorkItemId(List<AzureDevOpsRelationResponse>? relations)
+    {
+        if (relations is null) return null;
+
+        var parentRelation = relations.FirstOrDefault(r =>
+            r.Rel == "System.LinkTypes.Hierarchy-Reverse");
+
+        if (parentRelation is null) return null;
+
+        var segments = parentRelation.Url.Split('/');
+        if (segments.Length > 0 && int.TryParse(segments[^1], out var parentId))
+        {
+            return parentId;
+        }
+
+        return null;
     }
 
     /// <summary>
