@@ -239,7 +239,7 @@ public class BitbucketRepository : ISourceControlRepository
         foreach (var commit in allCommits)
         {
             processedCount++;
-            _logger.LogDebug("處理 commit {CurrentCount}/{TotalCount}：{CommitHash}", processedCount, allCommits.Count, commit.Hash);
+            _logger.LogInformation("處理 commit {CurrentCount}/{TotalCount}：{CommitHash}", processedCount, allCommits.Count, commit.Hash);
             
             var prResult = await GetMergeRequestsByCommitAsync(projectPath, commit.Hash, cancellationToken);
             if (prResult.IsSuccess && prResult.Value != null)
@@ -251,7 +251,7 @@ public class BitbucketRepository : ISourceControlRepository
                 
                 if (uniquePRs.Count > 0)
                 {
-                    _logger.LogDebug("commit {CommitHash} 找到 {PRCount} 個 PR", commit.Hash, uniquePRs.Count);
+                    _logger.LogInformation("commit {CommitHash} 找到 {PRCount} 個 PR", commit.Hash, uniquePRs.Count);
                 }
             }
         }

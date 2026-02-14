@@ -155,7 +155,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         foreach (var workItemId in workItemIds)
         {
             processedCount++;
-            _logger.LogDebug("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemIds.Count, workItemId);
+            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemIds.Count, workItemId);
             
             var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
 
