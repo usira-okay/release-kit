@@ -15,6 +15,7 @@ public class BitbucketPullRequestMapperTests
         // Arrange
         var response = new BitbucketPullRequestResponse
         {
+            Id = 42,
             Title = "Feature: Add new authentication",
             Summary = new BitbucketSummaryResponse
             {
@@ -70,6 +71,7 @@ public class BitbucketPullRequestMapperTests
         Assert.Equal("https://bitbucket.org/myteam/myrepo/pull-requests/42", result.PRUrl);
         Assert.Equal(SourceControlPlatform.Bitbucket, result.Platform);
         Assert.Equal("myteam/myrepo", result.ProjectPath);
+        Assert.Equal(42, result.PullRequestId);
     }
 
     [Fact]

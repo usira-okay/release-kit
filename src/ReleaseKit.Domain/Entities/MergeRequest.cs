@@ -14,6 +14,15 @@ namespace ReleaseKit.Domain.Entities;
 public sealed record MergeRequest
 {
     /// <summary>
+    /// PR/MR 識別碼
+    /// </summary>
+    /// <remarks>
+    /// GitLab: 對應 iid（專案內唯一編號）。
+    /// Bitbucket: 對應 id（Repository 內唯一編號）。
+    /// </remarks>
+    public required int PullRequestId { get; init; }
+
+    /// <summary>
     /// PR/MR 標題
     /// </summary>
     /// <remarks>

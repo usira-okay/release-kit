@@ -49,6 +49,7 @@ public class GitLabMergeRequestMapperTests
         Assert.Equal("https://gitlab.example.com/mygroup/backend-api/-/merge_requests/42", domain.PRUrl);
         Assert.Equal(SourceControlPlatform.GitLab, domain.Platform);
         Assert.Equal("mygroup/backend-api", domain.ProjectPath);
+        Assert.Equal(42, domain.PullRequestId);
     }
 
     [Fact]
