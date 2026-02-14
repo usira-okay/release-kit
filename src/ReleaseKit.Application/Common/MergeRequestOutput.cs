@@ -9,6 +9,11 @@ namespace ReleaseKit.Application.Common;
 public sealed record MergeRequestOutput
 {
     /// <summary>
+    /// PR/MR 識別碼
+    /// </summary>
+    public int PullRequestId { get; init; }
+
+    /// <summary>
     /// PR/MR 標題
     /// </summary>
     public string Title { get; init; } = string.Empty;

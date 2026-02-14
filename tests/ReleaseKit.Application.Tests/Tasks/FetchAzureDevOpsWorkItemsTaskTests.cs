@@ -329,6 +329,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     {
         return new MergeRequestOutput
         {
+            PullRequestId = 1,
             Title = title,
             SourceBranch = sourceBranch,
             TargetBranch = targetBranch,
