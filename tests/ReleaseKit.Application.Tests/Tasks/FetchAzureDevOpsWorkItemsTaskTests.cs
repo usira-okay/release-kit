@@ -88,46 +88,6 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithDuplicateVSTSIdsAcrossPRs_ShouldDeduplicateAndFetchOnce()
-    {
-        // Arrange
-        var fetchResult = new FetchResult
-        {
-            Results = new List<ProjectResult>
-            {
-                new ProjectResult
-                {
-                    ProjectPath = "group/project1",
-                    Platform = SourceControlPlatform.GitLab,
-                    PullRequests = new List<MergeRequestOutput>
-                    {
-                        CreateMergeRequest("VSTS123 Fix issue"),
-                        CreateMergeRequest("VSTS123 另一個 PR 提到相同 WorkItem")
-                    }
-                }
-            }
-        };
-        SetupRedis(gitLabData: fetchResult);
-        
-        var workItem = CreateWorkItem(123, "Fix issue", "Bug", "Active");
-        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(123)).ReturnsAsync(Result<WorkItem>.Success(workItem));
-
-        var task = CreateTask();
-
-        // Act
-        await task.ExecuteAsync();
-
-        // Assert
-        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Once); // 只呼叫一次
-        VerifyRedisWrite(result =>
-        {
-            Assert.Single(result.WorkItems);
-            Assert.Equal(2, result.TotalPRsAnalyzed); // 兩個 PR
-            Assert.Equal(1, result.TotalWorkItemsFound); // 去重複後只有一個 WorkItem
-        });
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithNoVSTSIdInTitle_ShouldNotWriteToRedis()
     {
         // Arrange
@@ -295,6 +255,125 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         // Assert
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
         _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithSingleVSTSId_ShouldIncludePRSourceInfo()
+    {
+        // Arrange
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/api",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        new MergeRequestOutput
+                        {
+                            PullRequestId = 101,
+                            Title = "VSTS12345 修復登入錯誤",
+                            SourceBranch = "feature/test",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "12345",
+                            AuthorName = "Test User",
+                            PRUrl = "https://gitlab.example.com/pr/101",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        }
+                    }
+                }
+            }
+        };
+        SetupRedis(gitLabData: fetchResult);
+
+        var workItem = CreateWorkItem(12345, "修復登入錯誤", "Bug", "Active");
+        _azureDevOpsRepositoryMock
+            .Setup(x => x.GetWorkItemAsync(12345))
+            .ReturnsAsync(Result<WorkItem>.Success(workItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        VerifyRedisWrite(result =>
+        {
+            Assert.Single(result.WorkItems);
+            var item = result.WorkItems[0];
+            Assert.Equal(101, item.SourcePullRequestId);
+            Assert.Equal("group/api", item.SourceProjectName);
+            Assert.Equal("https://gitlab.example.com/pr/101", item.SourcePRUrl);
+        });
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDuplicateVSTSIdsAcrossPRs_ShouldProduceMultipleOutputsButFetchOnce()
+    {
+        // Arrange
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        new MergeRequestOutput
+                        {
+                            PullRequestId = 1,
+                            Title = "VSTS123 Fix issue",
+                            SourceBranch = "feature/test",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "12345",
+                            AuthorName = "Test User",
+                            PRUrl = "https://example.com/pr/1",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        },
+                        new MergeRequestOutput
+                        {
+                            PullRequestId = 2,
+                            Title = "VSTS123 另一個 PR 提到相同 WorkItem",
+                            SourceBranch = "feature/test2",
+                            TargetBranch = "main",
+                            State = "merged",
+                            AuthorUserId = "12345",
+                            AuthorName = "Test User",
+                            PRUrl = "https://example.com/pr/2",
+                            CreatedAt = DateTimeOffset.UtcNow
+                        }
+                    }
+                }
+            }
+        };
+        SetupRedis(gitLabData: fetchResult);
+
+        var workItem = CreateWorkItem(123, "Fix issue", "Bug", "Active");
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(123))
+            .ReturnsAsync(Result<WorkItem>.Success(workItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Once);
+        VerifyRedisWrite(result =>
+        {
+            Assert.Equal(2, result.WorkItems.Count);
+            Assert.Equal(2, result.TotalPRsAnalyzed);
+            Assert.Equal(1, result.TotalWorkItemsFound);
+
+            Assert.Equal("https://example.com/pr/1", result.WorkItems[0].SourcePRUrl);
+            Assert.Equal("https://example.com/pr/2", result.WorkItems[1].SourcePRUrl);
+        });
     }
 
     // Helper methods

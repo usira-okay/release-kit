@@ -4,6 +4,8 @@ using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.Common;
+using ReleaseKit.Domain.Entities;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -17,11 +19,17 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
 
     /// <summary>
+    /// Work Item 與 PR 來源配對
+    /// </summary>
+    private sealed record WorkItemPullRequestPair(
+        int WorkItemId,
+        int PullRequestId,
+        string ProjectName,
+        string PRUrl);
+
+    /// <summary>
     /// 建構子
     /// </summary>
-    /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 服務</param>
-    /// <param name="azureDevOpsRepository">Azure DevOps Repository</param>
     public FetchAzureDevOpsWorkItemsTask(
         ILogger<FetchAzureDevOpsWorkItemsTask> logger,
         IRedisService redisService,
@@ -39,78 +47,74 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     {
         _logger.LogInformation("開始拉取 Azure DevOps Work Item 資訊");
 
-        // 清除舊的 Azure DevOps Work Item 資料
         await _redisService.DeleteAsync(RedisKeys.AzureDevOpsWorkItems);
 
-        // 從 Redis 讀取 PR 資料
-        var allPullRequests = await LoadPullRequestsFromRedisAsync();
-        
-        if (allPullRequests.Count == 0)
+        var projectResults = await LoadProjectResultsFromRedisAsync();
+        var allPRCount = projectResults.SelectMany(p => p.PullRequests).Count();
+
+        if (allPRCount == 0)
         {
             _logger.LogWarning("無可用的 PR 資料，任務結束");
             return;
         }
 
-        // 解析所有 VSTS ID
-        var workItemIds = ParseVSTSIdsFromPRs(allPullRequests);
-        
-        if (workItemIds.Count == 0)
+        var pairs = ParseVSTSIdsWithPRInfo(projectResults);
+
+        if (pairs.Count == 0)
         {
             _logger.LogInformation("未從 PR 標題中解析到任何 VSTS ID，任務結束");
             return;
         }
 
-        _logger.LogInformation("從 {PRCount} 個 PR 中解析出 {WorkItemCount} 個不重複的 Work Item ID", allPullRequests.Count, workItemIds.Count);
+        var uniqueWorkItemCount = pairs.Select(p => p.WorkItemId).Distinct().Count();
+        _logger.LogInformation(
+            "從 {PRCount} 個 PR 中解析出 {PairCount} 筆 Work Item 配對（{UniqueCount} 個不重複）",
+            allPRCount, pairs.Count, uniqueWorkItemCount);
 
-        // 逐一查詢 Work Item
-        var workItemOutputs = await FetchWorkItemsAsync(workItemIds);
+        var workItemOutputs = await FetchWorkItemsAsync(pairs);
 
-        // 統計結果
         var successCount = workItemOutputs.Count(w => w.IsSuccess);
         var failureCount = workItemOutputs.Count(w => !w.IsSuccess);
 
-        // 組裝結果
         var result = new WorkItemFetchResult
         {
             WorkItems = workItemOutputs,
-            TotalPRsAnalyzed = allPullRequests.Count,
-            TotalWorkItemsFound = workItemIds.Count,
+            TotalPRsAnalyzed = allPRCount,
+            TotalWorkItemsFound = uniqueWorkItemCount,
             SuccessCount = successCount,
             FailureCount = failureCount
         };
 
-        // 寫入 Redis
         await _redisService.SetAsync(RedisKeys.AzureDevOpsWorkItems, result.ToJson(), null);
 
         _logger.LogInformation(
-            "完成 Work Item 查詢：總計 {Total} 個，成功 {Success} 個，失敗 {Failure} 個", 
-            workItemIds.Count, successCount, failureCount);
+            "完成 Work Item 查詢：共 {Total} 筆輸出（{UniqueCount} 個不重複），成功 {Success} 筆，失敗 {Failure} 筆",
+            workItemOutputs.Count, uniqueWorkItemCount, successCount, failureCount);
     }
 
     /// <summary>
-    /// 從 Redis 載入 PR 資料
+    /// 從 Redis 載入各平台的 ProjectResult 資料
     /// </summary>
-    private async Task<List<MergeRequestOutput>> LoadPullRequestsFromRedisAsync()
+    private async Task<List<ProjectResult>> LoadProjectResultsFromRedisAsync()
     {
-        var allPullRequests = new List<MergeRequestOutput>();
+        var projectResults = new List<ProjectResult>();
 
-        // 定義要讀取的 Redis Key
         var redisKeys = new[]
         {
             (Key: RedisKeys.GitLabPullRequestsByUser, Platform: "GitLab"),
             (Key: RedisKeys.BitbucketPullRequestsByUser, Platform: "Bitbucket")
         };
 
-        // 迴圈處理所有平台
         foreach (var (key, platform) in redisKeys)
         {
+            _logger.LogInformation("讀取 Redis Key: {RedisKey}", key);
             var json = await _redisService.GetAsync(key);
             if (json is not null)
             {
                 var result = json.ToTypedObject<FetchResult>();
                 if (result is not null)
                 {
-                    allPullRequests.AddRange(result.Results.SelectMany(r => r.PullRequests));
+                    projectResults.AddRange(result.Results);
                 }
             }
             else
@@ -119,45 +123,58 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
         }
 
-        return allPullRequests;
+        return projectResults;
     }
 
     /// <summary>
-    /// 從 PR 標題中解析 VSTS ID
+    /// 從 PR 標題中解析 VSTS ID 並保留 PR 來源資訊
     /// </summary>
-    /// <param name="pullRequests">PR 清單</param>
-    /// <returns>不重複的 Work Item ID 清單</returns>
-    private HashSet<int> ParseVSTSIdsFromPRs(List<MergeRequestOutput> pullRequests)
+    private List<WorkItemPullRequestPair> ParseVSTSIdsWithPRInfo(List<ProjectResult> projectResults)
     {
-        var regex = new Regex(@"VSTS(\d+)", RegexOptions.None);
+        var pairs = new List<WorkItemPullRequestPair>();
+        var regex = new Regex(@"VSTS(\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        var workItemIds = pullRequests
-            .SelectMany(pr => regex.Matches(pr.Title).Cast<Match>())
-            .Select(match => (Success: int.TryParse(match.Groups[1].Value, out var id), Id: id))
-            .Where(result => result.Success)
-            .Select(result => result.Id)
-            .ToHashSet();
+        foreach (var project in projectResults)
+        {
+            foreach (var pr in project.PullRequests)
+            {
+                foreach (Match match in regex.Matches(pr.Title))
+                {
+                    if (int.TryParse(match.Groups[1].Value, out var id))
+                    {
+                        pairs.Add(new WorkItemPullRequestPair(
+                            id, pr.PullRequestId, project.ProjectPath, pr.PRUrl));
+                    }
+                }
+            }
+        }
 
-        return workItemIds;
+        return pairs;
     }
 
     /// <summary>
-    /// 逐一查詢 Work Item
+    /// 逐一查詢 Work Item 並組裝含 PR 來源資訊的輸出
     /// </summary>
-    /// <param name="workItemIds">Work Item ID 清單</param>
-    /// <returns>Work Item 輸出清單</returns>
-    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(HashSet<int> workItemIds)
+    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(List<WorkItemPullRequestPair> pairs)
     {
         var outputs = new List<WorkItemOutput>();
+        var cache = new Dictionary<int, Result<WorkItem>>();
+        var uniqueIds = pairs.Select(p => p.WorkItemId).Distinct().ToList();
 
-        _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemIds.Count);
+        _logger.LogInformation("開始查詢 {WorkItemCount} 個不重複的 Work Item", uniqueIds.Count);
         var processedCount = 0;
-        foreach (var workItemId in workItemIds)
+
+        foreach (var workItemId in uniqueIds)
         {
             processedCount++;
-            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemIds.Count, workItemId);
-            
-            var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}",
+                processedCount, uniqueIds.Count, workItemId);
+            cache[workItemId] = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+        }
+
+        foreach (var pair in pairs)
+        {
+            var result = cache[pair.WorkItemId];
 
             if (result.IsSuccess)
             {
@@ -170,22 +187,29 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     Url = result.Value.Url,
                     OriginalTeamName = result.Value.OriginalTeamName,
                     IsSuccess = true,
-                    ErrorMessage = null
+                    ErrorMessage = null,
+                    SourcePullRequestId = pair.PullRequestId,
+                    SourceProjectName = pair.ProjectName,
+                    SourcePRUrl = pair.PRUrl
                 });
             }
             else
             {
-                _logger.LogWarning("查詢 Work Item {WorkItemId} 失敗：{ErrorMessage}", workItemId, result.Error.Message);
+                _logger.LogWarning("查詢 Work Item {WorkItemId} 失敗：{ErrorMessage}",
+                    pair.WorkItemId, result.Error.Message);
                 outputs.Add(new WorkItemOutput
                 {
-                    WorkItemId = workItemId,
+                    WorkItemId = pair.WorkItemId,
                     Title = null,
                     Type = null,
                     State = null,
                     Url = null,
                     OriginalTeamName = null,
                     IsSuccess = false,
-                    ErrorMessage = result.Error.Message
+                    ErrorMessage = result.Error.Message,
+                    SourcePullRequestId = pair.PullRequestId,
+                    SourceProjectName = pair.ProjectName,
+                    SourcePRUrl = pair.PRUrl
                 });
             }
         }

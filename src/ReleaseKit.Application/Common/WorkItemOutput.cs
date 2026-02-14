@@ -48,4 +48,19 @@ public sealed record WorkItemOutput
     /// 失敗時的錯誤原因（成功時為 null）
     /// </summary>
     public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// 來源 PR 識別碼（可為 null，表示無關聯 PR）
+    /// </summary>
+    public int? SourcePullRequestId { get; init; }
+
+    /// <summary>
+    /// 來源 PR 所屬專案名稱
+    /// </summary>
+    public string? SourceProjectName { get; init; }
+
+    /// <summary>
+    /// 來源 PR 網址
+    /// </summary>
+    public string? SourcePRUrl { get; init; }
 }
