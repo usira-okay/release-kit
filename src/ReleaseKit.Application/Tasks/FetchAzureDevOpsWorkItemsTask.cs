@@ -4,6 +4,8 @@ using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.Common;
+using ReleaseKit.Domain.Entities;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -15,6 +17,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     private readonly ILogger<FetchAzureDevOpsWorkItemsTask> _logger;
     private readonly IRedisService _redisService;
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
+
+    /// <summary>
+    /// Work Item 與 PR 的配對記錄
+    /// </summary>
+    /// <remarks>
+    /// 用於追蹤 Work Item ID 與其來源 PR 的對應關係，包含 PR 所屬的專案路徑。
+    /// </remarks>
+    private record WorkItemPullRequestPair(int WorkItemId, MergeRequestOutput PullRequest, string ProjectPath);
 
     /// <summary>
     /// 建構子
@@ -42,8 +52,8 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         // 清除舊的 Azure DevOps Work Item 資料
         await _redisService.DeleteAsync(RedisKeys.AzureDevOpsWorkItems);
 
-        // 從 Redis 讀取 PR 資料
-        var allPullRequests = await LoadPullRequestsFromRedisAsync();
+        // 從 Redis 讀取 PR 資料及其專案資訊
+        var (allPullRequests, pullRequestsByProjectPath) = await LoadPullRequestsWithProjectPathAsync();
         
         if (allPullRequests.Count == 0)
         {
@@ -51,19 +61,19 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             return;
         }
 
-        // 解析所有 VSTS ID
-        var workItemIds = ParseVSTSIdsFromPRs(allPullRequests);
+        // 建立 (WorkItemId, PR) 配對
+        var workItemPrPairs = BuildWorkItemPullRequestPairs(allPullRequests, pullRequestsByProjectPath);
         
-        if (workItemIds.Count == 0)
+        if (workItemPrPairs.Count == 0)
         {
             _logger.LogInformation("未從 PR 標題中解析到任何 VSTS ID，任務結束");
             return;
         }
 
-        _logger.LogInformation("從 {PRCount} 個 PR 中解析出 {WorkItemCount} 個不重複的 Work Item ID", allPullRequests.Count, workItemIds.Count);
+        _logger.LogInformation("從 {PRCount} 個 PR 中解析出 {PairCount} 個 Work Item-PR 配對", allPullRequests.Count, workItemPrPairs.Count);
 
-        // 逐一查詢 Work Item
-        var workItemOutputs = await FetchWorkItemsAsync(workItemIds);
+        // 查詢 Work Item 並生成輸出
+        var workItemOutputs = await FetchAndGenerateWorkItemOutputsAsync(workItemPrPairs);
 
         // 統計結果
         var successCount = workItemOutputs.Count(w => w.IsSuccess);
@@ -74,7 +84,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         {
             WorkItems = workItemOutputs,
             TotalPRsAnalyzed = allPullRequests.Count,
-            TotalWorkItemsFound = workItemIds.Count,
+            TotalWorkItemsFound = workItemPrPairs.Count,
             SuccessCount = successCount,
             FailureCount = failureCount
         };
@@ -84,15 +94,17 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
 
         _logger.LogInformation(
             "完成 Work Item 查詢：總計 {Total} 個，成功 {Success} 個，失敗 {Failure} 個", 
-            workItemIds.Count, successCount, failureCount);
+            workItemPrPairs.Count, successCount, failureCount);
     }
 
     /// <summary>
-    /// 從 Redis 載入 PR 資料
+    /// 從 Redis 載入 PR 資料及其所屬專案路徑
     /// </summary>
-    private async Task<List<MergeRequestOutput>> LoadPullRequestsFromRedisAsync()
+    /// <returns>PR 清單與 PR 對應的專案路徑對應表</returns>
+    private async Task<(List<MergeRequestOutput> AllPRs, Dictionary<MergeRequestOutput, string> PullRequestsByProjectPath)> LoadPullRequestsWithProjectPathAsync()
     {
         var allPullRequests = new List<MergeRequestOutput>();
+        var pullRequestsByProjectPath = new Dictionary<MergeRequestOutput, string>();
 
         // 定義要讀取的 Redis Key
         var redisKeys = new[]
@@ -110,7 +122,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                 var result = json.ToTypedObject<FetchResult>();
                 if (result is not null)
                 {
-                    allPullRequests.AddRange(result.Results.SelectMany(r => r.PullRequests));
+                    foreach (var project in result.Results)
+                    {
+                        foreach (var pr in project.PullRequests)
+                        {
+                            allPullRequests.Add(pr);
+                            pullRequestsByProjectPath[pr] = project.ProjectPath;
+                        }
+                    }
                 }
             }
             else
@@ -119,73 +138,124 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
         }
 
-        return allPullRequests;
+        return (allPullRequests, pullRequestsByProjectPath);
     }
 
     /// <summary>
-    /// 從 PR 標題中解析 VSTS ID
+    /// 建立 Work Item-PR 配對清單
     /// </summary>
+    /// <remarks>
+    /// 從所有 PR 中解析 VSTS ID，為每個 ID-PR 組合創建一個配對記錄。
+    /// </remarks>
     /// <param name="pullRequests">PR 清單</param>
-    /// <returns>不重複的 Work Item ID 清單</returns>
-    private HashSet<int> ParseVSTSIdsFromPRs(List<MergeRequestOutput> pullRequests)
+    /// <param name="pullRequestsByProjectPath">PR 與專案路徑的對應表</param>
+    /// <returns>Work Item-PR 配對清單</returns>
+    private List<WorkItemPullRequestPair> BuildWorkItemPullRequestPairs(
+        List<MergeRequestOutput> pullRequests,
+        Dictionary<MergeRequestOutput, string> pullRequestsByProjectPath)
     {
+        var pairs = new List<WorkItemPullRequestPair>();
         var regex = new Regex(@"VSTS(\d+)", RegexOptions.None);
 
-        var workItemIds = pullRequests
-            .SelectMany(pr => regex.Matches(pr.Title).Cast<Match>())
-            .Select(match => (Success: int.TryParse(match.Groups[1].Value, out var id), Id: id))
-            .Where(result => result.Success)
-            .Select(result => result.Id)
-            .ToHashSet();
+        foreach (var pr in pullRequests)
+        {
+            var matches = regex.Matches(pr.Title);
+            
+            if (!pullRequestsByProjectPath.TryGetValue(pr, out var projectPath))
+            {
+                _logger.LogWarning(
+                    "無法找到 PR 所屬的專案路徑：PRUrl={PRUrl}，Title={Title}。使用預設值 'unknown'",
+                    pr.PRUrl, pr.Title);
+                projectPath = "unknown";
+            }
 
-        return workItemIds;
+            foreach (Match match in matches)
+            {
+                if (int.TryParse(match.Groups[1].Value, out var workItemId))
+                {
+                    pairs.Add(new WorkItemPullRequestPair(workItemId, pr, projectPath));
+                }
+            }
+        }
+
+        return pairs;
     }
 
     /// <summary>
-    /// 逐一查詢 Work Item
+    /// 查詢 Work Item 並為每個 Work Item-PR 配對生成輸出
     /// </summary>
-    /// <param name="workItemIds">Work Item ID 清單</param>
+    /// <remarks>
+    /// 使用字典緩存 API 查詢結果以避免重複查詢相同的 Work Item ID。
+    /// 對於每個配對，生成包含來源 PR 資訊的 WorkItemOutput。
+    /// </remarks>
+    /// <param name="workItemPrPairs">Work Item-PR 配對清單</param>
     /// <returns>Work Item 輸出清單</returns>
-    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(HashSet<int> workItemIds)
+    private async Task<List<WorkItemOutput>> FetchAndGenerateWorkItemOutputsAsync(
+        List<WorkItemPullRequestPair> workItemPrPairs)
     {
         var outputs = new List<WorkItemOutput>();
+        
+        // 收集所有唯一的 Work Item ID
+        var uniqueWorkItemIds = workItemPrPairs.Select(p => p.WorkItemId).Distinct().ToList();
+        
+        _logger.LogInformation("開始查詢 {WorkItemCount} 個不重複的 Work Item（共 {PairCount} 個配對）", 
+            uniqueWorkItemIds.Count, workItemPrPairs.Count);
 
-        _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemIds.Count);
+        // 使用字典快取 API 查詢結果
+        var workItemCache = new Dictionary<int, Result<WorkItem>>();
+        
         var processedCount = 0;
-        foreach (var workItemId in workItemIds)
+        foreach (var workItemId in uniqueWorkItemIds)
         {
             processedCount++;
-            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemIds.Count, workItemId);
+            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", 
+                processedCount, uniqueWorkItemIds.Count, workItemId);
             
             var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+            workItemCache[workItemId] = result;
+        }
 
-            if (result.IsSuccess)
+        // 為每個 (WorkItemId, PR) 配對生成輸出
+        foreach (var pair in workItemPrPairs)
+        {
+            var cachedResult = workItemCache[pair.WorkItemId];
+
+            if (cachedResult.IsSuccess)
             {
+                var workItem = cachedResult.Value;
                 outputs.Add(new WorkItemOutput
                 {
-                    WorkItemId = result.Value.WorkItemId,
-                    Title = result.Value.Title,
-                    Type = result.Value.Type,
-                    State = result.Value.State,
-                    Url = result.Value.Url,
-                    OriginalTeamName = result.Value.OriginalTeamName,
+                    WorkItemId = workItem.WorkItemId,
+                    Title = workItem.Title,
+                    Type = workItem.Type,
+                    State = workItem.State,
+                    Url = workItem.Url,
+                    OriginalTeamName = workItem.OriginalTeamName,
                     IsSuccess = true,
-                    ErrorMessage = null
+                    ErrorMessage = null,
+                    SourcePullRequestId = pair.PullRequest.PullRequestId,
+                    SourceProjectName = pair.ProjectPath,
+                    SourcePRUrl = pair.PullRequest.PRUrl
                 });
             }
             else
             {
-                _logger.LogWarning("查詢 Work Item {WorkItemId} 失敗：{ErrorMessage}", workItemId, result.Error.Message);
+                _logger.LogWarning("Work Item {WorkItemId} 查詢失敗：{ErrorMessage}", 
+                    pair.WorkItemId, cachedResult.Error.Message);
+                    
                 outputs.Add(new WorkItemOutput
                 {
-                    WorkItemId = workItemId,
+                    WorkItemId = pair.WorkItemId,
                     Title = null,
                     Type = null,
                     State = null,
                     Url = null,
                     OriginalTeamName = null,
                     IsSuccess = false,
-                    ErrorMessage = result.Error.Message
+                    ErrorMessage = cachedResult.Error.Message,
+                    SourcePullRequestId = pair.PullRequest.PullRequestId,
+                    SourceProjectName = pair.ProjectPath,
+                    SourcePRUrl = pair.PullRequest.PRUrl
                 });
             }
         }

@@ -65,29 +65,29 @@
 
 ### Structural Changes for US2
 
-- [ ] T009 [P] [US2] Add `ParentWorkItemId` (int?) property with XML Summary to WorkItem entity in src/ReleaseKit.Domain/Entities/WorkItem.cs
-- [ ] T010 [P] [US2] Create AzureDevOpsRelationResponse model with `Rel` (string, JsonPropertyName "rel") and `Url` (string, JsonPropertyName "url") properties in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsRelationResponse.cs
-- [ ] T011 [US2] Add `Relations` (List&lt;AzureDevOpsRelationResponse&gt;?, JsonPropertyName "relations") to AzureDevOpsWorkItemResponse in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsWorkItemResponse.cs
-- [ ] T012 [P] [US2] Add `SourcePullRequestId` (int?), `SourceProjectName` (string?), `SourcePRUrl` (string?) properties to WorkItemOutput in src/ReleaseKit.Application/Common/WorkItemOutput.cs
+- [x] T009 [P] [US2] Add `ParentWorkItemId` (int?) property with XML Summary to WorkItem entity in src/ReleaseKit.Domain/Entities/WorkItem.cs
+- [x] T010 [P] [US2] Create AzureDevOpsRelationResponse model with `Rel` (string, JsonPropertyName "rel") and `Url` (string, JsonPropertyName "url") properties in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsRelationResponse.cs
+- [x] T011 [US2] Add `Relations` (List&lt;AzureDevOpsRelationResponse&gt;?, JsonPropertyName "relations") to AzureDevOpsWorkItemResponse in src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsWorkItemResponse.cs
+- [x] T012 [P] [US2] Add `SourcePullRequestId` (int?), `SourceProjectName` (string?), `SourcePRUrl` (string?) properties to WorkItemOutput in src/ReleaseKit.Application/Common/WorkItemOutput.cs
 
 ### Tests for US2 (Red Phase) 🔴
 
 > **Write tests FIRST. They MUST fail before implementation.**
 
-- [ ] T013 [P] [US2] Write ExtractParentWorkItemId tests in tests/ReleaseKit.Infrastructure.Tests/AzureDevOps/Mappers/AzureDevOpsWorkItemMapperTests.cs:
+- [x] T013 [P] [US2] Write ExtractParentWorkItemId tests in tests/ReleaseKit.Infrastructure.Tests/AzureDevOps/Mappers/AzureDevOpsWorkItemMapperTests.cs:
   - 有 `System.LinkTypes.Hierarchy-Reverse` relation → 從 URL 末段解析 parent ID
   - 無 relations → 回傳 null
   - 多個 relations → 僅取 Hierarchy-Reverse 類型
   - URL 格式異常 → 回傳 null
-- [ ] T014 [P] [US2] Write PR source preservation tests in tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs:
+- [x] T014 [P] [US2] Write PR source preservation tests in tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs:
   - 單一 PR 對應單一 Work Item → 輸出包含 PR 來源欄位
   - 同一 Work Item ID 出現在兩筆 PR → 產生兩筆獨立記錄，API 僅查詢一次
   - API 查詢失敗 → 產生失敗記錄並保留 PR 來源資訊
 
 ### Implementation for US2 (Green Phase) 🟢
 
-- [ ] T015 [US2] Implement `ExtractParentWorkItemId` static method in AzureDevOpsWorkItemMapper: filter relations by `System.LinkTypes.Hierarchy-Reverse`, parse URL last segment as int in src/ReleaseKit.Infrastructure/AzureDevOps/Mappers/AzureDevOpsWorkItemMapper.cs
-- [ ] T016 [US2] Refactor FetchAzureDevOpsWorkItemsTask to produce one-to-one WorkItem-PR records: iterate PR list → extract VSTS IDs → build (WorkItemId, PR) pairs → deduplicate API calls with Dictionary&lt;int, WorkItem&gt; cache → output WorkItemOutput with source PR fields in src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs
+- [x] T015 [US2] Implement `ExtractParentWorkItemId` static method in AzureDevOpsWorkItemMapper: filter relations by `System.LinkTypes.Hierarchy-Reverse`, parse URL last segment as int in src/ReleaseKit.Infrastructure/AzureDevOps/Mappers/AzureDevOpsWorkItemMapper.cs
+- [x] T016 [US2] Refactor FetchAzureDevOpsWorkItemsTask to produce one-to-one WorkItem-PR records: iterate PR list → extract VSTS IDs → build (WorkItemId, PR) pairs → deduplicate API calls with Dictionary&lt;int, WorkItem&gt; cache → output WorkItemOutput with source PR fields in src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs
 
 **Checkpoint**: US2 完成。WorkItem 抓取保留 PR 來源資訊，一對一記錄，API 去重快取。✅ 可建置 ✅ 測試通過
 

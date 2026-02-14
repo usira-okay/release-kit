@@ -28,6 +28,16 @@ public sealed record AzureDevOpsWorkItemResponse
     /// </summary>
     [JsonPropertyName("_links")]
     public AzureDevOpsLinksResponse? Links { get; init; }
+
+    /// <summary>
+    /// Work Item 關聯清單
+    /// </summary>
+    /// <remarks>
+    /// 包含此 Work Item 與其他 Work Item 之間的關聯（如父子階層關係）。
+    /// 若無關聯則為 null。
+    /// </remarks>
+    [JsonPropertyName("relations")]
+    public List<AzureDevOpsRelationResponse>? Relations { get; init; }
 }
 
 /// <summary>
