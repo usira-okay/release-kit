@@ -124,6 +124,7 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
                 {
                     PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
                     {
+                        PullRequestId = mr.PullRequestId,
                         Title = mr.Title,
                         Description = mr.Description,
                         SourceBranch = mr.SourceBranch,

@@ -25,7 +25,7 @@
 
 **Purpose**: Verify existing project baseline before any changes
 
-- [ ] T001 Verify current solution builds and all tests pass with `dotnet build src/release-kit.sln` and `dotnet test src/release-kit.sln`
+- [x] T001 Verify current solution builds and all tests pass with `dotnet build src/release-kit.sln` and `dotnet test src/release-kit.sln`
 
 ---
 
@@ -37,21 +37,21 @@
 
 ### Structural Changes for US1
 
-- [ ] T002 [P] [US1] Add `PullRequestId` (int) property with XML Summary to MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
-- [ ] T003 [P] [US1] Add `PullRequestId` (int) property to MergeRequestOutput DTO in src/ReleaseKit.Application/Common/MergeRequestOutput.cs
+- [x] T002 [P] [US1] Add `PullRequestId` (int) property with XML Summary to MergeRequest entity in src/ReleaseKit.Domain/Entities/MergeRequest.cs
+- [x] T003 [P] [US1] Add `PullRequestId` (int) property to MergeRequestOutput DTO in src/ReleaseKit.Application/Common/MergeRequestOutput.cs
 
 ### Tests for US1 (Red Phase) 🔴
 
 > **Write tests FIRST. They MUST fail before implementation.**
 
-- [ ] T004 [P] [US1] Write PullRequestId mapping test (verify GitLab iid maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabMergeRequestMapperTests.cs
-- [ ] T005 [P] [US1] Write PullRequestId mapping test (verify Bitbucket id maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketPullRequestMapperTests.cs
+- [x] T004 [P] [US1] Write PullRequestId mapping test (verify GitLab iid maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/GitLab/GitLabMergeRequestMapperTests.cs
+- [x] T005 [P] [US1] Write PullRequestId mapping test (verify Bitbucket id maps to MergeRequest.PullRequestId) in tests/ReleaseKit.Infrastructure.Tests/SourceControl/Bitbucket/BitbucketPullRequestMapperTests.cs
 
 ### Implementation for US1 (Green Phase) 🟢
 
-- [ ] T006 [P] [US1] Implement PullRequestId mapping from `Iid` field in GitLabMergeRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabMergeRequestMapper.cs
-- [ ] T007 [P] [US1] Implement PullRequestId mapping from `Id` field in BitbucketPullRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketPullRequestMapper.cs
-- [ ] T008 [P] [US1] Add PullRequestId to output mapping in BaseFetchPullRequestsTask in src/ReleaseKit.Application/Tasks/BaseFetchPullRequestsTask.cs
+- [x] T006 [P] [US1] Implement PullRequestId mapping from `Iid` field in GitLabMergeRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/GitLab/GitLabMergeRequestMapper.cs
+- [x] T007 [P] [US1] Implement PullRequestId mapping from `Id` field in BitbucketPullRequestMapper in src/ReleaseKit.Infrastructure/SourceControl/Bitbucket/BitbucketPullRequestMapper.cs
+- [x] T008 [P] [US1] Add PullRequestId to output mapping in BaseFetchPullRequestsTask in src/ReleaseKit.Application/Tasks/BaseFetchPullRequestsTask.cs
 
 **Checkpoint**: US1 完成。PR 資料結構包含 PullRequestId，GitLab 映射 iid、Bitbucket 映射 id。✅ 可建置 ✅ 測試通過
 

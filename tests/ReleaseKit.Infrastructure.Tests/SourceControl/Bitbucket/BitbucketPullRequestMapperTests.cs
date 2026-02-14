@@ -194,4 +194,44 @@ public class BitbucketPullRequestMapperTests
         Assert.Equal("release/v2.3.0", result.SourceBranch);
         Assert.Equal("production", result.TargetBranch);
     }
+
+    [Fact]
+    public void ToDomain_ShouldMapIdToPullRequestId()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Id = 123,
+            Title = "test",
+            Summary = new BitbucketSummaryResponse { Raw = "Test PR" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/123" }
+            }
+        };
+
+        var projectPath = "test/project";
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
+
+        // Assert
+        Assert.Equal(123, result.PullRequestId);
+    }
 }
