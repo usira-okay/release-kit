@@ -43,5 +43,10 @@ public enum TaskType
     /// <summary>
     /// 過濾 Bitbucket Pull Request 依使用者
     /// </summary>
-    FilterBitbucketPullRequestsByUser
+    FilterBitbucketPullRequestsByUser,
+
+    /// <summary>
+    /// 解析 Work Item 至 User Story 層級
+    /// </summary>
+    GetUserStory
 }

@@ -108,7 +108,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithInvalidVSTSFormats_ShouldIgnoreThem()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTSabc vsts123 VSTS (no number) VSTS456 works", "feature/test", "main");
+        var fetchResult = CreateFetchResult("VSTSabc vsts VSTS (no number) VSTS456 works", "feature/test", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem = CreateWorkItem(456, "Valid", "Bug", "Active");

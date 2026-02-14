@@ -39,4 +39,9 @@ public static class RedisKeys
     /// Azure DevOps Work Items 資料的 Redis Key
     /// </summary>
     public const string AzureDevOpsWorkItems = "AzureDevOps:WorkItems";
+
+    /// <summary>
+    /// Azure DevOps User Story 解析結果
+    /// </summary>
+    public const string AzureDevOpsUserStories = "AzureDevOps:UserStories";
 }
