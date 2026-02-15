@@ -61,6 +61,7 @@ public sealed class MultiProjectExecutionTests
         {
             new()
             {
+                PullRequestId = 1,
                 Title = "feat: Add new feature",
                 Description = "This is a test MR",
                 SourceBranch = "feature/test",
