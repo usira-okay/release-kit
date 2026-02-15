@@ -134,6 +134,7 @@ public class RedisIntegrationTests
         {
             new MergeRequest
             {
+                PullRequestId = 1,
                 Title = "Test MR",
                 Description = "Test",
                 SourceBranch = "feature/test",
@@ -261,6 +262,7 @@ public class RedisIntegrationTests
         {
             new MergeRequest
             {
+                PullRequestId = 1,
                 Title = "Test PR",
                 Description = "Test",
                 SourceBranch = "feature/test",

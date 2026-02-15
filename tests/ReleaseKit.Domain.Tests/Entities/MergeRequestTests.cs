@@ -19,6 +19,7 @@ public class MergeRequestTests
         // Act
         var mergeRequest = new MergeRequest
         {
+            PullRequestId = 42,
             Title = "feat: 新增使用者驗證功能",
             Description = "實作 JWT 驗證機制",
             SourceBranch = "feature/user-auth",
@@ -54,6 +55,7 @@ public class MergeRequestTests
         // Arrange & Act
         var mergeRequest = new MergeRequest
         {
+            PullRequestId = 1,
             Title = "feat: 測試",
             Description = null,
             SourceBranch = "feature/test",
@@ -78,6 +80,7 @@ public class MergeRequestTests
         // Arrange & Act
         var mergeRequest = new MergeRequest
         {
+            PullRequestId = 1,
             Title = "test",
             SourceBranch = "feature",
             TargetBranch = "main",
@@ -101,6 +104,7 @@ public class MergeRequestTests
         // Arrange & Act
         var mergeRequest = new MergeRequest
         {
+            PullRequestId = 1,
             Title = "test",
             SourceBranch = "feature",
             TargetBranch = "main",

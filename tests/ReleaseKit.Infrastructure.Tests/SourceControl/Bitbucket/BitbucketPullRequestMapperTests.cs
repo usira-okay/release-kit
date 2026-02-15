@@ -15,6 +15,7 @@ public class BitbucketPullRequestMapperTests
         // Arrange
         var response = new BitbucketPullRequestResponse
         {
+            Id = 42,
             Title = "Feature: Add new authentication",
             Summary = new BitbucketSummaryResponse
             {
@@ -58,6 +59,7 @@ public class BitbucketPullRequestMapperTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.Equal(42, result.PullRequestId);
         Assert.Equal("Feature: Add new authentication", result.Title);
         Assert.Equal("This PR adds OAuth2 authentication support", result.Description);
         Assert.Equal("feature/oauth2", result.SourceBranch);
@@ -78,6 +80,7 @@ public class BitbucketPullRequestMapperTests
         // Arrange
         var response = new BitbucketPullRequestResponse
         {
+            Id = 1,
             Title = "Quick fix",
             Summary = null,
             Source = new BitbucketBranchRefResponse
@@ -118,6 +121,7 @@ public class BitbucketPullRequestMapperTests
         // Arrange
         var response = new BitbucketPullRequestResponse
         {
+            Id = 99,
             Title = "Work in progress",
             Summary = new BitbucketSummaryResponse { Raw = "WIP" },
             Source = new BitbucketBranchRefResponse
@@ -158,6 +162,7 @@ public class BitbucketPullRequestMapperTests
         // Arrange
         var response = new BitbucketPullRequestResponse
         {
+            Id = 100,
             Title = "Release v2.3.0",
             Summary = new BitbucketSummaryResponse { Raw = "Release notes" },
             Source = new BitbucketBranchRefResponse
