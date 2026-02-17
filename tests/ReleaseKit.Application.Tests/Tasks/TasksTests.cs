@@ -136,7 +136,6 @@ public class TasksTests
         {
             new ReleaseKit.Domain.Entities.MergeRequest
             {
-                PullRequestId = 1,
                 Title = "Test MR 1",
                 Description = "Test Description",
                 SourceBranch = "feature/test",
@@ -233,7 +232,6 @@ public class TasksTests
         {
             new ReleaseKit.Domain.Entities.MergeRequest
             {
-                PullRequestId = 1,
                 Title = "Test MR 2",
                 Description = "Test Description",
                 SourceBranch = "feature/branch-diff",
@@ -329,7 +327,6 @@ public class TasksTests
         {
             new ReleaseKit.Domain.Entities.MergeRequest
             {
-                PullRequestId = 1,
                 Title = "Test PR 1",
                 Description = "Test Description",
                 SourceBranch = "feature/test",
@@ -426,7 +423,6 @@ public class TasksTests
         {
             new ReleaseKit.Domain.Entities.MergeRequest
             {
-                PullRequestId = 1,
                 Title = "Test PR 2",
                 Description = "Test Description",
                 SourceBranch = "feature/branch-diff",
