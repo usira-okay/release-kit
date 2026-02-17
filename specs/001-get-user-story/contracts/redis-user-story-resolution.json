@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UserStoryResolutionResult",
+  "description": "User Story 解析結果的 Redis 資料契約，儲存於 AzureDevOps:WorkItems:UserStories",
+  "type": "object",
+  "required": ["items", "totalCount", "alreadyUserStoryCount", "foundViaRecursionCount", "notFoundCount", "originalFetchFailedCount"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "description": "所有 Work Item 的解析結果",
+      "items": {
+        "$ref": "#/$defs/UserStoryResolutionOutput"
+      }
+    },
+    "totalCount": {
+      "type": "integer",
+      "description": "總 Work Item 數量"
+    },
+    "alreadyUserStoryCount": {
+      "type": "integer",
+      "description": "原始即為 User Story 以上的數量"
+    },
+    "foundViaRecursionCount": {
+      "type": "integer",
+      "description": "透過遞迴找到的數量"
+    },
+    "notFoundCount": {
+      "type": "integer",
+      "description": "無法找到的數量"
+    },
+    "originalFetchFailedCount": {
+      "type": "integer",
+      "description": "原始取得失敗的數量"
+    }
+  },
+  "$defs": {
+    "UserStoryResolutionOutput": {
+      "type": "object",
+      "required": ["workItemId", "isSuccess", "resolutionStatus"],
+      "properties": {
+        "workItemId": {
+          "type": "integer",
+          "description": "原始 Work Item ID"
+        },
+        "title": {
+          "type": ["string", "null"],
+          "description": "原始 Work Item 標題"
+        },
+        "type": {
+          "type": ["string", "null"],
+          "description": "原始 Work Item 類型（User Story、Task、Bug 等）"
+        },
+        "state": {
+          "type": ["string", "null"],
+          "description": "原始 Work Item 狀態"
+        },
+        "url": {
+          "type": ["string", "null"],
+          "description": "原始 Work Item 網址"
+        },
+        "originalTeamName": {
+          "type": ["string", "null"],
+          "description": "原始 Work Item 團隊名稱"
+        },
+        "isSuccess": {
+          "type": "boolean",
+          "description": "原始 Work Item 是否取得成功"
+        },
+        "errorMessage": {
+          "type": ["string", "null"],
+          "description": "原始 Work Item 取得失敗時的錯誤訊息"
+        },
+        "resolutionStatus": {
+          "type": "string",
+          "enum": ["alreadyUserStoryOrAbove", "foundViaRecursion", "notFound", "originalFetchFailed"],
+          "description": "User Story 解析結果狀態"
+        },
+        "userStory": {
+          "oneOf": [
+            { "$ref": "#/$defs/UserStoryInfo" },
+            { "type": "null" }
+          ],
+          "description": "找到的 User Story 資訊（僅 alreadyUserStoryOrAbove 與 foundViaRecursion 時有值）"
+        }
+      }
+    },
+    "UserStoryInfo": {
+      "type": "object",
+      "required": ["workItemId", "title", "type", "state", "url"],
+      "properties": {
+        "workItemId": {
+          "type": "integer",
+          "description": "User Story 的 Work Item ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "User Story 標題"
+        },
+        "type": {
+          "type": "string",
+          "description": "Work Item 類型（User Story / Feature / Epic）"
+        },
+        "state": {
+          "type": "string",
+          "description": "Work Item 狀態"
+        },
+        "url": {
+          "type": "string",
+          "description": "Work Item 網址"
+        }
+      }
+    }
+  }
+}
