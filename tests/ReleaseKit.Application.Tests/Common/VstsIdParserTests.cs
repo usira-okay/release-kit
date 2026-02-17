@@ -57,4 +57,68 @@ public class VstsIdParserTests
         Assert.NotNull(result);
         Assert.Equal(111, result.Value);
     }
+
+    [Theory]
+    [InlineData("VSTS12345 新增登入功能", 12345)]
+    [InlineData("[VSTS99999] 修復問題", 99999)]
+    [InlineData("vsts123: 更新文件", 123)]          // 小寫也符合
+    [InlineData("Vsts456 - 重構程式碼", 456)]       // 混合大小寫也符合
+    [InlineData("Feature: VSTS777 add auth", 777)]
+    [InlineData("VSTS1", 1)]
+    public void ParseFromTitle_WithValidVSTSId_ShouldReturnId(string title, int expectedId)
+    {
+        // Act
+        var result = VstsIdParser.ParseFromTitle(title);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(expectedId, result.Value);
+    }
+
+    [Theory]
+    [InlineData("新增功能")]                        // 無 VSTS ID
+    [InlineData("VSTSabc")]                       // 非數字
+    [InlineData("VSTS")]                          // 無數字
+    [InlineData("")]                              // 空字串
+    [InlineData(null)]                            // null
+    [InlineData("   ")]                           // 空白字串
+    public void ParseFromTitle_WithInvalidFormat_ShouldReturnNull(string? title)
+    {
+        // Act
+        var result = VstsIdParser.ParseFromTitle(title);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData("feature/VSTS12345-add-login", "修改功能", 12345)]  // SourceBranch 有 ID
+    [InlineData("feature/no-id", "VSTS99999 新增功能", 99999)]     // SourceBranch 無 ID，fallback 到 Title
+    [InlineData("feature/VSTS111-branch", "VSTS222 title", 111)]   // 兩者都有，優先 SourceBranch
+    [InlineData(null, "VSTS12345 標題", 12345)]                    // SourceBranch 為 null，使用 Title
+    [InlineData("", "VSTS67890 標題", 67890)]                      // SourceBranch 為空，使用 Title
+    [InlineData("   ", "VSTS54321 標題", 54321)]                   // SourceBranch 為空白，使用 Title
+    public void Parse_WithValidInput_ShouldReturnId(string? sourceBranch, string? title, int expectedId)
+    {
+        // Act
+        var result = VstsIdParser.Parse(sourceBranch, title);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(expectedId, result.Value);
+    }
+
+    [Theory]
+    [InlineData("feature/no-id", "無ID的標題")]     // 兩者都沒有 ID
+    [InlineData(null, null)]                       // 兩者都是 null
+    [InlineData("", "")]                           // 兩者都是空字串
+    [InlineData("   ", "   ")]                     // 兩者都是空白
+    public void Parse_WithoutVSTSId_ShouldReturnNull(string? sourceBranch, string? title)
+    {
+        // Act
+        var result = VstsIdParser.Parse(sourceBranch, title);
+
+        // Assert
+        Assert.Null(result);
+    }
 }

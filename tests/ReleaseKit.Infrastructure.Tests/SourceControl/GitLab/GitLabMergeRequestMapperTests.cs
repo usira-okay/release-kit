@@ -173,4 +173,80 @@ public class GitLabMergeRequestMapperTests
         // Assert
         Assert.Null(domain.WorkItemId);
     }
+
+    [Fact]
+    public void ToDomain_WithVSTSIdInTitleButNotInSourceBranch_ShouldFallbackToTitle()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Title = "VSTS99999 新增功能",
+            SourceBranch = "feature/no-id",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" }
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        // SourceBranch 有值但無 VSTS ID，應 fallback 到 Title
+        Assert.NotNull(domain.WorkItemId);
+        Assert.Equal(99999, domain.WorkItemId.Value);
+    }
+
+    [Fact]
+    public void ToDomain_WithVSTSIdInBothSourceBranchAndTitle_ShouldPreferSourceBranch()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Title = "VSTS77777 標題中的ID",
+            SourceBranch = "feature/VSTS12345-branch-id",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" }
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.NotNull(domain.WorkItemId);
+        Assert.Equal(12345, domain.WorkItemId.Value); // 應該使用 SourceBranch 的 ID
+    }
+
+    [Fact]
+    public void ToDomain_WithEmptySourceBranchAndVSTSIdInTitle_ShouldParseFromTitle()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Title = "VSTS54321 修復問題",
+            SourceBranch = "",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" }
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.NotNull(domain.WorkItemId);
+        Assert.Equal(54321, domain.WorkItemId.Value);
+    }
 }
