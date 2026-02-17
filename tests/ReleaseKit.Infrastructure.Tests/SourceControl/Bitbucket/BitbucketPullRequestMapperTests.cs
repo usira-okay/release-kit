@@ -275,7 +275,7 @@ public class BitbucketPullRequestMapperTests
     }
 
     [Fact]
-    public void ToDomain_WithVSTSIdInTitleButNotInSourceBranch_ShouldNotFallbackToTitle()
+    public void ToDomain_WithVSTSIdInTitleButNotInSourceBranch_ShouldFallbackToTitle()
     {
         // Arrange
         var response = new BitbucketPullRequestResponse
@@ -310,8 +310,9 @@ public class BitbucketPullRequestMapperTests
         var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
 
         // Assert
-        // SourceBranch 有值但無 VSTS ID，不應 fallback 到 Title
-        Assert.Null(result.WorkItemId);
+        // SourceBranch 有值但無 VSTS ID，應 fallback 到 Title
+        Assert.NotNull(result.WorkItemId);
+        Assert.Equal(88888, result.WorkItemId.Value);
     }
 
     [Fact]

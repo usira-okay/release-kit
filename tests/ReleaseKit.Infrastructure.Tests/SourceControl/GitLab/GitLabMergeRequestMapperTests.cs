@@ -175,7 +175,7 @@ public class GitLabMergeRequestMapperTests
     }
 
     [Fact]
-    public void ToDomain_WithVSTSIdInTitleButNotInSourceBranch_ShouldNotFallbackToTitle()
+    public void ToDomain_WithVSTSIdInTitleButNotInSourceBranch_ShouldFallbackToTitle()
     {
         // Arrange
         var response = new GitLabMergeRequestResponse
@@ -195,8 +195,9 @@ public class GitLabMergeRequestMapperTests
         var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
 
         // Assert
-        // SourceBranch 有值但無 VSTS ID，不應 fallback 到 Title
-        Assert.Null(domain.WorkItemId);
+        // SourceBranch 有值但無 VSTS ID，應 fallback 到 Title
+        Assert.NotNull(domain.WorkItemId);
+        Assert.Equal(99999, domain.WorkItemId.Value);
     }
 
     [Fact]
