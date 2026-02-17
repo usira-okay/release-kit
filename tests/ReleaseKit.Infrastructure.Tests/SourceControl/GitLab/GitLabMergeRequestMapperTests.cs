@@ -124,4 +124,53 @@ public class GitLabMergeRequestMapperTests
         Assert.Equal("99999", domain.AuthorUserId);
         Assert.IsType<string>(domain.AuthorUserId);
     }
+
+    [Fact]
+    public void ToDomain_WithVSTSIdInSourceBranch_ShouldParseWorkItemId()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Title = "新增登入功能",
+            SourceBranch = "feature/VSTS12345-add-login",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" }
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.NotNull(domain.WorkItemId);
+        Assert.Equal(12345, domain.WorkItemId.Value);
+    }
+
+    [Fact]
+    public void ToDomain_WithoutVSTSIdInSourceBranch_ShouldHaveNullWorkItemId()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Title = "修復問題",
+            SourceBranch = "feature/no-work-item",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" }
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Null(domain.WorkItemId);
+    }
 }

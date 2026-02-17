@@ -194,4 +194,83 @@ public class BitbucketPullRequestMapperTests
         Assert.Equal("release/v2.3.0", result.SourceBranch);
         Assert.Equal("production", result.TargetBranch);
     }
+
+    [Fact]
+    public void ToDomain_WithVSTSIdInSourceBranch_ShouldParseWorkItemId()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "新增付款功能",
+            Summary = new BitbucketSummaryResponse { Raw = "實作信用卡付款" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/VSTS67890-payment" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "develop" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/1" }
+            }
+        };
+
+        var projectPath = "test/project";
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
+
+        // Assert
+        Assert.NotNull(result.WorkItemId);
+        Assert.Equal(67890, result.WorkItemId.Value);
+    }
+
+    [Fact]
+    public void ToDomain_WithoutVSTSIdInSourceBranch_ShouldHaveNullWorkItemId()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "修復錯誤",
+            Summary = new BitbucketSummaryResponse { Raw = "修復小錯誤" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "hotfix/urgent-fix" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/2" }
+            }
+        };
+
+        var projectPath = "test/project";
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
+
+        // Assert
+        Assert.Null(result.WorkItemId);
+    }
 }
