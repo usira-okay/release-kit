@@ -56,7 +56,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         
         if (workItemIds.Count == 0)
         {
-            _logger.LogInformation("未從 PR 標題中解析到任何 VSTS ID，任務結束");
+            _logger.LogInformation("未從 PR 來源分支中解析到任何 VSTS ID，任務結束");
             return;
         }
 
@@ -123,7 +123,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     }
 
     /// <summary>
-    /// 從 PR 標題中解析 VSTS ID
+    /// 從 PR 來源分支名稱中解析 VSTS ID
     /// </summary>
     /// <param name="pullRequests">PR 清單</param>
     /// <returns>不重複的 Work Item ID 清單</returns>
@@ -132,7 +132,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         var regex = new Regex(@"VSTS(\d+)", RegexOptions.None);
 
         var workItemIds = pullRequests
-            .SelectMany(pr => regex.Matches(pr.Title).Cast<Match>())
+            .SelectMany(pr => regex.Matches(pr.SourceBranch).Cast<Match>())
             .Select(match => (Success: int.TryParse(match.Groups[1].Value, out var id), Id: id))
             .Where(result => result.Success)
             .Select(result => result.Id)

@@ -29,10 +29,10 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithSingleVSTSIdInTitle_ShouldFetchWorkItem()
+    public async Task ExecuteAsync_WithSingleVSTSIdInSourceBranch_ShouldFetchWorkItem()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTS12345 修復登入錯誤", "feature/test", "main");
+        var fetchResult = CreateFetchResult("修復登入錯誤", "feature/VSTS12345", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem = CreateWorkItem(12345, "修復登入錯誤", "Bug", "Active");
@@ -59,10 +59,10 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMultipleVSTSIdsInOneTitle_ShouldFetchAllWorkItems()
+    public async Task ExecuteAsync_WithMultipleVSTSIdsInOneSourceBranch_ShouldFetchAllWorkItems()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTS111 and VSTS222 修復問題", "feature/test", "main");
+        var fetchResult = CreateFetchResult("修復問題", "feature/VSTS111-VSTS222", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem1 = CreateWorkItem(111, "問題 1", "Bug", "Active");
@@ -101,8 +101,8 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                     Platform = SourceControlPlatform.GitLab,
                     PullRequests = new List<MergeRequestOutput>
                     {
-                        CreateMergeRequest("VSTS123 Fix issue"),
-                        CreateMergeRequest("VSTS123 另一個 PR 提到相同 WorkItem")
+                        CreateMergeRequest("Fix issue", "feature/VSTS123"),
+                        CreateMergeRequest("另一個 PR 提到相同 WorkItem", "feature/VSTS123-fix")
                     }
                 }
             }
@@ -128,10 +128,10 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithNoVSTSIdInTitle_ShouldNotWriteToRedis()
+    public async Task ExecuteAsync_WithNoVSTSIdInSourceBranch_ShouldNotWriteToRedis()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("No work item ID here", "feature/test", "main");
+        var fetchResult = CreateFetchResult("Some title", "feature/no-work-item-id", "main");
         SetupRedis(gitLabData: fetchResult);
 
         var task = CreateTask();
@@ -148,7 +148,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithInvalidVSTSFormats_ShouldIgnoreThem()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTSabc vsts123 VSTS (no number) VSTS456 works", "feature/test", "main");
+        var fetchResult = CreateFetchResult("Some title", "feature/VSTSabc-vsts123-VSTS-VSTS456-works", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem = CreateWorkItem(456, "Valid", "Bug", "Active");
@@ -173,7 +173,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithSuccessfulAndFailedCalls_ShouldRecordBoth()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTS111 VSTS999", "feature/test", "main");
+        var fetchResult = CreateFetchResult("Some title", "feature/VSTS111-VSTS999", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem = CreateWorkItem(111, "Success", "Bug", "Active");
@@ -208,8 +208,8 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithBothGitLabAndBitbucketData_ShouldProcessAll()
     {
         // Arrange
-        var gitLabResult = CreateFetchResult("VSTS111", "feature/test1", "main");
-        var bitbucketResult = CreateFetchResult("VSTS222", "feature/test2", "main", SourceControlPlatform.Bitbucket);
+        var gitLabResult = CreateFetchResult("GitLab title", "feature/VSTS111", "main");
+        var bitbucketResult = CreateFetchResult("Bitbucket title", "feature/VSTS222", "main", SourceControlPlatform.Bitbucket);
         
         SetupRedis(gitLabData: gitLabResult, bitbucketData: bitbucketResult);
         
@@ -237,7 +237,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithOnlyGitLabKeyExists_ShouldProcessGitLabAndLogWarning()
     {
         // Arrange
-        var gitLabResult = CreateFetchResult("VSTS123", "feature/test", "main");
+        var gitLabResult = CreateFetchResult("Some title", "feature/VSTS123", "main");
         SetupRedis(gitLabData: gitLabResult, bitbucketData: null); // Bitbucket key doesn't exist
         
         var workItem = CreateWorkItem(123, "Issue", "Bug", "Active");
@@ -261,7 +261,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithOnlyBitbucketKeyExists_ShouldProcessBitbucketAndLogWarning()
     {
         // Arrange
-        var bitbucketResult = CreateFetchResult("VSTS456", "feature/test", "main", SourceControlPlatform.Bitbucket);
+        var bitbucketResult = CreateFetchResult("Some title", "feature/VSTS456", "main", SourceControlPlatform.Bitbucket);
         SetupRedis(gitLabData: null, bitbucketData: bitbucketResult); // GitLab key doesn't exist
         
         var workItem = CreateWorkItem(456, "Issue", "Task", "New");
