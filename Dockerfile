@@ -7,6 +7,7 @@ COPY ["src/ReleaseKit.Console/ReleaseKit.Console.csproj", "ReleaseKit.Console/"]
 COPY ["src/ReleaseKit.Application/ReleaseKit.Application.csproj", "ReleaseKit.Application/"]
 COPY ["src/ReleaseKit.Domain/ReleaseKit.Domain.csproj", "ReleaseKit.Domain/"]
 COPY ["src/ReleaseKit.Infrastructure/ReleaseKit.Infrastructure.csproj", "ReleaseKit.Infrastructure/"]
+COPY ["src/ReleaseKit.Common/ReleaseKit.Common.csproj", "ReleaseKit.Common/"]
 RUN dotnet restore "ReleaseKit.Console/ReleaseKit.Console.csproj"
 
 # 複製所有原始碼
