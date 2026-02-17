@@ -14,6 +14,9 @@ public class VstsIdParserTests
     [InlineData("bugfix/VSTS777-fix-bug", 777)]
     [InlineData("release/VSTS1-init", 1)]
     [InlineData("hotfix/VSTS123456789", 123456789)]
+    [InlineData("feature/vsts123-lowercase", 123)]      // 小寫也符合
+    [InlineData("feature/Vsts456-mixed", 456)]          // 混合大小寫也符合
+    [InlineData("feature/VsTs789-mixed", 789)]          // 混合大小寫也符合
     public void ParseFromSourceBranch_WithValidVSTSId_ShouldReturnId(string sourceBranch, int expectedId)
     {
         // Act
@@ -25,7 +28,6 @@ public class VstsIdParserTests
     }
 
     [Theory]
-    [InlineData("feature/vsts123-lowercase")]     // 小寫不符合
     [InlineData("feature/no-id")]                 // 無 VSTS ID
     [InlineData("VSTSabc")]                       // 非數字
     [InlineData("VSTS")]                          // 無數字

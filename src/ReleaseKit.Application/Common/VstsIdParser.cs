@@ -10,7 +10,7 @@ namespace ReleaseKit.Application.Common;
 /// </remarks>
 public static class VstsIdParser
 {
-    private static readonly Regex VstsRegex = new(@"VSTS(\d+)", RegexOptions.None);
+    private static readonly Regex VstsRegex = new(@"VSTS(\d+)", RegexOptions.IgnoreCase);
 
     /// <summary>
     /// 從來源分支名稱解析 VSTS ID
@@ -18,10 +18,11 @@ public static class VstsIdParser
     /// <param name="sourceBranch">來源分支名稱（例如：feature/VSTS12345-add-login）</param>
     /// <returns>解析成功返回 Work Item ID；失敗返回 null</returns>
     /// <remarks>
-    /// 僅支援大寫 VSTS 格式，例如：
+    /// 支援不分大小寫的 VSTS 格式，例如：
     /// - "feature/VSTS12345-add-login" → 12345
     /// - "VSTS99999" → 99999
-    /// - "feature/vsts123" → null（小寫不符合）
+    /// - "feature/vsts123" → 123（小寫也符合）
+    /// - "feature/Vsts456" → 456（混合大小寫也符合）
     /// - "feature/no-id" → null（無 VSTS ID）
     /// </remarks>
     public static int? ParseFromSourceBranch(string? sourceBranch)

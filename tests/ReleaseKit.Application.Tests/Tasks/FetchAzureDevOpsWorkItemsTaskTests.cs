@@ -162,7 +162,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     [Fact]
     public async Task ExecuteAsync_WithInvalidVSTSFormats_ShouldIgnoreThem()
     {
-        // Arrange - 測試各種無效的 VSTS 格式（小寫、非數字等）
+        // Arrange - 測試各種無效的 VSTS 格式（非數字、無數字等）
         var result = new FetchResult
         {
             Results = new List<ProjectResult>
@@ -174,17 +174,19 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                     PullRequests = new List<MergeRequestOutput>
                     {
                         CreateMergeRequest("Invalid formats", "feature/VSTSabc", "main"),  // 非數字
-                        CreateMergeRequest("Lowercase", "feature/vsts123", "main"),         // 小寫
+                        CreateMergeRequest("Lowercase", "feature/vsts123", "main"),         // 小寫（現在支援）
                         CreateMergeRequest("No number", "feature/VSTS", "main"),            // 無數字
-                        CreateMergeRequest("Valid one", "feature/VSTS456-works", "main")    // 唯一有效的
+                        CreateMergeRequest("Valid one", "feature/VSTS456-works", "main")    // 有效的
                     }
                 }
             }
         };
         SetupRedis(gitLabData: result);
         
-        var workItem = CreateWorkItem(456, "Valid", "Bug", "Active");
-        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(456)).ReturnsAsync(Result<WorkItem>.Success(workItem));
+        var workItem123 = CreateWorkItem(123, "Lowercase Valid", "Bug", "Active");
+        var workItem456 = CreateWorkItem(456, "Valid", "Bug", "Active");
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(123)).ReturnsAsync(Result<WorkItem>.Success(workItem123));
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(456)).ReturnsAsync(Result<WorkItem>.Success(workItem456));
 
         var task = CreateTask();
 
@@ -192,12 +194,13 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         await task.ExecuteAsync();
 
         // Assert
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Once);
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(456), Times.Once);
-        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.Is<int>(id => id != 456)), Times.Never);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.Is<int>(id => id != 123 && id != 456)), Times.Never);
         VerifyRedisWrite(result =>
         {
-            Assert.Single(result.WorkItems);
-            Assert.Equal(1, result.TotalWorkItemsFound);
+            Assert.Equal(2, result.WorkItems.Count);
+            Assert.Equal(2, result.TotalWorkItemsFound);
         });
     }
 
