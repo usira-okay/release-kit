@@ -273,4 +273,124 @@ public class BitbucketPullRequestMapperTests
         // Assert
         Assert.Null(result.WorkItemId);
     }
+
+    [Fact]
+    public void ToDomain_WithVSTSIdInTitleButNotInSourceBranch_ShouldParseFromTitle()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "VSTS88888 實作新功能",
+            Summary = new BitbucketSummaryResponse { Raw = "新增功能" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/no-id" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "develop" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/3" }
+            }
+        };
+
+        var projectPath = "test/project";
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
+
+        // Assert
+        Assert.NotNull(result.WorkItemId);
+        Assert.Equal(88888, result.WorkItemId.Value);
+    }
+
+    [Fact]
+    public void ToDomain_WithVSTSIdInBothSourceBranchAndTitle_ShouldPreferSourceBranch()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "VSTS11111 標題中的ID",
+            Summary = new BitbucketSummaryResponse { Raw = "描述" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/VSTS67890-branch-id" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/4" }
+            }
+        };
+
+        var projectPath = "test/project";
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
+
+        // Assert
+        Assert.NotNull(result.WorkItemId);
+        Assert.Equal(67890, result.WorkItemId.Value); // 應該使用 SourceBranch 的 ID
+    }
+
+    [Fact]
+    public void ToDomain_WithEmptySourceBranchAndVSTSIdInTitle_ShouldParseFromTitle()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "VSTS33333 緊急修復",
+            Summary = new BitbucketSummaryResponse { Raw = "修復緊急問題" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/5" }
+            }
+        };
+
+        var projectPath = "test/project";
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, projectPath);
+
+        // Assert
+        Assert.NotNull(result.WorkItemId);
+        Assert.Equal(33333, result.WorkItemId.Value);
+    }
 }

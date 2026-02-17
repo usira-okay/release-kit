@@ -32,7 +32,7 @@ public static class BitbucketPullRequestMapper
             PRUrl = response.Links.Html.Href,
             Platform = SourceControlPlatform.Bitbucket,
             ProjectPath = projectPath,
-            WorkItemId = VstsIdParser.ParseFromSourceBranch(response.Source.Branch.Name)
+            WorkItemId = VstsIdParser.Parse(response.Source.Branch.Name, response.Title)
         };
     }
 }

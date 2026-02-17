@@ -32,7 +32,7 @@ public static class GitLabMergeRequestMapper
             PRUrl = response.WebUrl,
             Platform = SourceControlPlatform.GitLab,
             ProjectPath = projectPath,
-            WorkItemId = VstsIdParser.ParseFromSourceBranch(response.SourceBranch)
+            WorkItemId = VstsIdParser.Parse(response.SourceBranch, response.Title)
         };
     }
 }
