@@ -93,7 +93,6 @@ public class VstsIdParserTests
 
     [Theory]
     [InlineData("feature/VSTS12345-add-login", "修改功能", 12345)]  // SourceBranch 有 ID
-    [InlineData("feature/no-id", "VSTS99999 新增功能", 99999)]     // Title 有 ID
     [InlineData("feature/VSTS111-branch", "VSTS222 title", 111)]   // 兩者都有，優先 SourceBranch
     [InlineData(null, "VSTS12345 標題", 12345)]                    // SourceBranch 為 null，使用 Title
     [InlineData("", "VSTS67890 標題", 67890)]                      // SourceBranch 為空，使用 Title
@@ -109,10 +108,11 @@ public class VstsIdParserTests
     }
 
     [Theory]
-    [InlineData("feature/no-id", "無ID的標題")]     // 兩者都沒有 ID
-    [InlineData(null, null)]                       // 兩者都是 null
-    [InlineData("", "")]                           // 兩者都是空字串
-    [InlineData("   ", "   ")]                     // 兩者都是空白
+    [InlineData("feature/no-id", "VSTS99999 新增功能")]  // SourceBranch 有值但無 ID，不 fallback 到 Title
+    [InlineData("feature/no-id", "無ID的標題")]          // 兩者都沒有 ID
+    [InlineData(null, null)]                            // 兩者都是 null
+    [InlineData("", "")]                                // 兩者都是空字串
+    [InlineData("   ", "   ")]                          // 兩者都是空白
     public void Parse_WithoutVSTSId_ShouldReturnNull(string? sourceBranch, string? title)
     {
         // Act

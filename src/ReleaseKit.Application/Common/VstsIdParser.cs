@@ -10,7 +10,7 @@ namespace ReleaseKit.Application.Common;
 /// </remarks>
 public static class VstsIdParser
 {
-    private static readonly Regex VstsRegex = new(@"VSTS(\d+)", RegexOptions.IgnoreCase);
+    private static readonly Regex VstsRegex = new(@"VSTS(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>
     /// 從來源分支名稱解析 VSTS ID
@@ -27,23 +27,7 @@ public static class VstsIdParser
     /// </remarks>
     public static int? ParseFromSourceBranch(string? sourceBranch)
     {
-        if (string.IsNullOrWhiteSpace(sourceBranch))
-        {
-            return null;
-        }
-
-        var match = VstsRegex.Match(sourceBranch);
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        if (int.TryParse(match.Groups[1].Value, out var id))
-        {
-            return id;
-        }
-
-        return null;
+        return ParseFromText(sourceBranch);
     }
 
     /// <summary>
@@ -60,12 +44,46 @@ public static class VstsIdParser
     /// </remarks>
     public static int? ParseFromTitle(string? title)
     {
-        if (string.IsNullOrWhiteSpace(title))
+        return ParseFromText(title);
+    }
+
+    /// <summary>
+    /// 從 PR/MR 資訊解析 VSTS ID（僅在 SourceBranch 為空或 null 時才從 Title 解析）
+    /// </summary>
+    /// <param name="sourceBranch">來源分支名稱（例如：feature/VSTS12345-add-login）</param>
+    /// <param name="title">PR/MR 標題（例如：VSTS12345 新增登入功能）</param>
+    /// <returns>解析成功返回 Work Item ID；失敗返回 null</returns>
+    /// <remarks>
+    /// 解析邏輯：
+    /// 1. 若 SourceBranch 不為空，則從 SourceBranch 解析 VSTS ID（無論是否包含 ID）
+    /// 2. 若 SourceBranch 為空或 null，則從 Title 解析
+    /// 3. 若無法解析，返回 null
+    /// </remarks>
+    public static int? Parse(string? sourceBranch, string? title)
+    {
+        // 若 SourceBranch 不為空，優先使用 SourceBranch（即使沒有 VSTS ID）
+        if (!string.IsNullOrWhiteSpace(sourceBranch))
+        {
+            return ParseFromSourceBranch(sourceBranch);
+        }
+
+        // 僅在 SourceBranch 為空或 null 時，才從 Title 解析
+        return ParseFromTitle(title);
+    }
+
+    /// <summary>
+    /// 從文字中解析 VSTS ID（私有共用方法）
+    /// </summary>
+    /// <param name="text">要解析的文字</param>
+    /// <returns>解析成功返回 Work Item ID；失敗返回 null</returns>
+    private static int? ParseFromText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
         {
             return null;
         }
 
-        var match = VstsRegex.Match(title);
+        var match = VstsRegex.Match(text);
         if (!match.Success)
         {
             return null;
@@ -77,30 +95,5 @@ public static class VstsIdParser
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// 從 PR/MR 資訊解析 VSTS ID（優先從 SourceBranch 解析，若失敗則從 Title 解析）
-    /// </summary>
-    /// <param name="sourceBranch">來源分支名稱（例如：feature/VSTS12345-add-login）</param>
-    /// <param name="title">PR/MR 標題（例如：VSTS12345 新增登入功能）</param>
-    /// <returns>解析成功返回 Work Item ID；失敗返回 null</returns>
-    /// <remarks>
-    /// 解析邏輯：
-    /// 1. 優先從 SourceBranch 解析 VSTS ID
-    /// 2. 若 SourceBranch 為空或未包含 VSTS ID，則從 Title 解析
-    /// 3. 若兩者都無法解析，返回 null
-    /// </remarks>
-    public static int? Parse(string? sourceBranch, string? title)
-    {
-        // 優先從 SourceBranch 解析
-        var workItemId = ParseFromSourceBranch(sourceBranch);
-        if (workItemId.HasValue)
-        {
-            return workItemId;
-        }
-
-        // 若 SourceBranch 無法解析，則從 Title 解析
-        return ParseFromTitle(title);
     }
 }
