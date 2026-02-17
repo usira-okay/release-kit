@@ -123,4 +123,13 @@ public sealed record MergeRequest
     /// 用於識別 PR/MR 所屬的專案。
     /// </remarks>
     public required string ProjectPath { get; init; }
+
+    /// <summary>
+    /// Work Item ID
+    /// </summary>
+    /// <remarks>
+    /// 從 SourceBranch 解析出的 VSTS Work Item ID（例如：從 "feature/VSTS12345-add-login" 解析出 12345）。
+    /// 若 SourceBranch 不包含 VSTS ID，此值為 null。
+    /// </remarks>
+    public int? WorkItemId { get; init; }
 }

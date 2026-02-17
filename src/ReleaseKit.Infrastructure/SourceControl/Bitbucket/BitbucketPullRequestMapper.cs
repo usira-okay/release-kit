@@ -1,3 +1,4 @@
+using ReleaseKit.Application.Common;
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 using ReleaseKit.Infrastructure.SourceControl.Bitbucket.Models;
@@ -30,7 +31,8 @@ public static class BitbucketPullRequestMapper
             AuthorName = response.Author.DisplayName,
             PRUrl = response.Links.Html.Href,
             Platform = SourceControlPlatform.Bitbucket,
-            ProjectPath = projectPath
+            ProjectPath = projectPath,
+            WorkItemId = VstsIdParser.ParseFromSourceBranch(response.Source.Branch.Name)
         };
     }
 }

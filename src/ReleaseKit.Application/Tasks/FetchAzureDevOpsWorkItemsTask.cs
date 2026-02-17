@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Constants;
@@ -51,12 +50,12 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             return;
         }
 
-        // 解析所有 VSTS ID
-        var workItemIds = ParseVSTSIdsFromPRs(allPullRequests);
+        // 從 PR 中收集所有 Work Item ID
+        var workItemIds = ExtractWorkItemIdsFromPRs(allPullRequests);
         
         if (workItemIds.Count == 0)
         {
-            _logger.LogInformation("未從 PR 標題中解析到任何 VSTS ID，任務結束");
+            _logger.LogInformation("未從 PR 來源分支中解析到任何 Work Item ID，任務結束");
             return;
         }
 
@@ -123,19 +122,18 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     }
 
     /// <summary>
-    /// 從 PR 標題中解析 VSTS ID
+    /// 從 PR 中提取 Work Item ID
     /// </summary>
     /// <param name="pullRequests">PR 清單</param>
     /// <returns>不重複的 Work Item ID 清單</returns>
-    private HashSet<int> ParseVSTSIdsFromPRs(List<MergeRequestOutput> pullRequests)
+    /// <remarks>
+    /// 直接使用 PR 的 WorkItemId 欄位（已從 SourceBranch 解析）。
+    /// </remarks>
+    private HashSet<int> ExtractWorkItemIdsFromPRs(List<MergeRequestOutput> pullRequests)
     {
-        var regex = new Regex(@"VSTS(\d+)", RegexOptions.None);
-
         var workItemIds = pullRequests
-            .SelectMany(pr => regex.Matches(pr.Title).Cast<Match>())
-            .Select(match => (Success: int.TryParse(match.Groups[1].Value, out var id), Id: id))
-            .Where(result => result.Success)
-            .Select(result => result.Id)
+            .Where(pr => pr.WorkItemId.HasValue)
+            .Select(pr => pr.WorkItemId!.Value)
             .ToHashSet();
 
         return workItemIds;

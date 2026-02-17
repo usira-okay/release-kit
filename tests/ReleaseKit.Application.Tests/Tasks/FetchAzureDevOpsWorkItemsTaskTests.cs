@@ -32,7 +32,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithSingleVSTSIdInTitle_ShouldFetchWorkItem()
     {
         // Arrange
-        var fetchResult = CreateFetchResult("VSTS12345 修復登入錯誤", "feature/test", "main");
+        var fetchResult = CreateFetchResult("修復登入錯誤", "feature/VSTS12345-login-fix", "main");
         SetupRedis(gitLabData: fetchResult);
         
         var workItem = CreateWorkItem(12345, "修復登入錯誤", "Bug", "Active");
@@ -61,9 +61,24 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     [Fact]
     public async Task ExecuteAsync_WithMultipleVSTSIdsInOneTitle_ShouldFetchAllWorkItems()
     {
-        // Arrange
-        var fetchResult = CreateFetchResult("VSTS111 and VSTS222 修復問題", "feature/test", "main");
-        SetupRedis(gitLabData: fetchResult);
+        // Arrange - 兩個不同的 PR，各自包含不同的 VSTS ID 在 source branch 中
+        var result1 = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        CreateMergeRequest("修復問題 1", "feature/VSTS111-fix-1", "main"),
+                        CreateMergeRequest("修復問題 2", "feature/VSTS222-fix-2", "main")
+                    }
+                }
+            }
+        };
+        SetupRedis(gitLabData: result1);
         
         var workItem1 = CreateWorkItem(111, "問題 1", "Bug", "Active");
         var workItem2 = CreateWorkItem(222, "問題 2", "Task", "Closed");
@@ -90,7 +105,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     [Fact]
     public async Task ExecuteAsync_WithDuplicateVSTSIdsAcrossPRs_ShouldDeduplicateAndFetchOnce()
     {
-        // Arrange
+        // Arrange - 兩個不同的 PR，但都指向相同的 Work Item ID
         var fetchResult = new FetchResult
         {
             Results = new List<ProjectResult>
@@ -101,8 +116,8 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                     Platform = SourceControlPlatform.GitLab,
                     PullRequests = new List<MergeRequestOutput>
                     {
-                        CreateMergeRequest("VSTS123 Fix issue"),
-                        CreateMergeRequest("VSTS123 另一個 PR 提到相同 WorkItem")
+                        CreateMergeRequest("Fix issue", "feature/VSTS123-fix-1", "main"),
+                        CreateMergeRequest("另一個 PR 提到相同 WorkItem", "feature/VSTS123-fix-2", "main")
                     }
                 }
             }
@@ -130,8 +145,8 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     [Fact]
     public async Task ExecuteAsync_WithNoVSTSIdInTitle_ShouldNotWriteToRedis()
     {
-        // Arrange
-        var fetchResult = CreateFetchResult("No work item ID here", "feature/test", "main");
+        // Arrange - SourceBranch 沒有包含 VSTS ID
+        var fetchResult = CreateFetchResult("No work item ID here", "feature/no-vsts-id", "main");
         SetupRedis(gitLabData: fetchResult);
 
         var task = CreateTask();
@@ -147,9 +162,26 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     [Fact]
     public async Task ExecuteAsync_WithInvalidVSTSFormats_ShouldIgnoreThem()
     {
-        // Arrange
-        var fetchResult = CreateFetchResult("VSTSabc vsts123 VSTS (no number) VSTS456 works", "feature/test", "main");
-        SetupRedis(gitLabData: fetchResult);
+        // Arrange - 測試各種無效的 VSTS 格式（小寫、非數字等）
+        var result = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        CreateMergeRequest("Invalid formats", "feature/VSTSabc", "main"),  // 非數字
+                        CreateMergeRequest("Lowercase", "feature/vsts123", "main"),         // 小寫
+                        CreateMergeRequest("No number", "feature/VSTS", "main"),            // 無數字
+                        CreateMergeRequest("Valid one", "feature/VSTS456-works", "main")    // 唯一有效的
+                    }
+                }
+            }
+        };
+        SetupRedis(gitLabData: result);
         
         var workItem = CreateWorkItem(456, "Valid", "Bug", "Active");
         _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(456)).ReturnsAsync(Result<WorkItem>.Success(workItem));
@@ -172,9 +204,24 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     [Fact]
     public async Task ExecuteAsync_WithSuccessfulAndFailedCalls_ShouldRecordBoth()
     {
-        // Arrange
-        var fetchResult = CreateFetchResult("VSTS111 VSTS999", "feature/test", "main");
-        SetupRedis(gitLabData: fetchResult);
+        // Arrange - 兩個不同的 PR，一個成功一個失敗
+        var result = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        CreateMergeRequest("Success", "feature/VSTS111-success", "main"),
+                        CreateMergeRequest("Will fail", "feature/VSTS999-fail", "main")
+                    }
+                }
+            }
+        };
+        SetupRedis(gitLabData: result);
         
         var workItem = CreateWorkItem(111, "Success", "Bug", "Active");
         _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(111)).ReturnsAsync(Result<WorkItem>.Success(workItem));
@@ -208,8 +255,8 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithBothGitLabAndBitbucketData_ShouldProcessAll()
     {
         // Arrange
-        var gitLabResult = CreateFetchResult("VSTS111", "feature/test1", "main");
-        var bitbucketResult = CreateFetchResult("VSTS222", "feature/test2", "main", SourceControlPlatform.Bitbucket);
+        var gitLabResult = CreateFetchResult("GitLab Issue", "feature/VSTS111-gitlab", "main");
+        var bitbucketResult = CreateFetchResult("Bitbucket Issue", "feature/VSTS222-bitbucket", "main", SourceControlPlatform.Bitbucket);
         
         SetupRedis(gitLabData: gitLabResult, bitbucketData: bitbucketResult);
         
@@ -237,7 +284,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithOnlyGitLabKeyExists_ShouldProcessGitLabAndLogWarning()
     {
         // Arrange
-        var gitLabResult = CreateFetchResult("VSTS123", "feature/test", "main");
+        var gitLabResult = CreateFetchResult("Issue", "feature/VSTS123-issue", "main");
         SetupRedis(gitLabData: gitLabResult, bitbucketData: null); // Bitbucket key doesn't exist
         
         var workItem = CreateWorkItem(123, "Issue", "Bug", "Active");
@@ -261,7 +308,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     public async Task ExecuteAsync_WithOnlyBitbucketKeyExists_ShouldProcessBitbucketAndLogWarning()
     {
         // Arrange
-        var bitbucketResult = CreateFetchResult("VSTS456", "feature/test", "main", SourceControlPlatform.Bitbucket);
+        var bitbucketResult = CreateFetchResult("Issue", "feature/VSTS456-issue", "main", SourceControlPlatform.Bitbucket);
         SetupRedis(gitLabData: null, bitbucketData: bitbucketResult); // GitLab key doesn't exist
         
         var workItem = CreateWorkItem(456, "Issue", "Task", "New");
@@ -327,6 +374,9 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
     private MergeRequestOutput CreateMergeRequest(string title, string sourceBranch = "feature/test", string targetBranch = "main")
     {
+        // 從 SourceBranch 解析 WorkItemId
+        var workItemId = VstsIdParser.ParseFromSourceBranch(sourceBranch);
+        
         return new MergeRequestOutput
         {
             Title = title,
@@ -336,7 +386,8 @@ public class FetchAzureDevOpsWorkItemsTaskTests
             AuthorUserId = "12345",
             AuthorName = "Test User",
             PRUrl = "https://example.com/pr/1",
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            WorkItemId = workItemId
         };
     }
 
