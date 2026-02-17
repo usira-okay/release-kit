@@ -1,3 +1,4 @@
+using ReleaseKit.Application.Common;
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 using ReleaseKit.Infrastructure.SourceControl.GitLab.Models;
@@ -30,7 +31,8 @@ public static class GitLabMergeRequestMapper
             AuthorName = response.Author.Username,
             PRUrl = response.WebUrl,
             Platform = SourceControlPlatform.GitLab,
-            ProjectPath = projectPath
+            ProjectPath = projectPath,
+            WorkItemId = VstsIdParser.ParseFromSourceBranch(response.SourceBranch)
         };
     }
 }
