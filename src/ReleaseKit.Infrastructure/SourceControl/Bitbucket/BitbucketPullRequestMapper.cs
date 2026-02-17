@@ -19,7 +19,6 @@ public static class BitbucketPullRequestMapper
     {
         return new MergeRequest
         {
-            PullRequestId = response.Id,
             Title = response.Title,
             Description = response.Summary?.Raw,
             SourceBranch = response.Source.Branch.Name,

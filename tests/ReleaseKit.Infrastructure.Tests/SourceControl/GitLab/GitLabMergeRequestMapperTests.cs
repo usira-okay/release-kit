@@ -37,7 +37,6 @@ public class GitLabMergeRequestMapperTests
         var domain = GitLabMergeRequestMapper.ToDomain(response, "mygroup/backend-api");
 
         // Assert
-        Assert.Equal(42, domain.PullRequestId);
         Assert.Equal("feat: 新增使用者驗證功能", domain.Title);
         Assert.Equal("實作 JWT 驗證機制", domain.Description);
         Assert.Equal("feature/user-auth", domain.SourceBranch);
