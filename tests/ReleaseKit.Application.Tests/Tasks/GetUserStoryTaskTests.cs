@@ -325,4 +325,177 @@ public class GetUserStoryTaskTests
                 json.Contains("\"totalCount\":0")),
             null), Times.Once);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WithThreeLevelHierarchy_ShouldFindUserStoryViaRecursion()
+    {
+        // Arrange: Bug → Task → User Story (3 levels)
+        var workItemFetchResult = new WorkItemFetchResult
+        {
+            WorkItems = new List<WorkItemOutput>
+            {
+                new WorkItemOutput
+                {
+                    WorkItemId = 30001,
+                    Title = "Fix critical bug",
+                    Type = "Bug",
+                    State = "Active",
+                    Url = "https://dev.azure.com/org/project/_workitems/edit/30001",
+                    OriginalTeamName = "TeamA",
+                    IsSuccess = true,
+                    ErrorMessage = null
+                }
+            },
+            TotalPRsAnalyzed = 1,
+            TotalWorkItemsFound = 1,
+            SuccessCount = 1,
+            FailureCount = 0
+        };
+
+        _redisServiceMock
+            .Setup(r => r.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+            .ReturnsAsync(workItemFetchResult.ToJson());
+
+        // Mock Bug (level 0, pointing to Task)
+        var bugWorkItem = new WorkItem
+        {
+            WorkItemId = 30001,
+            Title = "Fix critical bug",
+            Type = "Bug",
+            State = "Active",
+            Url = "https://dev.azure.com/org/project/_workitems/edit/30001",
+            OriginalTeamName = "TeamA",
+            ParentWorkItemId = 30002  // Points to Task
+        };
+
+        // Mock Task (level 1, pointing to User Story)
+        var taskWorkItem = new WorkItem
+        {
+            WorkItemId = 30002,
+            Title = "Implement feature X",
+            Type = "Task",
+            State = "Active",
+            Url = "https://dev.azure.com/org/project/_workitems/edit/30002",
+            OriginalTeamName = "TeamA",
+            ParentWorkItemId = 30003  // Points to User Story
+        };
+
+        // Mock User Story (level 2, top level)
+        var userStoryWorkItem = new WorkItem
+        {
+            WorkItemId = 30003,
+            Title = "User Story: Feature X",
+            Type = "User Story",
+            State = "Active",
+            Url = "https://dev.azure.com/org/project/_workitems/edit/30003",
+            OriginalTeamName = "TeamA",
+            ParentWorkItemId = null
+        };
+
+        _azureDevOpsRepositoryMock
+            .Setup(r => r.GetWorkItemAsync(30001))
+            .ReturnsAsync(Domain.Common.Result<WorkItem>.Success(bugWorkItem));
+
+        _azureDevOpsRepositoryMock
+            .Setup(r => r.GetWorkItemAsync(30002))
+            .ReturnsAsync(Domain.Common.Result<WorkItem>.Success(taskWorkItem));
+
+        _azureDevOpsRepositoryMock
+            .Setup(r => r.GetWorkItemAsync(30003))
+            .ReturnsAsync(Domain.Common.Result<WorkItem>.Success(userStoryWorkItem));
+
+        var task = new GetUserStoryTask(
+            _loggerMock.Object,
+            _redisServiceMock.Object,
+            _azureDevOpsRepositoryMock.Object);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        _redisServiceMock.Verify(r => r.SetAsync(
+            RedisKeys.AzureDevOpsUserStories,
+            It.Is<string>(json =>
+                json.Contains("\"resolutionStatus\":\"foundViaRecursion\"") &&
+                json.Contains("30003")),  // Should find the User Story at level 2
+            null), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithTaskChainNoUserStory_ShouldMarkAsNotFound()
+    {
+        // Arrange: Task → Task → no parent (2 levels, but no User Story)
+        var workItemFetchResult = new WorkItemFetchResult
+        {
+            WorkItems = new List<WorkItemOutput>
+            {
+                new WorkItemOutput
+                {
+                    WorkItemId = 40001,
+                    Title = "Subtask 1",
+                    Type = "Task",
+                    State = "Active",
+                    Url = "https://dev.azure.com/org/project/_workitems/edit/40001",
+                    OriginalTeamName = "TeamA",
+                    IsSuccess = true,
+                    ErrorMessage = null
+                }
+            },
+            TotalPRsAnalyzed = 1,
+            TotalWorkItemsFound = 1,
+            SuccessCount = 1,
+            FailureCount = 0
+        };
+
+        _redisServiceMock
+            .Setup(r => r.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+            .ReturnsAsync(workItemFetchResult.ToJson());
+
+        // Mock Task (level 0, pointing to another Task)
+        var subtask1 = new WorkItem
+        {
+            WorkItemId = 40001,
+            Title = "Subtask 1",
+            Type = "Task",
+            State = "Active",
+            Url = "https://dev.azure.com/org/project/_workitems/edit/40001",
+            OriginalTeamName = "TeamA",
+            ParentWorkItemId = 40002  // Points to another Task
+        };
+
+        // Mock Task (level 1, no parent)
+        var subtask2 = new WorkItem
+        {
+            WorkItemId = 40002,
+            Title = "Subtask 2",
+            Type = "Task",
+            State = "Active",
+            Url = "https://dev.azure.com/org/project/_workitems/edit/40002",
+            OriginalTeamName = "TeamA",
+            ParentWorkItemId = null  // No parent, and not a User Story
+        };
+
+        _azureDevOpsRepositoryMock
+            .Setup(r => r.GetWorkItemAsync(40001))
+            .ReturnsAsync(Domain.Common.Result<WorkItem>.Success(subtask1));
+
+        _azureDevOpsRepositoryMock
+            .Setup(r => r.GetWorkItemAsync(40002))
+            .ReturnsAsync(Domain.Common.Result<WorkItem>.Success(subtask2));
+
+        var task = new GetUserStoryTask(
+            _loggerMock.Object,
+            _redisServiceMock.Object,
+            _azureDevOpsRepositoryMock.Object);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        _redisServiceMock.Verify(r => r.SetAsync(
+            RedisKeys.AzureDevOpsUserStories,
+            It.Is<string>(json =>
+                json.Contains("\"resolutionStatus\":\"notFound\"")),
+            null), Times.Once);
+    }
 }
