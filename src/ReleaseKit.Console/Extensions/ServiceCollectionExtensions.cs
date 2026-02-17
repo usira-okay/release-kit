@@ -222,6 +222,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
+        services.AddTransient<GetUserStoryTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
