@@ -13,7 +13,7 @@ public static partial class AzureDevOpsWorkItemMapper
     /// <summary>
     /// 用於從 URL 提取 Work Item ID 的正則表達式
     /// </summary>
-    [GeneratedRegex(@"workitems/(\d+)$", RegexOptions.Compiled)]
+    [GeneratedRegex(@"workitems/(\d+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
     private static partial Regex WorkItemIdRegex();
 
     /// <summary>
