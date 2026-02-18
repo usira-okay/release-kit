@@ -56,12 +56,14 @@ public class GetUserStoryTask : ITask
             userStoryWorkItems.Add(userStoryWorkItem);
             processedCount++;
             
-            // Log progress at 25%, 50%, 75%, 100%
-            var percentage = (processedCount * 100) / totalCount;
-            if (percentage == 25 || percentage == 50 || percentage == 75 || processedCount == totalCount)
+            // Log progress at key milestones
+            if (processedCount == totalCount / 4 || 
+                processedCount == totalCount / 2 || 
+                processedCount == (totalCount * 3) / 4 || 
+                processedCount == totalCount)
             {
-                _logger.LogInformation("處理進度: {Processed}/{Total} ({Percentage}%)", 
-                    processedCount, totalCount, percentage);
+                _logger.LogInformation("處理進度: {Processed}/{Total}", 
+                    processedCount, totalCount);
             }
         }
 
