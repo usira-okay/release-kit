@@ -59,7 +59,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             return;
         }
 
-        _logger.LogInformation("從 {PRCount} 個 PR 中解析出 {WorkItemCount} 個不重複的 Work Item ID", allPullRequests.Count, workItemIds.Count);
+        _logger.LogInformation("從 {PRCount} 個 PR 中解析出 {WorkItemCount} 個 Work Item ID（含重複）", allPullRequests.Count, workItemIds.Count);
 
         // 逐一查詢 Work Item
         var workItemOutputs = await FetchWorkItemsAsync(workItemIds);
@@ -122,38 +122,39 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     }
 
     /// <summary>
-    /// 從 PR 中提取 Work Item ID
+    /// 從 PR 中提取 Work Item ID 與 PR 關聯
     /// </summary>
     /// <param name="pullRequests">PR 清單</param>
-    /// <returns>不重複的 Work Item ID 清單</returns>
+    /// <returns>PR URL 與 Work Item ID 的對應清單（保留重複）</returns>
     /// <remarks>
     /// 直接使用 PR 的 WorkItemId 欄位（已從 SourceBranch 解析）。
+    /// 不去重複，保留每個 PR 與 Work Item 的對應關係。
     /// </remarks>
-    private HashSet<int> ExtractWorkItemIdsFromPRs(List<MergeRequestOutput> pullRequests)
+    private List<(string prUrl, int workItemId)> ExtractWorkItemIdsFromPRs(List<MergeRequestOutput> pullRequests)
     {
-        var workItemIds = pullRequests
+        var workItemPairs = pullRequests
             .Where(pr => pr.WorkItemId.HasValue)
-            .Select(pr => pr.WorkItemId!.Value)
-            .ToHashSet();
+            .Select(pr => (pr.PRUrl, pr.WorkItemId!.Value))
+            .ToList();
 
-        return workItemIds;
+        return workItemPairs;
     }
 
     /// <summary>
     /// 逐一查詢 Work Item
     /// </summary>
-    /// <param name="workItemIds">Work Item ID 清單</param>
+    /// <param name="workItemPairs">Work Item ID 與 PR URL 對應清單</param>
     /// <returns>Work Item 輸出清單</returns>
-    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(HashSet<int> workItemIds)
+    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(IReadOnlyList<(string prUrl, int workItemId)> workItemPairs)
     {
         var outputs = new List<WorkItemOutput>();
 
-        _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemIds.Count);
+        _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemPairs.Count);
         var processedCount = 0;
-        foreach (var workItemId in workItemIds)
+        foreach (var (prUrl, workItemId) in workItemPairs)
         {
             processedCount++;
-            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemIds.Count, workItemId);
+            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
             
             var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
 
@@ -167,6 +168,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     State = result.Value.State,
                     Url = result.Value.Url,
                     OriginalTeamName = result.Value.OriginalTeamName,
+                    PrUrl = prUrl,
                     IsSuccess = true,
                     ErrorMessage = null
                 });
@@ -182,6 +184,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     State = null,
                     Url = null,
                     OriginalTeamName = null,
+                    PrUrl = prUrl,
                     IsSuccess = false,
                     ErrorMessage = result.Error.Message
                 });
