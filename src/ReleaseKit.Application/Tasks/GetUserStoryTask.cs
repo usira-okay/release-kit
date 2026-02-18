@@ -48,10 +48,22 @@ public class GetUserStoryTask : ITask
 
         // 2. 處理每個 Work Item
         var userStoryWorkItems = new List<UserStoryWorkItemOutput>();
+        var totalCount = workItemData.WorkItems.Count;
+        var processedCount = 0;
+        
         foreach (var workItem in workItemData.WorkItems)
         {
             var userStoryWorkItem = await ProcessWorkItemAsync(workItem);
             userStoryWorkItems.Add(userStoryWorkItem);
+            processedCount++;
+            
+            // Log progress at 25%, 50%, 75%, 100%
+            var percentage = (processedCount * 100) / totalCount;
+            if (percentage == 25 || percentage == 50 || percentage == 75 || processedCount == totalCount)
+            {
+                _logger.LogInformation("處理進度: {Processed}/{Total} ({Percentage}%)", 
+                    processedCount, totalCount, percentage);
+            }
         }
 
         // 3. 統計結果
