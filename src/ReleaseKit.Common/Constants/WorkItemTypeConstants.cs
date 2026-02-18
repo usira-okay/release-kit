@@ -12,7 +12,8 @@ public static class WorkItemTypeConstants
     {
         "User Story",
         "Feature",
-        "Epic"
+        "Epic",
+        "Product Backlog Item"
     };
 
     /// <summary>

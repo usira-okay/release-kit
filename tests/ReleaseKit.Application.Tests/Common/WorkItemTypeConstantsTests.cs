@@ -11,9 +11,11 @@ public class WorkItemTypeConstantsTests
     [InlineData("User Story", true)]
     [InlineData("Feature", true)]
     [InlineData("Epic", true)]
+    [InlineData("Product Backlog Item", true)]
     [InlineData("user story", true)]  // Case insensitive
     [InlineData("FEATURE", true)]
     [InlineData("epic", true)]
+    [InlineData("product backlog item", true)]  // Case insensitive
     [InlineData("Bug", false)]
     [InlineData("Task", false)]
     [InlineData("Issue", false)]
@@ -29,12 +31,13 @@ public class WorkItemTypeConstantsTests
     }
 
     [Fact]
-    public void UserStoryLevelTypes_ShouldContainThreeTypes()
+    public void UserStoryLevelTypes_ShouldContainFourTypes()
     {
         // Assert
-        Assert.Equal(3, WorkItemTypeConstants.UserStoryLevelTypes.Count);
+        Assert.Equal(4, WorkItemTypeConstants.UserStoryLevelTypes.Count);
         Assert.Contains("User Story", WorkItemTypeConstants.UserStoryLevelTypes);
         Assert.Contains("Feature", WorkItemTypeConstants.UserStoryLevelTypes);
         Assert.Contains("Epic", WorkItemTypeConstants.UserStoryLevelTypes);
+        Assert.Contains("Product Backlog Item", WorkItemTypeConstants.UserStoryLevelTypes);
     }
 }

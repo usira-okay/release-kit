@@ -39,8 +39,7 @@ public class GetUserStoryTask : ITask
         var workItemData = await LoadWorkItemsFromRedisAsync();
         if (workItemData == null || workItemData.WorkItems.Count == 0)
         {
-            _logger.LogWarning("Redis 中無 Work Item 資料");
-            await SaveEmptyResultAsync();
+            _logger.LogWarning("Redis 中無 Work Item 資料，不寫入空結果");
             return;
         }
 
@@ -278,24 +277,6 @@ public class GetUserStoryTask : ITask
         // 加入 visited 集合，繼續遞迴查詢
         visited.Add(parentId);
         return await FindUserStoryRecursivelyAsync(parentId, visited, depth + 1);
-    }
-
-    /// <summary>
-    /// 儲存空結果至 Redis
-    /// </summary>
-    private async Task SaveEmptyResultAsync()
-    {
-        var emptyResult = new UserStoryFetchResult
-        {
-            WorkItems = new List<UserStoryWorkItemOutput>(),
-            TotalWorkItems = 0,
-            AlreadyUserStoryCount = 0,
-            FoundViaRecursionCount = 0,
-            NotFoundCount = 0,
-            OriginalFetchFailedCount = 0
-        };
-
-        await SaveResultAsync(emptyResult);
     }
 
     /// <summary>

@@ -36,7 +36,7 @@ public class GetUserStoryTaskTests
     /// T011: 測試從 Redis 讀取 Work Item 資料（空資料情境）
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithEmptyRedisData_ShouldReturnEmptyResult()
+    public async Task ExecuteAsync_WithEmptyRedisData_ShouldNotWriteToRedis()
     {
         // Arrange
         var emptyResult = new WorkItemFetchResult
@@ -56,13 +56,8 @@ public class GetUserStoryTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert
-        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems, It.IsAny<string>(), null), Times.Once);
-        
-        var result = _capturedRedisJson!.ToTypedObject<UserStoryFetchResult>();
-        Assert.NotNull(result);
-        Assert.Empty(result.WorkItems);
-        Assert.Equal(0, result.TotalWorkItems);
+        // Assert - Should NOT write to Redis when there's no data
+        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems, It.IsAny<string>(), null), Times.Never);
     }
 
     /// <summary>
