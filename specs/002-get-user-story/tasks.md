@@ -29,10 +29,10 @@ Based on plan.md, using Clean Architecture structure:
 
 **Purpose**: 建立基礎常數與 enum，為所有 User Story 提供共用型別
 
-- [ ] T001 [P] 建立 UserStoryResolutionStatus enum 在 src/ReleaseKit.Application/Common/UserStoryResolutionStatus.cs
-- [ ] T002 [P] 建立 WorkItemTypeConstants 常數類別在 src/ReleaseKit.Common/Constants/WorkItemTypeConstants.cs
-- [ ] T003 [P] 在 RedisKeys.cs 新增 AzureDevOpsUserStoryWorkItems 常數於 src/ReleaseKit.Common/Constants/RedisKeys.cs
-- [ ] T004 [P] 在 TaskType.cs 新增 GetUserStory enum 值於 src/ReleaseKit.Application/Tasks/TaskType.cs
+- [x] T001 [P] 建立 UserStoryResolutionStatus enum 在 src/ReleaseKit.Application/Common/UserStoryResolutionStatus.cs
+- [x] T002 [P] 建立 WorkItemTypeConstants 常數類別在 src/ReleaseKit.Common/Constants/WorkItemTypeConstants.cs
+- [x] T003 [P] 在 RedisKeys.cs 新增 AzureDevOpsUserStoryWorkItems 常數於 src/ReleaseKit.Common/Constants/RedisKeys.cs
+- [x] T004 [P] 在 TaskType.cs 新增 GetUserStory enum 值於 src/ReleaseKit.Application/Tasks/TaskType.cs
 
 **Checkpoint**: 基礎型別與常數已建立，可開始建立資料模型
 
@@ -44,11 +44,11 @@ Based on plan.md, using Clean Architecture structure:
 
 **⚠️ CRITICAL**: 所有 User Story 工作都依賴此階段完成
 
-- [ ] T005 [P] 建立 UserStoryWorkItemOutput DTO 在 src/ReleaseKit.Application/Common/UserStoryWorkItemOutput.cs
-- [ ] T006 [P] 建立 UserStoryFetchResult DTO 在 src/ReleaseKit.Application/Common/UserStoryFetchResult.cs
-- [ ] T007 [P] 擴充 AzureDevOpsWorkItemResponse 新增 Relations 欄位於 src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsWorkItemResponse.cs
-- [ ] T008 [P] 建立 AzureDevOpsRelationResponse model 在 src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsRelationResponse.cs
-- [ ] T009 在 CommandLineParser.cs 新增 get-user-story 命令對應於 src/ReleaseKit.Console/Parsers/CommandLineParser.cs
+- [x] T005 [P] 建立 UserStoryWorkItemOutput DTO 在 src/ReleaseKit.Application/Common/UserStoryWorkItemOutput.cs
+- [x] T006 [P] 建立 UserStoryFetchResult DTO 在 src/ReleaseKit.Application/Common/UserStoryFetchResult.cs
+- [x] T007 [P] 擴充 AzureDevOpsWorkItemResponse 新增 Relations 欄位於 src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsWorkItemResponse.cs
+- [x] T008 [P] 建立 AzureDevOpsRelationResponse model 在 src/ReleaseKit.Infrastructure/AzureDevOps/Models/AzureDevOpsRelationResponse.cs
+- [x] T009 在 CommandLineParser.cs 新增 get-user-story 命令對應於 src/ReleaseKit.Console/Parsers/CommandLineParser.cs
 
 **Checkpoint**: 資料模型與基礎設施已就緒，User Story 實作可以開始
 
@@ -64,30 +64,30 @@ Based on plan.md, using Clean Architecture structure:
 
 > **CRITICAL: 所有測試 MUST 先撰寫並確認 FAIL，然後才能開始實作**
 
-- [ ] T010 [P] [US1] 建立 GetUserStoryTaskTests 測試類別在 tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs
-- [ ] T011 [P] [US1] 撰寫測試：從 Redis 讀取 Work Item 資料（空資料情境）於 GetUserStoryTaskTests.cs
-- [ ] T012 [P] [US1] 撰寫測試：原始 Work Item 已是 User Story 層級（AlreadyUserStoryOrAbove）於 GetUserStoryTaskTests.cs
-- [ ] T013 [P] [US1] 撰寫測試：透過 1 層 Parent 找到 User Story（FoundViaRecursion）於 GetUserStoryTaskTests.cs
-- [ ] T014 [P] [US1] 撰寫測試：透過 2 層 Parent 找到 User Story（遞迴）於 GetUserStoryTaskTests.cs
-- [ ] T015 [P] [US1] 撰寫測試：Work Item 無 Parent（NotFound）於 GetUserStoryTaskTests.cs
-- [ ] T016 [P] [US1] 撰寫測試：將結果寫入 Redis 新 Key 於 GetUserStoryTaskTests.cs
+- [x] T010 [P] [US1] 建立 GetUserStoryTaskTests 測試類別在 tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs
+- [x] T011 [P] [US1] 撰寫測試：從 Redis 讀取 Work Item 資料（空資料情境）於 GetUserStoryTaskTests.cs
+- [x] T012 [P] [US1] 撰寫測試：原始 Work Item 已是 User Story 層級（AlreadyUserStoryOrAbove）於 GetUserStoryTaskTests.cs
+- [x] T013 [P] [US1] 撰寫測試：透過 1 層 Parent 找到 User Story（FoundViaRecursion）於 GetUserStoryTaskTests.cs
+- [x] T014 [P] [US1] 撰寫測試：透過 2 層 Parent 找到 User Story（遞迴）於 GetUserStoryTaskTests.cs
+- [x] T015 [P] [US1] 撰寫測試：Work Item 無 Parent（NotFound）於 GetUserStoryTaskTests.cs
+- [x] T016 [P] [US1] 撰寫測試：將結果寫入 Redis 新 Key 於 GetUserStoryTaskTests.cs
 
 **驗證**: 執行 `dotnet test tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs`，確認所有測試 FAIL
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] 建立 GetUserStoryTask 類別骨架在 src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs（繼承 ITask 介面）
-- [ ] T018 [US1] 實作 GetUserStoryTask 建構子（注入 IAzureDevOpsRepository, IRedisService, ILogger, IConfiguration）於 GetUserStoryTask.cs
-- [ ] T019 [US1] 實作從 Redis 讀取原始 Work Item 的方法於 GetUserStoryTask.cs
-- [ ] T020 [US1] 實作判斷 Work Item 是否為 User Story 層級的邏輯（使用 WorkItemTypeConstants）於 GetUserStoryTask.cs
-- [ ] T021 [US1] 實作從 AzureDevOpsWorkItemResponse 解析 Parent ID 的私有方法於 GetUserStoryTask.cs
-- [ ] T022 [US1] 實作遞迴查詢 Parent Work Item 的核心方法於 GetUserStoryTask.cs（不含循環偵測與深度限制）
-- [ ] T023 [US1] 實作將 WorkItem entity 轉換為 UserStoryWorkItemOutput 的 mapper 方法於 GetUserStoryTask.cs
-- [ ] T024 [US1] 實作將結果彙整為 UserStoryFetchResult 的方法於 GetUserStoryTask.cs
-- [ ] T025 [US1] 實作將 UserStoryFetchResult 序列化並寫入 Redis 的方法於 GetUserStoryTask.cs
-- [ ] T026 [US1] 實作 ExecuteAsync 方法組合所有流程於 GetUserStoryTask.cs
-- [ ] T027 [US1] 在 TaskFactory.cs 新增 GetUserStoryTask 建立邏輯於 src/ReleaseKit.Application/Tasks/TaskFactory.cs
-- [ ] T028 [US1] 在 ServiceCollectionExtensions.cs 註冊 GetUserStoryTask 於 src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
+- [x] T017 [US1] 建立 GetUserStoryTask 類別骨架在 src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs（繼承 ITask 介面）
+- [x] T018 [US1] 實作 GetUserStoryTask 建構子（注入 IAzureDevOpsRepository, IRedisService, ILogger, IConfiguration）於 GetUserStoryTask.cs
+- [x] T019 [US1] 實作從 Redis 讀取原始 Work Item 的方法於 GetUserStoryTask.cs
+- [x] T020 [US1] 實作判斷 Work Item 是否為 User Story 層級的邏輯（使用 WorkItemTypeConstants）於 GetUserStoryTask.cs
+- [x] T021 [US1] 實作從 AzureDevOpsWorkItemResponse 解析 Parent ID 的私有方法於 GetUserStoryTask.cs
+- [x] T022 [US1] 實作遞迴查詢 Parent Work Item 的核心方法於 GetUserStoryTask.cs（不含循環偵測與深度限制）
+- [x] T023 [US1] 實作將 WorkItem entity 轉換為 UserStoryWorkItemOutput 的 mapper 方法於 GetUserStoryTask.cs
+- [x] T024 [US1] 實作將結果彙整為 UserStoryFetchResult 的方法於 GetUserStoryTask.cs
+- [x] T025 [US1] 實作將 UserStoryFetchResult 序列化並寫入 Redis 的方法於 GetUserStoryTask.cs
+- [x] T026 [US1] 實作 ExecuteAsync 方法組合所有流程於 GetUserStoryTask.cs
+- [x] T027 [US1] 在 TaskFactory.cs 新增 GetUserStoryTask 建立邏輯於 src/ReleaseKit.Application/Tasks/TaskFactory.cs
+- [x] T028 [US1] 在 ServiceCollectionExtensions.cs 註冊 GetUserStoryTask 於 src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs
 
 **驗證**: 執行所有 US1 測試，確認 T011-T016 測試全部 PASS
 
@@ -103,20 +103,20 @@ Based on plan.md, using Clean Architecture structure:
 
 ### Tests for User Story 2 (TDD - MUST write FIRST) ⚠️
 
-- [ ] T029 [P] [US2] 撰寫測試：原始 Work Item API 呼叫失敗（OriginalFetchFailed）於 GetUserStoryTaskTests.cs
-- [ ] T030 [P] [US2] 撰寫測試：Parent Work Item API 呼叫失敗（NotFound with error）於 GetUserStoryTaskTests.cs
-- [ ] T031 [P] [US2] 撰寫測試：部分 Work Item 失敗但其他繼續處理（批次韌性）於 GetUserStoryTaskTests.cs
-- [ ] T032 [P] [US2] 撰寫測試：Parent Work Item 部分欄位為 null 時正常處理於 GetUserStoryTaskTests.cs
+- [x] T029 [P] [US2] 撰寫測試：原始 Work Item API 呼叫失敗（OriginalFetchFailed）於 GetUserStoryTaskTests.cs
+- [x] T030 [P] [US2] 撰寫測試：Parent Work Item API 呼叫失敗（NotFound with error）於 GetUserStoryTaskTests.cs
+- [x] T031 [P] [US2] 撰寫測試：部分 Work Item 失敗但其他繼續處理（批次韌性）於 GetUserStoryTaskTests.cs
+- [x] T032 [P] [US2] 撰寫測試：Parent Work Item 部分欄位為 null 時正常處理於 GetUserStoryTaskTests.cs
 
 **驗證**: 執行 `dotnet test`，確認 T029-T032 測試 FAIL
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] 修改遞迴查詢方法處理 API Result.Failure 情境於 GetUserStoryTask.cs
-- [ ] T034 [US2] 實作原始 Work Item 無法取得時建立 OriginalFetchFailed 結果於 GetUserStoryTask.cs
-- [ ] T035 [US2] 實作 Parent API 失敗時建立 NotFound 結果（保留原始 Work Item）於 GetUserStoryTask.cs
-- [ ] T036 [US2] 實作錯誤訊息對應邏輯（從 Error object 提取訊息）於 GetUserStoryTask.cs
-- [ ] T037 [US2] 新增批次處理的錯誤隔離邏輯（單筆失敗不中斷整體）於 GetUserStoryTask.cs
+- [x] T033 [US2] 修改遞迴查詢方法處理 API Result.Failure 情境於 GetUserStoryTask.cs
+- [x] T034 [US2] 實作原始 Work Item 無法取得時建立 OriginalFetchFailed 結果於 GetUserStoryTask.cs
+- [x] T035 [US2] 實作 Parent API 失敗時建立 NotFound 結果（保留原始 Work Item）於 GetUserStoryTask.cs
+- [x] T036 [US2] 實作錯誤訊息對應邏輯（從 Error object 提取訊息）於 GetUserStoryTask.cs
+- [x] T037 [US2] 新增批次處理的錯誤隔離邏輯（單筆失敗不中斷整體）於 GetUserStoryTask.cs
 
 **驗證**: 執行所有 US2 測試，確認 T029-T032 測試全部 PASS
 
@@ -132,23 +132,23 @@ Based on plan.md, using Clean Architecture structure:
 
 ### Tests for User Story 3 (TDD - MUST write FIRST) ⚠️
 
-- [ ] T038 [P] [US3] 撰寫測試：偵測循環參照（A → B → A）於 GetUserStoryTaskTests.cs
-- [ ] T039 [P] [US3] 撰寫測試：達到最大遞迴深度時停止（預設 10 層）於 GetUserStoryTaskTests.cs
-- [ ] T040 [P] [US3] 撰寫測試：從 appsettings.json 讀取自訂最大深度於 GetUserStoryTaskTests.cs
-- [ ] T041 [P] [US3] 撰寫測試：循環參照的錯誤訊息包含 "偵測到循環參照" 於 GetUserStoryTaskTests.cs
-- [ ] T042 [P] [US3] 撰寫測試：超深度的錯誤訊息包含 "超過最大遞迴深度" 於 GetUserStoryTaskTests.cs
+- [x] T038 [P] [US3] 撰寫測試：偵測循環參照（A → B → A）於 GetUserStoryTaskTests.cs
+- [x] T039 [P] [US3] 撰寫測試：達到最大遞迴深度時停止（預設 10 層）於 GetUserStoryTaskTests.cs
+- [x] T040 [P] [US3] 撰寫測試：從 appsettings.json 讀取自訂最大深度於 GetUserStoryTaskTests.cs
+- [x] T041 [P] [US3] 撰寫測試：循環參照的錯誤訊息包含 "偵測到循環參照" 於 GetUserStoryTaskTests.cs
+- [x] T042 [P] [US3] 撰寫測試：超深度的錯誤訊息包含 "超過最大遞迴深度" 於 GetUserStoryTaskTests.cs
 
 **驗證**: 執行 `dotnet test`，確認 T038-T042 測試 FAIL
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] 在 GetUserStoryTask 建構子新增從 IConfiguration 讀取 GetUserStory:MaxDepth 設定（預設 10）於 GetUserStoryTask.cs
-- [ ] T044 [US3] 修改遞迴方法簽章加入 visited HashSet<int> 與 depth int 參數於 GetUserStoryTask.cs
-- [ ] T045 [US3] 實作遞迴方法開頭檢查 depth 是否超過最大值於 GetUserStoryTask.cs
-- [ ] T046 [US3] 實作遞迴方法開頭檢查 Work Item ID 是否已在 visited 集合中於 GetUserStoryTask.cs
-- [ ] T047 [US3] 實作偵測到循環參照時回傳 NotFound 結果（errorMessage: "偵測到循環參照"）於 GetUserStoryTask.cs
-- [ ] T048 [US3] 實作達到最大深度時回傳 NotFound 結果（errorMessage: "超過最大遞迴深度"）於 GetUserStoryTask.cs
-- [ ] T049 [US3] 修改遞迴呼叫將當前 Work Item ID 加入 visited 並傳遞至下層於 GetUserStoryTask.cs
+- [x] T043 [US3] 在 GetUserStoryTask 建構子新增從 IConfiguration 讀取 GetUserStory:MaxDepth 設定（預設 10）於 GetUserStoryTask.cs
+- [x] T044 [US3] 修改遞迴方法簽章加入 visited HashSet<int> 與 depth int 參數於 GetUserStoryTask.cs
+- [x] T045 [US3] 實作遞迴方法開頭檢查 depth 是否超過最大值於 GetUserStoryTask.cs
+- [x] T046 [US3] 實作遞迴方法開頭檢查 Work Item ID 是否已在 visited 集合中於 GetUserStoryTask.cs
+- [x] T047 [US3] 實作偵測到循環參照時回傳 NotFound 結果（errorMessage: "偵測到循環參照"）於 GetUserStoryTask.cs
+- [x] T048 [US3] 實作達到最大深度時回傳 NotFound 結果（errorMessage: "超過最大遞迴深度"）於 GetUserStoryTask.cs
+- [x] T049 [US3] 修改遞迴呼叫將當前 Work Item ID 加入 visited 並傳遞至下層於 GetUserStoryTask.cs
 
 **驗證**: 執行所有 US3 測試，確認 T038-T042 測試全部 PASS
 
@@ -160,16 +160,16 @@ Based on plan.md, using Clean Architecture structure:
 
 **Purpose**: 改善跨 User Story 的品質與使用者體驗
 
-- [ ] T050 [P] 新增 GetUserStoryTask 的 XML 繁體中文註解（summary, remarks）於 GetUserStoryTask.cs
-- [ ] T051 [P] 新增 UserStoryResolutionStatus enum 各值的繁體中文註解於 UserStoryResolutionStatus.cs
-- [ ] T052 [P] 新增 WorkItemTypeConstants 的繁體中文註解於 WorkItemTypeConstants.cs
-- [ ] T053 [P] 新增 UserStoryWorkItemOutput 與 UserStoryFetchResult 的繁體中文註解於對應檔案
-- [ ] T054 在 GetUserStoryTask 加入進度日誌（10%, 50%, 100%）於 GetUserStoryTask.cs
-- [ ] T055 在 GetUserStoryTask 加入統計資訊日誌（alreadyUserStoryCount, foundViaRecursionCount 等）於 GetUserStoryTask.cs
-- [ ] T056 新增 WorkItemTypeConstantsTests 單元測試驗證 IsUserStoryLevel 方法於 tests/ReleaseKit.Application.Tests/Common/WorkItemTypeConstantsTests.cs
-- [ ] T057 執行完整建置驗證：`dotnet build src/release-kit.sln`
-- [ ] T058 執行完整測試驗證：`dotnet test tests/ReleaseKit.Application.Tests`
-- [ ] T059 執行 quickstart.md 驗證流程（手動測試）
+- [x] T050 [P] 新增 GetUserStoryTask 的 XML 繁體中文註解（summary, remarks）於 GetUserStoryTask.cs
+- [x] T051 [P] 新增 UserStoryResolutionStatus enum 各值的繁體中文註解於 UserStoryResolutionStatus.cs
+- [x] T052 [P] 新增 WorkItemTypeConstants 的繁體中文註解於 WorkItemTypeConstants.cs
+- [x] T053 [P] 新增 UserStoryWorkItemOutput 與 UserStoryFetchResult 的繁體中文註解於對應檔案
+- [x] T054 在 GetUserStoryTask 加入進度日誌（10%, 50%, 100%）於 GetUserStoryTask.cs
+- [x] T055 在 GetUserStoryTask 加入統計資訊日誌（alreadyUserStoryCount, foundViaRecursionCount 等）於 GetUserStoryTask.cs
+- [x] T056 新增 WorkItemTypeConstantsTests 單元測試驗證 IsUserStoryLevel 方法於 tests/ReleaseKit.Application.Tests/Common/WorkItemTypeConstantsTests.cs
+- [x] T057 執行完整建置驗證：`dotnet build src/release-kit.sln`
+- [x] T058 執行完整測試驗證：`dotnet test tests/ReleaseKit.Application.Tests`
+- [x] T059 執行 quickstart.md 驗證流程（手動測試）
 
 **Checkpoint**: 功能完整，程式碼品質符合 Constitution 規範
 
