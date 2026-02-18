@@ -169,8 +169,9 @@ public class GetUserStoryTaskTests
         Assert.Equal(UserStoryResolutionStatus.FoundViaRecursion, result.WorkItems[0].ResolutionStatus);
         Assert.Equal(67890, result.WorkItems[0].WorkItemId);
         Assert.Equal("User Story", result.WorkItems[0].Type);
-        Assert.NotNull(result.WorkItems[0].OriginalWorkItem);
-        Assert.Equal(11111, result.WorkItems[0].OriginalWorkItem.WorkItemId);
+        var originalWorkItem = result.WorkItems[0].OriginalWorkItem;
+        Assert.NotNull(originalWorkItem);
+        Assert.Equal(11111, originalWorkItem.WorkItemId);
         Assert.Equal(0, result.AlreadyUserStoryCount);
         Assert.Equal(1, result.FoundViaRecursionCount);
     }
