@@ -14,6 +14,7 @@
                 // "filter-gitlab-pr-by-user"
                 // "filter-bitbucket-pr-by-user"
                 // "fetch-azure-workitems"
+                // "get-user-story"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

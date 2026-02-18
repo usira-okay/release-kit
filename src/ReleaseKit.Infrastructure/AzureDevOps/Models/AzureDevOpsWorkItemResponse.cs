@@ -28,28 +28,10 @@ public sealed record AzureDevOpsWorkItemResponse
     /// </summary>
     [JsonPropertyName("_links")]
     public AzureDevOpsLinksResponse? Links { get; init; }
-}
 
-/// <summary>
-/// Azure DevOps Work Item 連結集合回應模型
-/// </summary>
-public sealed record AzureDevOpsLinksResponse
-{
     /// <summary>
-    /// Work Item 網頁連結
+    /// Work Item 關聯關係（Parent/Child 等）
     /// </summary>
-    [JsonPropertyName("html")]
-    public AzureDevOpsLinkResponse? Html { get; init; }
-}
-
-/// <summary>
-/// Azure DevOps 單一連結回應模型
-/// </summary>
-public sealed record AzureDevOpsLinkResponse
-{
-    /// <summary>
-    /// 連結 URL
-    /// </summary>
-    [JsonPropertyName("href")]
-    public string Href { get; init; } = string.Empty;
+    [JsonPropertyName("relations")]
+    public List<AzureDevOpsRelationResponse>? Relations { get; init; }
 }

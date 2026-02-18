@@ -1,14 +1,21 @@
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Infrastructure.AzureDevOps.Models;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ReleaseKit.Infrastructure.AzureDevOps.Mappers;
 
 /// <summary>
 /// Azure DevOps Work Item 資料映射器
 /// </summary>
-public static class AzureDevOpsWorkItemMapper
+public static partial class AzureDevOpsWorkItemMapper
 {
+    /// <summary>
+    /// 用於從 URL 提取 Work Item ID 的正則表達式
+    /// </summary>
+    [GeneratedRegex(@"workitems/(\d+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+    private static partial Regex WorkItemIdRegex();
+
     /// <summary>
     /// 將 Azure DevOps API 回應映射到領域實體
     /// </summary>
@@ -24,7 +31,39 @@ public static class AzureDevOpsWorkItemMapper
             State = GetFieldValue(response.Fields, "System.State"),
             Url = response.Links?.Html?.Href ?? string.Empty,
             OriginalTeamName = GetFieldValue(response.Fields, "System.AreaPath"),
+            ParentId = ExtractParentId(response.Relations)
         };
+    }
+
+    /// <summary>
+    /// 從 Relations 中提取 Parent Work Item ID
+    /// </summary>
+    /// <param name="relations">Relations 集合</param>
+    /// <returns>Parent Work Item ID，若無則回傳 null</returns>
+    private static int? ExtractParentId(List<AzureDevOpsRelationResponse>? relations)
+    {
+        if (relations is null || relations.Count == 0)
+        {
+            return null;
+        }
+
+        // 尋找 Parent Relation（Hierarchy-Reverse）
+        var parentRelation = relations.FirstOrDefault(r => 
+            r.Rel == "System.LinkTypes.Hierarchy-Reverse");
+
+        if (parentRelation is null || string.IsNullOrWhiteSpace(parentRelation.Url))
+        {
+            return null;
+        }
+
+        // 從 URL 提取 Parent ID: workitems/{id}
+        var match = WorkItemIdRegex().Match(parentRelation.Url);
+        if (match.Success && int.TryParse(match.Groups[1].Value, out var parentId))
+        {
+            return parentId;
+        }
+
+        return null;
     }
 
     /// <summary>
