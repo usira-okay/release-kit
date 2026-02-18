@@ -49,22 +49,17 @@ public class GetUserStoryTask : ITask
         var userStoryWorkItems = new List<UserStoryWorkItemOutput>();
         var totalCount = workItemData.WorkItems.Count;
         var processedCount = 0;
-        
+
         foreach (var workItem in workItemData.WorkItems)
         {
             var userStoryWorkItem = await ProcessWorkItemAsync(workItem);
             userStoryWorkItems.Add(userStoryWorkItem);
             processedCount++;
-            
+
             // Log progress at key milestones
-            if (processedCount == totalCount / 4 || 
-                processedCount == totalCount / 2 || 
-                processedCount == (totalCount * 3) / 4 || 
-                processedCount == totalCount)
-            {
-                _logger.LogInformation("處理進度: {Processed}/{Total}", 
-                    processedCount, totalCount);
-            }
+
+            _logger.LogInformation("處理進度: {Processed}/{Total}",
+                processedCount, totalCount);
         }
 
         // 3. 統計結果
@@ -147,7 +142,7 @@ public class GetUserStoryTask : ITask
         // 遞迴查詢 Parent Work Item
         // 首先需要取得完整的 Work Item 資訊（包含 ParentId）
         var currentWorkItemResult = await _azureDevOpsRepository.GetWorkItemAsync(workItem.WorkItemId);
-        
+
         if (!currentWorkItemResult.IsSuccess)
         {
             // 無法取得完整資訊，視為 NotFound
@@ -167,7 +162,7 @@ public class GetUserStoryTask : ITask
         }
 
         var currentWorkItem = currentWorkItemResult.Value!;
-        
+
         // 檢查是否有 Parent
         if (!currentWorkItem.ParentId.HasValue)
         {
@@ -245,7 +240,7 @@ public class GetUserStoryTask : ITask
 
         // 呼叫 Azure DevOps API 取得 Work Item（包含 Relations）
         var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
-        
+
         if (!result.IsSuccess)
         {
             _logger.LogWarning("無法取得 Work Item {WorkItemId}: {Error}", workItemId, result.Error?.Message);
