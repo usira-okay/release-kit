@@ -22,10 +22,11 @@ public sealed record WorkItemFetchResult
     public required int TotalPRsAnalyzed { get; init; }
 
     /// <summary>
-    /// 解析出的不重複 Work Item ID 總數
+    /// 解析出的 Work Item ID 總數
     /// </summary>
     /// <remarks>
-    /// 從所有 PR 標題中解析出並去重複後的 VSTS ID 數量。
+    /// 從所有 PR 解析出的 VSTS Work Item ID 總數，包含同一 ID 被多個 PR 參照的情況。
+    /// 此數量等同於最終 WorkItems 清單的長度。
     /// </remarks>
     public required int TotalWorkItemsFound { get; init; }
 
