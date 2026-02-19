@@ -55,13 +55,13 @@ public sealed record UserStoryWorkItemOutput
     public required UserStoryResolutionStatus ResolutionStatus { get; init; }
 
     /// <summary>
-    /// 觸發此 Work Item 查詢的 PR 網址
+    /// 觸發此 Work Item 查詢的 PR ID
     /// </summary>
     /// <remarks>
     /// 記錄源頭 PR，不寫入 OriginalWorkItem，
     /// 保持 OriginalWorkItem 的原始性。
     /// </remarks>
-    public string? PrUrl { get; init; }
+    public string? PrId { get; init; }
 
     /// <summary>
     /// 原始 Work Item 資訊（若無轉換則為 null）

@@ -40,13 +40,13 @@ public sealed record WorkItemOutput
     public string? OriginalTeamName { get; init; }
 
     /// <summary>
-    /// 觸發此 Work Item 查詢的 PR 網址
+    /// 觸發此 Work Item 查詢的 PR ID
     /// </summary>
     /// <remarks>
     /// 用於追蹤此 Work Item 由哪個 PR 觸發查詢。
     /// 若非由 PR 觸發，此值為 null。
     /// </remarks>
-    public string? PrUrl { get; init; }
+    public string? PrId { get; init; }
 
     /// <summary>
     /// 是否成功取得 Work Item 資訊

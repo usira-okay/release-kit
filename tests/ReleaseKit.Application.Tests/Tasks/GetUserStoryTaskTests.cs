@@ -489,16 +489,16 @@ public class GetUserStoryTaskTests
     }
 
     /// <summary>
-    /// T010: 測試 UserStoryWorkItemOutput.PrUrl 包含來源 PR，且 OriginalWorkItem.PrUrl 為 null
+    /// T010: 測試 UserStoryWorkItemOutput.PrId 包含來源 PR，且 OriginalWorkItem.PrId 為 null
     /// </summary>
     /// <remarks>
     /// 驗證 Phase 4 User Story 3 的需求：
-    /// - UserStoryWorkItemOutput.PrUrl 應等於輸入 WorkItemOutput.PrUrl
-    /// - OriginalWorkItem.PrUrl 應為 null（使用 with-expression 清除）
+    /// - UserStoryWorkItemOutput.PrId 應等於輸入 WorkItemOutput.PrId
+    /// - OriginalWorkItem.PrId 應為 null（使用 with-expression 清除）
     /// 涵蓋兩種情境：FoundViaRecursion 與 NotFound
     /// </remarks>
     [Fact]
-    public async Task ProcessWorkItemAsync_ShouldSetPrUrlInUserStoryWorkItemButNotInOriginalWorkItem()
+    public async Task ProcessWorkItemAsync_ShouldSetPrIdInUserStoryWorkItemButNotInOriginalWorkItem()
     {
         // Arrange - 兩個 Work Item：一個會找到 User Story（FoundViaRecursion），一個找不到（NotFound）
         var workItemResult = new WorkItemFetchResult
@@ -514,7 +514,7 @@ public class GetUserStoryTaskTests
                     State = "Resolved",
                     Url = "https://dev.azure.com/org/proj/_workitems/edit/11111",
                     OriginalTeamName = "Platform/Web",
-                    PrUrl = "https://gitlab.com/proj/mrs/100",
+                    PrId = "100",
                     IsSuccess = true,
                     ErrorMessage = null
                 },
@@ -527,7 +527,7 @@ public class GetUserStoryTaskTests
                     State = "Active",
                     Url = "https://dev.azure.com/org/proj/_workitems/edit/22222",
                     OriginalTeamName = "Platform/Web",
-                    PrUrl = "https://gitlab.com/proj/mrs/200",
+                    PrId = "200",
                     IsSuccess = true,
                     ErrorMessage = null
                 }
@@ -569,16 +569,16 @@ public class GetUserStoryTaskTests
         // 驗證 Work Item 1 (FoundViaRecursion)
         var userStory1 = result.WorkItems.First(w => w.WorkItemId == 67890);
         Assert.Equal(UserStoryResolutionStatus.FoundViaRecursion, userStory1.ResolutionStatus);
-        Assert.Equal("https://gitlab.com/proj/mrs/100", userStory1.PrUrl);
+        Assert.Equal("100", userStory1.PrId);
         Assert.NotNull(userStory1.OriginalWorkItem);
-        Assert.Null(userStory1.OriginalWorkItem.PrUrl); // OriginalWorkItem.PrUrl 應為 null
+        Assert.Null(userStory1.OriginalWorkItem.PrId); // OriginalWorkItem.PrId 應為 null
 
         // 驗證 Work Item 2 (NotFound)
         var userStory2 = result.WorkItems.First(w => w.WorkItemId == 22222);
         Assert.Equal(UserStoryResolutionStatus.NotFound, userStory2.ResolutionStatus);
-        Assert.Equal("https://gitlab.com/proj/mrs/200", userStory2.PrUrl);
+        Assert.Equal("200", userStory2.PrId);
         Assert.NotNull(userStory2.OriginalWorkItem);
-        Assert.Null(userStory2.OriginalWorkItem.PrUrl); // OriginalWorkItem.PrUrl 應為 null
+        Assert.Null(userStory2.OriginalWorkItem.PrId); // OriginalWorkItem.PrId 應為 null
     }
 
     // Helper methods

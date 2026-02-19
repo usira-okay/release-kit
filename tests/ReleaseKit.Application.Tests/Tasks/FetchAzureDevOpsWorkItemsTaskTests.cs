@@ -103,7 +103,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithDuplicateVSTSIdsAcrossPRs_ShouldPreserveDuplicatesAndTrackPrUrls()
+    public async Task ExecuteAsync_WithDuplicateVSTSIdsAcrossPRs_ShouldPreserveDuplicatesAndTrackPrIds()
     {
         // Arrange - 兩個不同的 PR，但都指向相同的 Work Item ID
         // 新需求：不去重複，保留所有 PR-WorkItem 對應關係
@@ -125,6 +125,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                             State = "merged",
                             AuthorUserId = "12345",
                             AuthorName = "Test User",
+                            PrId = "1",
                             PRUrl = "https://gitlab.com/proj/mrs/1",
                             CreatedAt = DateTimeOffset.UtcNow,
                             WorkItemId = 123
@@ -137,6 +138,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
                             State = "merged",
                             AuthorUserId = "67890",
                             AuthorName = "Another User",
+                            PrId = "2",
                             PRUrl = "https://gitlab.com/proj/mrs/2",
                             CreatedAt = DateTimeOffset.UtcNow,
                             WorkItemId = 123
@@ -165,14 +167,14 @@ public class FetchAzureDevOpsWorkItemsTaskTests
             Assert.Equal(2, result.TotalPRsAnalyzed);
             Assert.Equal(2, result.TotalWorkItemsFound); // 包含重複
             
-            // 驗證每個 WorkItemOutput 都有對應的 PrUrl
+            // 驗證每個 WorkItemOutput 都有對應的 PrId
             var firstWorkItem = result.WorkItems[0];
             Assert.Equal(123, firstWorkItem.WorkItemId);
-            Assert.Equal("https://gitlab.com/proj/mrs/1", firstWorkItem.PrUrl);
+            Assert.Equal("1", firstWorkItem.PrId);
             
             var secondWorkItem = result.WorkItems[1];
             Assert.Equal(123, secondWorkItem.WorkItemId);
-            Assert.Equal("https://gitlab.com/proj/mrs/2", secondWorkItem.PrUrl);
+            Assert.Equal("2", secondWorkItem.PrId);
         });
     }
 
@@ -422,6 +424,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
             State = "merged",
             AuthorUserId = "12345",
             AuthorName = "Test User",
+            PrId = "1",
             PRUrl = "https://example.com/pr/1",
             CreatedAt = DateTimeOffset.UtcNow,
             WorkItemId = workItemId

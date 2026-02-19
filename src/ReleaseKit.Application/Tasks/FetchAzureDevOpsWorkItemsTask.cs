@@ -125,16 +125,16 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// 從 PR 中提取 Work Item ID 與 PR 關聯
     /// </summary>
     /// <param name="pullRequests">PR 清單</param>
-    /// <returns>PR URL 與 Work Item ID 的對應清單（保留重複）</returns>
+    /// <returns>PR ID 與 Work Item ID 的對應清單（保留重複）</returns>
     /// <remarks>
     /// 直接使用 PR 的 WorkItemId 欄位（已從 SourceBranch 解析）。
     /// 不去重複，保留每個 PR 與 Work Item 的對應關係。
     /// </remarks>
-    private List<(string prUrl, int workItemId)> ExtractWorkItemIdsFromPRs(List<MergeRequestOutput> pullRequests)
+    private List<(string prId, int workItemId)> ExtractWorkItemIdsFromPRs(List<MergeRequestOutput> pullRequests)
     {
         var workItemPairs = pullRequests
             .Where(pr => pr.WorkItemId.HasValue)
-            .Select(pr => (pr.PRUrl, pr.WorkItemId!.Value))
+            .Select(pr => (pr.PrId, pr.WorkItemId!.Value))
             .ToList();
 
         return workItemPairs;
@@ -143,15 +143,15 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <summary>
     /// 逐一查詢 Work Item
     /// </summary>
-    /// <param name="workItemPairs">Work Item ID 與 PR URL 對應清單</param>
+    /// <param name="workItemPairs">Work Item ID 與 PR ID 對應清單</param>
     /// <returns>Work Item 輸出清單</returns>
-    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(IReadOnlyList<(string prUrl, int workItemId)> workItemPairs)
+    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(IReadOnlyList<(string prId, int workItemId)> workItemPairs)
     {
         var outputs = new List<WorkItemOutput>();
 
         _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemPairs.Count);
         var processedCount = 0;
-        foreach (var (prUrl, workItemId) in workItemPairs)
+        foreach (var (prId, workItemId) in workItemPairs)
         {
             processedCount++;
             _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
@@ -168,7 +168,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     State = result.Value.State,
                     Url = result.Value.Url,
                     OriginalTeamName = result.Value.OriginalTeamName,
-                    PrUrl = prUrl,
+                    PrId = prId,
                     IsSuccess = true,
                     ErrorMessage = null
                 });
@@ -184,7 +184,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     State = null,
                     Url = null,
                     OriginalTeamName = null,
-                    PrUrl = prUrl,
+                    PrId = prId,
                     IsSuccess = false,
                     ErrorMessage = result.Error.Message
                 });
