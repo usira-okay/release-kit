@@ -70,6 +70,7 @@ public sealed class MultiProjectExecutionTests
                 State = "merged",
                 AuthorUserId = "user123",
                 AuthorName = "John Doe",
+                PrId = "1",
                 PRUrl = "https://gitlab.example.com/group/project/-/merge_requests/1",
                 Platform = Domain.ValueObjects.SourceControlPlatform.GitLab,
                 ProjectPath = "group/project"

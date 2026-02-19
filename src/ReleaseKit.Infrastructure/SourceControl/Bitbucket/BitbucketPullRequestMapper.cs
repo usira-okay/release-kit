@@ -29,6 +29,7 @@ public static class BitbucketPullRequestMapper
             State = response.State,
             AuthorUserId = response.Author.Uuid,
             AuthorName = response.Author.DisplayName,
+            PrId = response.Id.ToString(),
             PRUrl = response.Links.Html.Href,
             Platform = SourceControlPlatform.Bitbucket,
             ProjectPath = projectPath,

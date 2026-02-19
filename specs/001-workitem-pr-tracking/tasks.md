@@ -21,9 +21,9 @@
 
 **⚠️ CRITICAL**: US2 與 US3 依賴此階段完成
 
-- [ ] T001 [P] 在 `src/ReleaseKit.Application/Common/WorkItemOutput.cs` 新增 `string? PrUrl` 欄位，附繁體中文 XML Summary 註解
-- [ ] T002 [P] 在 `src/ReleaseKit.Application/Common/UserStoryWorkItemOutput.cs` 新增 `string? PrUrl` 欄位，附繁體中文 XML Summary 註解，並說明不寫入 OriginalWorkItem 的原因
-- [ ] T003 更新 `src/ReleaseKit.Application/Common/WorkItemFetchResult.cs` 中 `TotalWorkItemsFound` 欄位的 XML 註解，移除「不重複」描述，改為說明此為包含重複的 Work Item ID 總數
+- [x] T001 [P] 在 `src/ReleaseKit.Application/Common/WorkItemOutput.cs` 新增 `string? PrUrl` 欄位，附繁體中文 XML Summary 註解
+- [x] T002 [P] 在 `src/ReleaseKit.Application/Common/UserStoryWorkItemOutput.cs` 新增 `string? PrUrl` 欄位，附繁體中文 XML Summary 註解，並說明不寫入 OriginalWorkItem 的原因
+- [x] T003 更新 `src/ReleaseKit.Application/Common/WorkItemFetchResult.cs` 中 `TotalWorkItemsFound` 欄位的 XML 註解，移除「不重複」描述，改為說明此為包含重複的 Work Item ID 總數
 
 **Checkpoint**: 建置狀態 ✅ 可建置 | 測試狀態 ✅ 通過（無新測試，僅欄位擴充）
 
@@ -39,12 +39,12 @@
 
 > **⚠️ TDD 規則：執行測試確認 RED 後，再進行 Implementation**
 
-- [ ] T004 [US1] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs` 新增測試：當多個 PR 指向同一 WorkItemId 時，`ExtractWorkItemIdsFromPRs` 結果包含重複項目（驗證不去重複）
+- [x] T004 [US1] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs` 新增測試：當多個 PR 指向同一 WorkItemId 時，`ExtractWorkItemIdsFromPRs` 結果包含重複項目（驗證不去重複）
 
 ### 實作
 
-- [ ] T005 [US1] 修改 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 的 `ExtractWorkItemIdsFromPRs` 方法：返回型別從 `HashSet<int>` 改為 `List<(string prUrl, int workItemId)>`，以 `.Select(pr => (pr.PRUrl, pr.WorkItemId!.Value)).ToList()` 取代 `.ToHashSet()`；同時更新方法 XML 註解移除「不重複」說明
-- [ ] T006 [US1] 在 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 更新 `FetchWorkItemsAsync` 方法簽章：參數型別從 `HashSet<int>` 改為 `IReadOnlyList<(string prUrl, int workItemId)>`，並更新 `ExecuteAsync` 中的呼叫端與相關變數
+- [x] T005 [US1] 修改 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 的 `ExtractWorkItemIdsFromPRs` 方法：返回型別從 `HashSet<int>` 改為 `List<(string prUrl, int workItemId)>`，以 `.Select(pr => (pr.PRUrl, pr.WorkItemId!.Value)).ToList()` 取代 `.ToHashSet()`；同時更新方法 XML 註解移除「不重複」說明
+- [x] T006 [US1] 在 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 更新 `FetchWorkItemsAsync` 方法簽章：參數型別從 `HashSet<int>` 改為 `IReadOnlyList<(string prUrl, int workItemId)>`，並更新 `ExecuteAsync` 中的呼叫端與相關變數
 
 **Checkpoint**: 建置狀態 ✅ 可建置 | 測試狀態 ✅ 通過（T004 通過、既有測試通過）
 
@@ -60,12 +60,12 @@
 
 > **⚠️ TDD 規則：執行測試確認 RED 後，再進行 Implementation**
 
-- [ ] T007 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs` 新增測試：`FetchWorkItemsAsync` 建立的 `WorkItemOutput` 中 `PrUrl` 欄位值等於輸入 PR 的 `PRUrl`（同時驗證成功查詢與失敗查詢兩種情境）
+- [x] T007 [US2] 在 `tests/ReleaseKit.Application.Tests/Tasks/FetchAzureDevOpsWorkItemsTaskTests.cs` 新增測試：`FetchWorkItemsAsync` 建立的 `WorkItemOutput` 中 `PrUrl` 欄位值等於輸入 PR 的 `PRUrl`（同時驗證成功查詢與失敗查詢兩種情境）
 
 ### 實作
 
-- [ ] T008 [US2] 在 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 的 `FetchWorkItemsAsync` 方法中，更新迴圈以使用 `(string prUrl, int workItemId)` 解構，並在兩個 `WorkItemOutput` 建立位置（成功行 162 與失敗行 177）新增 `PrUrl = prUrl`
-- [ ] T009 [US2] 在 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 的 `ExecuteAsync` 方法中更新 Log 訊息（行 62）：從「解析出 {WorkItemCount} 個不重複的 Work Item ID」改為「解析出 {WorkItemCount} 個 Work Item ID（含重複）」
+- [x] T008 [US2] 在 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 的 `FetchWorkItemsAsync` 方法中，更新迴圈以使用 `(string prUrl, int workItemId)` 解構，並在兩個 `WorkItemOutput` 建立位置（成功行 162 與失敗行 177）新增 `PrUrl = prUrl`
+- [x] T009 [US2] 在 `src/ReleaseKit.Application/Tasks/FetchAzureDevOpsWorkItemsTask.cs` 的 `ExecuteAsync` 方法中更新 Log 訊息（行 62）：從「解析出 {WorkItemCount} 個不重複的 Work Item ID」改為「解析出 {WorkItemCount} 個 Work Item ID（含重複）」
 
 **Checkpoint**: 建置狀態 ✅ 可建置 | 測試狀態 ✅ 通過（T007 通過、既有測試通過）
 
@@ -81,12 +81,12 @@
 
 > **⚠️ TDD 規則：執行測試確認 RED 後，再進行 Implementation**
 
-- [ ] T010 [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs` 新增測試：`ProcessWorkItemAsync` 結果中 `UserStoryWorkItemOutput.PrUrl` 等於輸入 `WorkItemOutput.PrUrl`，且 `OriginalWorkItem.PrUrl` 為 null（涵蓋 FoundViaRecursion 與 NotFound 兩種情境）
+- [x] T010 [US3] 在 `tests/ReleaseKit.Application.Tests/Tasks/GetUserStoryTaskTests.cs` 新增測試：`ProcessWorkItemAsync` 結果中 `UserStoryWorkItemOutput.PrUrl` 等於輸入 `WorkItemOutput.PrUrl`，且 `OriginalWorkItem.PrUrl` 為 null（涵蓋 FoundViaRecursion 與 NotFound 兩種情境）
 
 ### 實作
 
-- [ ] T011 [US3] 在 `src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs` 的 `ProcessWorkItemAsync` 方法中，於所有 `UserStoryWorkItemOutput` 建立位置新增 `PrUrl = workItem.PrUrl`（共 4 個建立點：OriginalFetchFailed、AlreadyUserStoryOrAbove、NotFound×2、FoundViaRecursion）
-- [ ] T012 [US3] 在 `src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs` 的 `ProcessWorkItemAsync` 方法中，將所有 `OriginalWorkItem = workItem` 替換為 `OriginalWorkItem = workItem with { PrUrl = null }`（共 4 個位置：行 160、181、203、220）
+- [x] T011 [US3] 在 `src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs` 的 `ProcessWorkItemAsync` 方法中，於所有 `UserStoryWorkItemOutput` 建立位置新增 `PrUrl = workItem.PrUrl`（共 4 個建立點：OriginalFetchFailed、AlreadyUserStoryOrAbove、NotFound×2、FoundViaRecursion）
+- [x] T012 [US3] 在 `src/ReleaseKit.Application/Tasks/GetUserStoryTask.cs` 的 `ProcessWorkItemAsync` 方法中，將所有 `OriginalWorkItem = workItem` 替換為 `OriginalWorkItem = workItem with { PrUrl = null }`（共 4 個位置：行 160、181、203、220）
 
 **Checkpoint**: 建置狀態 ✅ 可建置 | 測試狀態 ✅ 通過（T010 通過、既有測試通過）
 
@@ -96,8 +96,8 @@
 
 **Purpose**: 最終完整驗證，確保所有 User Story 均可正常運作
 
-- [ ] T013 執行完整建置確認無編譯錯誤：`dotnet build`
-- [ ] T014 執行所有單元測試確認全部通過：`dotnet test`
+- [x] T013 執行完整建置確認無編譯錯誤：`dotnet build`
+- [x] T014 執行所有單元測試確認全部通過：`dotnet test`
 
 **Final Checkpoint**: 建置狀態 ✅ 可建置 | 測試狀態 ✅ 通過（全部測試）
 

@@ -29,6 +29,7 @@ public static class GitLabMergeRequestMapper
             State = response.State,
             AuthorUserId = response.Author.Id.ToString(),
             AuthorName = response.Author.Username,
+            PrId = response.Iid.ToString(),
             PRUrl = response.WebUrl,
             Platform = SourceControlPlatform.GitLab,
             ProjectPath = projectPath,

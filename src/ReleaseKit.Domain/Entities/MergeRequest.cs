@@ -97,6 +97,15 @@ public sealed record MergeRequest
     public required string AuthorName { get; init; }
 
     /// <summary>
+    /// PR/MR ID
+    /// </summary>
+    /// <remarks>
+    /// 對應 GitLab 的 iid 欄位或 Bitbucket 的 id 欄位。
+    /// 用於唯一識別平台內的 PR/MR。
+    /// </remarks>
+    public required string PrId { get; init; }
+
+    /// <summary>
     /// PR/MR 網址
     /// </summary>
     /// <remarks>

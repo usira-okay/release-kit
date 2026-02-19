@@ -145,6 +145,7 @@ public class TasksTests
                 State = "merged",
                 AuthorUserId = "user1",
                 AuthorName = "Test User",
+                PrId = "1",
                 PRUrl = "https://gitlab.com/test/project/-/merge_requests/1",
                 Platform = ReleaseKit.Domain.ValueObjects.SourceControlPlatform.GitLab,
                 ProjectPath = "test/project"
@@ -241,6 +242,7 @@ public class TasksTests
                 State = "merged",
                 AuthorUserId = "user2",
                 AuthorName = "Another User",
+                PrId = "2",
                 PRUrl = "https://gitlab.com/test/project/-/merge_requests/2",
                 Platform = ReleaseKit.Domain.ValueObjects.SourceControlPlatform.GitLab,
                 ProjectPath = "test/project"
@@ -336,6 +338,7 @@ public class TasksTests
                 State = "merged",
                 AuthorUserId = "user1",
                 AuthorName = "Test User",
+                PrId = "1",
                 PRUrl = "https://bitbucket.org/workspace/repo/pull-requests/1",
                 Platform = ReleaseKit.Domain.ValueObjects.SourceControlPlatform.Bitbucket,
                 ProjectPath = "workspace/repo"
@@ -432,6 +435,7 @@ public class TasksTests
                 State = "merged",
                 AuthorUserId = "user2",
                 AuthorName = "Another User",
+                PrId = "2",
                 PRUrl = "https://bitbucket.org/workspace/repo/pull-requests/2",
                 Platform = ReleaseKit.Domain.ValueObjects.SourceControlPlatform.Bitbucket,
                 ProjectPath = "workspace/repo"

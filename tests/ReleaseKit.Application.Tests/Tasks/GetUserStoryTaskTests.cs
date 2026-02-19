@@ -488,6 +488,99 @@ public class GetUserStoryTaskTests
         Assert.Contains("最大遞迴深度", result.WorkItems[0].ErrorMessage ?? "");
     }
 
+    /// <summary>
+    /// T010: 測試 UserStoryWorkItemOutput.PrId 包含來源 PR，且 OriginalWorkItem.PrId 為 null
+    /// </summary>
+    /// <remarks>
+    /// 驗證 Phase 4 User Story 3 的需求：
+    /// - UserStoryWorkItemOutput.PrId 應等於輸入 WorkItemOutput.PrId
+    /// - OriginalWorkItem.PrId 應為 null（使用 with-expression 清除）
+    /// 涵蓋兩種情境：FoundViaRecursion 與 NotFound
+    /// </remarks>
+    [Fact]
+    public async Task ProcessWorkItemAsync_ShouldSetPrIdInUserStoryWorkItemButNotInOriginalWorkItem()
+    {
+        // Arrange - 兩個 Work Item：一個會找到 User Story（FoundViaRecursion），一個找不到（NotFound）
+        var workItemResult = new WorkItemFetchResult
+        {
+            WorkItems = new List<WorkItemOutput>
+            {
+                // Work Item 1: Bug with parent User Story (FoundViaRecursion)
+                new WorkItemOutput
+                {
+                    WorkItemId = 11111,
+                    Title = "修正登入按鈕顏色",
+                    Type = "Bug",
+                    State = "Resolved",
+                    Url = "https://dev.azure.com/org/proj/_workitems/edit/11111",
+                    OriginalTeamName = "Platform/Web",
+                    PrId = "100",
+                    IsSuccess = true,
+                    ErrorMessage = null
+                },
+                // Work Item 2: Bug with no parent (NotFound)
+                new WorkItemOutput
+                {
+                    WorkItemId = 22222,
+                    Title = "獨立 Bug",
+                    Type = "Bug",
+                    State = "Active",
+                    Url = "https://dev.azure.com/org/proj/_workitems/edit/22222",
+                    OriginalTeamName = "Platform/Web",
+                    PrId = "200",
+                    IsSuccess = true,
+                    ErrorMessage = null
+                }
+            },
+            TotalPRsAnalyzed = 2,
+            TotalWorkItemsFound = 2,
+            SuccessCount = 2,
+            FailureCount = 0
+        };
+        
+        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+            .ReturnsAsync(workItemResult.ToJson());
+
+        // Mock Work Item 1 (Bug) with parent 67890 (User Story)
+        var bugWorkItem = CreateWorkItemWithParent(11111, "修正登入按鈕顏色", "Bug", "Resolved", 67890);
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(11111))
+            .ReturnsAsync(Result<WorkItem>.Success(bugWorkItem));
+
+        // Mock Parent (User Story) without parent
+        var parentWorkItem = CreateWorkItemWithParent(67890, "新增使用者登入功能", "User Story", "Active", null);
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(67890))
+            .ReturnsAsync(Result<WorkItem>.Success(parentWorkItem));
+
+        // Mock Work Item 2 (Bug) with no parent
+        var bugWithoutParent = CreateWorkItemWithParent(22222, "獨立 Bug", "Bug", "Active", null);
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(22222))
+            .ReturnsAsync(Result<WorkItem>.Success(bugWithoutParent));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        var result = _capturedRedisJson!.ToTypedObject<UserStoryFetchResult>();
+        Assert.NotNull(result);
+        Assert.Equal(2, result.WorkItems.Count);
+
+        // 驗證 Work Item 1 (FoundViaRecursion)
+        var userStory1 = result.WorkItems.First(w => w.WorkItemId == 67890);
+        Assert.Equal(UserStoryResolutionStatus.FoundViaRecursion, userStory1.ResolutionStatus);
+        Assert.Equal("100", userStory1.PrId);
+        Assert.NotNull(userStory1.OriginalWorkItem);
+        Assert.Null(userStory1.OriginalWorkItem.PrId); // OriginalWorkItem.PrId 應為 null
+
+        // 驗證 Work Item 2 (NotFound)
+        var userStory2 = result.WorkItems.First(w => w.WorkItemId == 22222);
+        Assert.Equal(UserStoryResolutionStatus.NotFound, userStory2.ResolutionStatus);
+        Assert.Equal("200", userStory2.PrId);
+        Assert.NotNull(userStory2.OriginalWorkItem);
+        Assert.Null(userStory2.OriginalWorkItem.PrId); // OriginalWorkItem.PrId 應為 null
+    }
+
     // Helper methods
     private GetUserStoryTask CreateTask()
     {
