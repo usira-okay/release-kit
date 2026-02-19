@@ -89,6 +89,7 @@ public sealed class MultiProjectExecutionTests
             State = mr.State,
             AuthorUserId = mr.AuthorUserId,
             AuthorName = mr.AuthorName,
+            PrId = mr.PrId,
             PRUrl = mr.PRUrl
         }).ToList();
 
@@ -100,6 +101,7 @@ public sealed class MultiProjectExecutionTests
         Assert.Equal("main", output.TargetBranch);
         Assert.Equal("user123", output.AuthorUserId);
         Assert.Equal("John Doe", output.AuthorName);
+        Assert.Equal("1", output.PrId);
     }
 
     [Fact]
