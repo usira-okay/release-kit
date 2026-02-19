@@ -291,6 +291,36 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenRepositoryReturnsNullWorkItem_ShouldRecordFailure()
+    {
+        // Arrange
+        var fetchResult = CreateFetchResult("空結果測試", "feature/VSTS123-null", "main");
+        SetupRedis(gitLabData: fetchResult);
+
+        _azureDevOpsRepositoryMock
+            .Setup(x => x.GetWorkItemAsync(123))
+            .ReturnsAsync(Result<WorkItem>.Success(null!));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        VerifyRedisWrite(result =>
+        {
+            Assert.Equal(1, result.TotalWorkItemsFound);
+            Assert.Equal(0, result.SuccessCount);
+            Assert.Equal(1, result.FailureCount);
+
+            var workItem = Assert.Single(result.WorkItems);
+            Assert.Equal(123, workItem.WorkItemId);
+            Assert.False(workItem.IsSuccess);
+            Assert.False(string.IsNullOrWhiteSpace(workItem.ErrorMessage));
+        });
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithBothGitLabAndBitbucketData_ShouldProcessAll()
     {
         // Arrange

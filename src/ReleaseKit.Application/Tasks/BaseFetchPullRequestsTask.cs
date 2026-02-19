@@ -226,8 +226,9 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
 
         if (result.IsFailure)
         {
+            var error = result.Error;
             throw new InvalidOperationException(
-                $"拉取專案 {project.ProjectPath} 的 PR/MR 失敗: Code={result.Error.Code}, Message={result.Error.Message}");
+                $"拉取專案 {project.ProjectPath} 的 PR/MR 失敗: Code={error?.Code ?? "UNKNOWN"}, Message={error?.Message ?? "未知錯誤"}");
         }
 
         _logger.LogInformation("專案 {ProjectPath} 取得 {Count} 筆 PR/MR", project.ProjectPath, result.Value?.Count ?? 0);

@@ -164,6 +164,12 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             {
                 _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
                 result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+                if (result.IsSuccess && result.Value is null)
+                {
+                    _logger.LogWarning("查詢 Work Item {WorkItemId} 回傳空結果", workItemId);
+                    result = Result<WorkItem>.Failure(Error.AzureDevOps.ApiError($"Work Item '{workItemId}' 回傳空結果"));
+                }
+
                 _workItemCache[workItemId] = result;
             }
             else
@@ -171,16 +177,17 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                 _logger.LogInformation("從快取讀取 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
             }
 
-            if (result.IsSuccess)
+            if (result.IsSuccess && result.Value is not null)
             {
+                var workItem = result.Value;
                 outputs.Add(new WorkItemOutput
                 {
-                    WorkItemId = result.Value.WorkItemId,
-                    Title = result.Value.Title,
-                    Type = result.Value.Type,
-                    State = result.Value.State,
-                    Url = result.Value.Url,
-                    OriginalTeamName = result.Value.OriginalTeamName,
+                    WorkItemId = workItem.WorkItemId,
+                    Title = workItem.Title,
+                    Type = workItem.Type,
+                    State = workItem.State,
+                    Url = workItem.Url,
+                    OriginalTeamName = workItem.OriginalTeamName,
                     PrId = prId,
                     IsSuccess = true,
                     ErrorMessage = null
@@ -188,7 +195,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
-                _logger.LogWarning("查詢 Work Item {WorkItemId} 失敗：{ErrorMessage}", workItemId, result.Error.Message);
+                _logger.LogWarning("查詢 Work Item {WorkItemId} 失敗：{ErrorMessage}", workItemId, result.Error?.Message);
                 outputs.Add(new WorkItemOutput
                 {
                     WorkItemId = workItemId,
@@ -199,7 +206,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     OriginalTeamName = null,
                     PrId = prId,
                     IsSuccess = false,
-                    ErrorMessage = result.Error.Message
+                    ErrorMessage = result.Error?.Message ?? "Azure DevOps 回傳空結果"
                 });
             }
         }
