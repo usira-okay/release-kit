@@ -70,6 +70,7 @@ public sealed class MultiProjectExecutionTests
                 State = "merged",
                 AuthorUserId = "user123",
                 AuthorName = "John Doe",
+                PrId = "1",
                 PRUrl = "https://gitlab.example.com/group/project/-/merge_requests/1",
                 Platform = Domain.ValueObjects.SourceControlPlatform.GitLab,
                 ProjectPath = "group/project"
@@ -88,6 +89,7 @@ public sealed class MultiProjectExecutionTests
             State = mr.State,
             AuthorUserId = mr.AuthorUserId,
             AuthorName = mr.AuthorName,
+            PrId = mr.PrId,
             PRUrl = mr.PRUrl
         }).ToList();
 
@@ -99,6 +101,7 @@ public sealed class MultiProjectExecutionTests
         Assert.Equal("main", output.TargetBranch);
         Assert.Equal("user123", output.AuthorUserId);
         Assert.Equal("John Doe", output.AuthorName);
+        Assert.Equal("1", output.PrId);
     }
 
     [Fact]

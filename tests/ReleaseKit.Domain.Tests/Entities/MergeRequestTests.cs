@@ -29,6 +29,7 @@ public class MergeRequestTests
             AuthorUserId = "12345",
             AuthorName = "john.doe",
             PRUrl = "https://gitlab.example.com/mygroup/backend-api/-/merge_requests/42",
+            PrId = "42",
             Platform = SourceControlPlatform.GitLab,
             ProjectPath = "mygroup/backend-api"
         };
@@ -63,6 +64,7 @@ public class MergeRequestTests
             State = "merged",
             AuthorUserId = "123",
             AuthorName = "test",
+            PrId = "1",
             PRUrl = "https://example.com/pr/1",
             Platform = SourceControlPlatform.GitLab,
             ProjectPath = "test/project"
@@ -86,6 +88,7 @@ public class MergeRequestTests
             State = "merged",
             AuthorUserId = "123",
             AuthorName = "test",
+            PrId = "1",
             PRUrl = "https://example.com",
             Platform = SourceControlPlatform.GitLab,
             ProjectPath = "test/project"
@@ -109,6 +112,7 @@ public class MergeRequestTests
             State = "merged",
             AuthorUserId = "123",
             AuthorName = "test",
+            PrId = "1",
             PRUrl = "https://example.com",
             Platform = SourceControlPlatform.Bitbucket,
             ProjectPath = "test/project"

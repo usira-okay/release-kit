@@ -57,6 +57,15 @@ public sealed record MergeRequestOutput
     public string AuthorName { get; init; } = string.Empty;
 
     /// <summary>
+    /// PR/MR ID
+    /// </summary>
+    /// <remarks>
+    /// 對應 GitLab 的 iid 或 Bitbucket 的 id。
+    /// 用於唯一識別平台內的 PR/MR。
+    /// </remarks>
+    public string PrId { get; init; } = string.Empty;
+
+    /// <summary>
     /// PR/MR 網址
     /// </summary>
     public string PRUrl { get; init; } = string.Empty;

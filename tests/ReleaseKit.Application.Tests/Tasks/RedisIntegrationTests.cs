@@ -143,6 +143,7 @@ public class RedisIntegrationTests
                 State = "merged",
                 AuthorUserId = "user1",
                 AuthorName = "Test User",
+                PrId = "1",
                 PRUrl = "https://gitlab.com/test/project/-/merge_requests/1",
                 Platform = SourceControlPlatform.GitLab,
                 ProjectPath = "test/project"
@@ -270,6 +271,7 @@ public class RedisIntegrationTests
                 State = "merged",
                 AuthorUserId = "user1",
                 AuthorName = "Test User",
+                PrId = "1",
                 PRUrl = "https://bitbucket.org/workspace/repo/pull-requests/1",
                 Platform = SourceControlPlatform.Bitbucket,
                 ProjectPath = "workspace/repo"

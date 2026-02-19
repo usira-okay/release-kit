@@ -114,6 +114,7 @@ public class GetUserStoryTask : ITask
                 State = null,
                 Url = null,
                 OriginalTeamName = null,
+                PrId = workItem.PrId,
                 IsSuccess = false,
                 ErrorMessage = workItem.ErrorMessage,
                 ResolutionStatus = UserStoryResolutionStatus.OriginalFetchFailed,
@@ -132,6 +133,7 @@ public class GetUserStoryTask : ITask
                 State = workItem.State,
                 Url = workItem.Url,
                 OriginalTeamName = workItem.OriginalTeamName,
+                PrId = workItem.PrId,
                 IsSuccess = true,
                 ErrorMessage = null,
                 ResolutionStatus = UserStoryResolutionStatus.AlreadyUserStoryOrAbove,
@@ -154,10 +156,11 @@ public class GetUserStoryTask : ITask
                 State = workItem.State,
                 Url = workItem.Url,
                 OriginalTeamName = workItem.OriginalTeamName,
+                PrId = workItem.PrId,
                 IsSuccess = true,
                 ErrorMessage = $"無法取得完整 Work Item 資訊: {currentWorkItemResult.Error?.Message}",
                 ResolutionStatus = UserStoryResolutionStatus.NotFound,
-                OriginalWorkItem = workItem
+                OriginalWorkItem = workItem with { PrId = null }
             };
         }
 
@@ -175,10 +178,11 @@ public class GetUserStoryTask : ITask
                 State = workItem.State,
                 Url = workItem.Url,
                 OriginalTeamName = workItem.OriginalTeamName,
+                PrId = workItem.PrId,
                 IsSuccess = true,
                 ErrorMessage = "未找到對應的 User Story",
                 ResolutionStatus = UserStoryResolutionStatus.NotFound,
-                OriginalWorkItem = workItem
+                OriginalWorkItem = workItem with { PrId = null }
             };
         }
 
@@ -197,10 +201,11 @@ public class GetUserStoryTask : ITask
                 State = userStoryResult.State,
                 Url = userStoryResult.Url,
                 OriginalTeamName = userStoryResult.OriginalTeamName,
+                PrId = workItem.PrId,
                 IsSuccess = true,
                 ErrorMessage = null,
                 ResolutionStatus = UserStoryResolutionStatus.FoundViaRecursion,
-                OriginalWorkItem = workItem
+                OriginalWorkItem = workItem with { PrId = null }
             };
         }
         else
@@ -214,10 +219,11 @@ public class GetUserStoryTask : ITask
                 State = workItem.State,
                 Url = workItem.Url,
                 OriginalTeamName = workItem.OriginalTeamName,
+                PrId = workItem.PrId,
                 IsSuccess = true,
                 ErrorMessage = userStoryResult.ErrorMessage,
                 ResolutionStatus = UserStoryResolutionStatus.NotFound,
-                OriginalWorkItem = workItem
+                OriginalWorkItem = workItem with { PrId = null }
             };
         }
     }

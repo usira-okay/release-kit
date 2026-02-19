@@ -133,6 +133,7 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
                         State = mr.State,
                         AuthorUserId = mr.AuthorUserId,
                         AuthorName = mr.AuthorName,
+                        PrId = mr.PrId,
                         PRUrl = mr.PRUrl,
                         WorkItemId = mr.WorkItemId
                     }).ToList()
