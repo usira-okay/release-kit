@@ -158,11 +158,11 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        // 新需求：不去重複，應該呼叫兩次
-        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Exactly(2));
+        // 使用快取：即使有重複的 Work Item ID，也只呼叫一次 API
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Once);
         VerifyRedisWrite(result =>
         {
-            // 新需求：保留重複，應該有兩筆 WorkItemOutput
+            // 保留重複：即使使用快取，仍應該有兩筆 WorkItemOutput（不同 PrId）
             Assert.Equal(2, result.WorkItems.Count);
             Assert.Equal(2, result.TotalPRsAnalyzed);
             Assert.Equal(2, result.TotalWorkItemsFound); // 包含重複
@@ -381,6 +381,63 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         // Assert
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
         _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDuplicateWorkItemIds_ShouldUseCacheAndReduceAPICalls()
+    {
+        // Arrange - 三個 PR 指向兩個不同的 Work Item（123 出現兩次，456 出現一次）
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = new List<MergeRequestOutput>
+                    {
+                        CreateMergeRequest("PR 1", "feature/VSTS123-pr1", "main"),
+                        CreateMergeRequest("PR 2", "feature/VSTS123-pr2", "main"),
+                        CreateMergeRequest("PR 3", "feature/VSTS456-pr3", "main")
+                    }
+                }
+            }
+        };
+        SetupRedis(gitLabData: fetchResult);
+        
+        var workItem123 = CreateWorkItem(123, "Work Item 123", "Bug", "Active");
+        var workItem456 = CreateWorkItem(456, "Work Item 456", "Task", "Closed");
+        
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(123)).ReturnsAsync(Result<WorkItem>.Success(workItem123));
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(456)).ReturnsAsync(Result<WorkItem>.Success(workItem456));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        // 快取生效：Work Item 123 只呼叫一次（雖然有兩個 PR 參照它）
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(123), Times.Once);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(456), Times.Once);
+        
+        VerifyRedisWrite(result =>
+        {
+            // 輸出仍保留所有對應關係：3 筆 WorkItemOutput
+            Assert.Equal(3, result.WorkItems.Count);
+            Assert.Equal(3, result.TotalWorkItemsFound);
+            
+            // 驗證 Work Item 123 有兩筆輸出（不同 PrId）
+            var workItems123 = result.WorkItems.Where(w => w.WorkItemId == 123).ToList();
+            Assert.Equal(2, workItems123.Count);
+            Assert.Contains(workItems123, w => w.PrId == "1");
+            Assert.Contains(workItems123, w => w.PrId == "1");
+            
+            // 驗證 Work Item 456 有一筆輸出
+            var workItems456 = result.WorkItems.Where(w => w.WorkItemId == 456).ToList();
+            Assert.Single(workItems456);
+        });
     }
 
     // Helper methods

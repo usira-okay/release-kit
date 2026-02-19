@@ -4,6 +4,7 @@ using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
+using ReleaseKit.Domain.Entities;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -19,6 +20,7 @@ public class GetUserStoryTask : ITask
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
     private readonly IRedisService _redisService;
     private readonly ILogger<GetUserStoryTask> _logger;
+    private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
     private const int DefaultMaxDepth = 10;
 
     public GetUserStoryTask(
@@ -29,6 +31,7 @@ public class GetUserStoryTask : ITask
         _azureDevOpsRepository = azureDevOpsRepository;
         _redisService = redisService;
         _logger = logger;
+        _workItemCache = new Dictionary<int, Result<WorkItem>>();
     }
 
     public async Task ExecuteAsync()
@@ -143,7 +146,12 @@ public class GetUserStoryTask : ITask
 
         // 遞迴查詢 Parent Work Item
         // 首先需要取得完整的 Work Item 資訊（包含 ParentId）
-        var currentWorkItemResult = await _azureDevOpsRepository.GetWorkItemAsync(workItem.WorkItemId);
+        Result<WorkItem> currentWorkItemResult;
+        if (!_workItemCache.TryGetValue(workItem.WorkItemId, out currentWorkItemResult!))
+        {
+            currentWorkItemResult = await _azureDevOpsRepository.GetWorkItemAsync(workItem.WorkItemId);
+            _workItemCache[workItem.WorkItemId] = currentWorkItemResult;
+        }
 
         if (!currentWorkItemResult.IsSuccess)
         {
@@ -245,7 +253,12 @@ public class GetUserStoryTask : ITask
         }
 
         // 呼叫 Azure DevOps API 取得 Work Item（包含 Relations）
-        var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+        Result<WorkItem> result;
+        if (!_workItemCache.TryGetValue(workItemId, out result!))
+        {
+            result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+            _workItemCache[workItemId] = result;
+        }
 
         if (!result.IsSuccess)
         {

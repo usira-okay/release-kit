@@ -581,6 +581,89 @@ public class GetUserStoryTaskTests
         Assert.Null(userStory2.OriginalWorkItem.PrId); // OriginalWorkItem.PrId 應為 null
     }
 
+    /// <summary>
+    /// 測試多個 Work Item 共享相同 Parent 時，使用快取減少 API 呼叫
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WithSharedParent_ShouldUseCacheAndReduceAPICalls()
+    {
+        // Arrange - 兩個不同的 Bug 有相同的 Parent (User Story 67890)
+        var workItemResult = new WorkItemFetchResult
+        {
+            WorkItems = new List<WorkItemOutput>
+            {
+                new WorkItemOutput
+                {
+                    WorkItemId = 11111,
+                    Title = "Bug 1",
+                    Type = "Bug",
+                    State = "Active",
+                    Url = "https://dev.azure.com/org/proj/_workitems/edit/11111",
+                    OriginalTeamName = "Platform/Web",
+                    PrId = "100",
+                    IsSuccess = true,
+                    ErrorMessage = null
+                },
+                new WorkItemOutput
+                {
+                    WorkItemId = 22222,
+                    Title = "Bug 2",
+                    Type = "Bug",
+                    State = "Active",
+                    Url = "https://dev.azure.com/org/proj/_workitems/edit/22222",
+                    OriginalTeamName = "Platform/Web",
+                    PrId = "200",
+                    IsSuccess = true,
+                    ErrorMessage = null
+                }
+            },
+            TotalPRsAnalyzed = 2,
+            TotalWorkItemsFound = 2,
+            SuccessCount = 2,
+            FailureCount = 0
+        };
+        
+        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+            .ReturnsAsync(workItemResult.ToJson());
+
+        // Mock Bug 11111 with parent 67890
+        var bug1 = CreateWorkItemWithParent(11111, "Bug 1", "Bug", "Active", 67890);
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(11111))
+            .ReturnsAsync(Result<WorkItem>.Success(bug1));
+
+        // Mock Bug 22222 with parent 67890 (same parent)
+        var bug2 = CreateWorkItemWithParent(22222, "Bug 2", "Bug", "Active", 67890);
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(22222))
+            .ReturnsAsync(Result<WorkItem>.Success(bug2));
+
+        // Mock shared Parent (User Story 67890)
+        var parentWorkItem = CreateWorkItemWithParent(67890, "User Story", "User Story", "Active", null);
+        _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(67890))
+            .ReturnsAsync(Result<WorkItem>.Success(parentWorkItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        // 快取生效：每個 Work Item 只呼叫一次（包含共享的 Parent）
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(11111), Times.Once);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(22222), Times.Once);
+        _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(67890), Times.Once); // 共享的 Parent 只呼叫一次
+        
+        var result = _capturedRedisJson!.ToTypedObject<UserStoryFetchResult>();
+        Assert.NotNull(result);
+        Assert.Equal(2, result.WorkItems.Count);
+        
+        // 兩個 Work Item 都應該解析到相同的 User Story
+        Assert.All(result.WorkItems, w =>
+        {
+            Assert.Equal(67890, w.WorkItemId);
+            Assert.Equal(UserStoryResolutionStatus.FoundViaRecursion, w.ResolutionStatus);
+        });
+    }
+
     // Helper methods
     private GetUserStoryTask CreateTask()
     {
