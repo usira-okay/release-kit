@@ -3,6 +3,8 @@ using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Domain.Common;
+using ReleaseKit.Domain.Entities;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -14,6 +16,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     private readonly ILogger<FetchAzureDevOpsWorkItemsTask> _logger;
     private readonly IRedisService _redisService;
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
+    private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
 
     /// <summary>
     /// 建構子
@@ -29,6 +32,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         _logger = logger;
         _redisService = redisService;
         _azureDevOpsRepository = azureDevOpsRepository;
+        _workItemCache = new Dictionary<int, Result<WorkItem>>();
     }
 
     /// <summary>
@@ -154,9 +158,18 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         foreach (var (prId, workItemId) in workItemPairs)
         {
             processedCount++;
-            _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
             
-            var result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+            // 檢查快取
+            if (!_workItemCache.TryGetValue(workItemId, out var result))
+            {
+                _logger.LogInformation("查詢 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
+                result = await _azureDevOpsRepository.GetWorkItemAsync(workItemId);
+                _workItemCache[workItemId] = result;
+            }
+            else
+            {
+                _logger.LogInformation("從快取讀取 Work Item {CurrentCount}/{TotalCount}：{WorkItemId}", processedCount, workItemPairs.Count, workItemId);
+            }
 
             if (result.IsSuccess)
             {
