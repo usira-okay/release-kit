@@ -104,7 +104,7 @@ public class ConsolidateReleaseDataTaskTests
         };
     }
 
-    private static UserStoryWorkItemOutput CreateWorkItem(int workItemId, string? prId, string? originalTeamName = null)
+    private static UserStoryWorkItemOutput CreateWorkItem(int workItemId, string? prId, string? originalTeamName = null, string? projectName = null)
     {
         return new UserStoryWorkItemOutput
         {
@@ -116,7 +116,8 @@ public class ConsolidateReleaseDataTaskTests
             OriginalTeamName = originalTeamName,
             IsSuccess = true,
             ResolutionStatus = UserStoryResolutionStatus.AlreadyUserStoryOrAbove,
-            PrId = prId
+            PrId = prId,
+            ProjectName = projectName
         };
     }
 
@@ -140,8 +141,8 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(bitbucketResult, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(12345, "pr-1", "MoneyLogistic"),
-            CreateWorkItem(67890, "pr-2", "DailyResource"));
+            CreateWorkItem(12345, "pr-1", "MoneyLogistic", "my-repo"),
+            CreateWorkItem(67890, "pr-2", "DailyResource", "other-repo"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -180,7 +181,7 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(null, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "MoneyLogistic"));
+            CreateWorkItem(100, "pr-1", "MoneyLogistic", "my-project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -214,9 +215,9 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(null, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(300, "pr-3", "DailyResource"),
-            CreateWorkItem(100, "pr-1", "MoneyLogistic"),
-            CreateWorkItem(200, "pr-2", "DailyResource"));
+            CreateWorkItem(300, "pr-3", "DailyResource", "project"),
+            CreateWorkItem(100, "pr-1", "MoneyLogistic", "project"),
+            CreateWorkItem(200, "pr-2", "DailyResource", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -257,7 +258,7 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(null, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "MoneyLogistic"));
+            CreateWorkItem(100, "pr-1", "MoneyLogistic", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -291,9 +292,9 @@ public class ConsolidateReleaseDataTaskTests
 
         // 同一 WorkItemId 透過不同 PrId 出現多次，複合 Key 使其各自獨立
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "MoneyLogistic"),
-            CreateWorkItem(100, "pr-2", "MoneyLogistic"),
-            CreateWorkItem(100, "pr-3", "MoneyLogistic"));
+            CreateWorkItem(100, "pr-1", "MoneyLogistic", "project"),
+            CreateWorkItem(100, "pr-2", "MoneyLogistic", "project"),
+            CreateWorkItem(100, "pr-3", "MoneyLogistic", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -332,7 +333,7 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(null, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "MoneyLogistic"),
+            CreateWorkItem(100, "pr-1", "MoneyLogistic", "project"),
             CreateWorkItem(200, null, "DailyResource"));
         SetupUserStoryData(workItems);
 
@@ -360,7 +361,7 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(null, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "MoneyLogistic"));
+            CreateWorkItem(100, "pr-1", "MoneyLogistic", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -396,7 +397,7 @@ public class ConsolidateReleaseDataTaskTests
 
         // Work Item 的 PrId "pr-999" 不存在於 PR 資料中
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-999", "MoneyLogistic"));
+            CreateWorkItem(100, "pr-999", "MoneyLogistic", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -518,7 +519,7 @@ public class ConsolidateReleaseDataTaskTests
 
         // OriginalTeamName 為全小寫
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "moneylogistic"));
+            CreateWorkItem(100, "pr-1", "moneylogistic", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();
@@ -549,7 +550,7 @@ public class ConsolidateReleaseDataTaskTests
         SetupPrData(null, gitLabResult);
 
         var workItems = CreateUserStoryResult(
-            CreateWorkItem(100, "pr-1", "UnknownTeam"));
+            CreateWorkItem(100, "pr-1", "UnknownTeam", "project"));
         SetupUserStoryData(workItems);
 
         var task = CreateTask();

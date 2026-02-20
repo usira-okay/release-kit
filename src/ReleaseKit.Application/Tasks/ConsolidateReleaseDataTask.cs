@@ -66,9 +66,9 @@ public class ConsolidateReleaseDataTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取 Bitbucket 與 GitLab ByUser PR 資料，並建立以 PrId 為 Key 的查詢字典
+    /// 從 Redis 讀取 Bitbucket 與 GitLab ByUser PR 資料，並建立以 (PrId, ProjectName) 為 Key 的查詢字典
     /// </summary>
-    private async Task<Dictionary<string, List<(MergeRequestOutput PR, string ProjectName)>>> LoadPullRequestsAsync()
+    private async Task<Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>>> LoadPullRequestsAsync()
     {
         var bitbucketJson = await _redisService.GetAsync(RedisKeys.BitbucketPullRequestsByUser);
         var gitLabJson = await _redisService.GetAsync(RedisKeys.GitLabPullRequestsByUser);
@@ -86,12 +86,12 @@ public class ConsolidateReleaseDataTask : ITask
                 $"缺少 PR 資料：Redis Key '{RedisKeys.BitbucketPullRequestsByUser}' 與 '{RedisKeys.GitLabPullRequestsByUser}' 均無有效資料");
         }
 
-        var prLookup = new Dictionary<string, List<(MergeRequestOutput PR, string ProjectName)>>();
+        var prLookup = new Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>>();
 
         AddPullRequestsToLookup(prLookup, bitbucketResult);
         AddPullRequestsToLookup(prLookup, gitLabResult);
 
-        _logger.LogInformation("載入 PR 資料完成，共 {Count} 個不重複 PrId", prLookup.Count);
+        _logger.LogInformation("載入 PR 資料完成，共 {Count} 個不重複 (PrId, ProjectName) 組合", prLookup.Count);
 
         return prLookup;
     }
@@ -100,7 +100,7 @@ public class ConsolidateReleaseDataTask : ITask
     /// 將 FetchResult 中的 PR 加入查詢字典
     /// </summary>
     private static void AddPullRequestsToLookup(
-        Dictionary<string, List<(MergeRequestOutput PR, string ProjectName)>> lookup,
+        Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>> lookup,
         FetchResult? fetchResult)
     {
         if (fetchResult?.Results == null) return;
@@ -113,12 +113,14 @@ public class ConsolidateReleaseDataTask : ITask
             {
                 if (string.IsNullOrEmpty(pr.PrId)) continue;
 
-                if (!lookup.ContainsKey(pr.PrId))
+                var key = (pr.PrId, projectName);
+
+                if (!lookup.ContainsKey(key))
                 {
-                    lookup[pr.PrId] = new List<(MergeRequestOutput, string)>();
+                    lookup[key] = new List<(MergeRequestOutput, string)>();
                 }
 
-                lookup[pr.PrId].Add((pr, projectName));
+                lookup[key].Add((pr, projectName));
             }
         }
     }
@@ -165,7 +167,7 @@ public class ConsolidateReleaseDataTask : ITask
     /// 整合 PR 與 Work Item 資料
     /// </summary>
     private ConsolidatedReleaseResult ConsolidateData(
-        Dictionary<string, List<(MergeRequestOutput PR, string ProjectName)>> prLookup,
+        Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>> prLookup,
         UserStoryFetchResult userStoryResult,
         Dictionary<string, string> teamMapping)
     {
@@ -185,10 +187,13 @@ public class ConsolidateReleaseDataTask : ITask
                     $"Work Item {wi.WorkItemId} 缺少 PrId，無法配對 PR 資料");
             }
 
-            if (!prLookup.TryGetValue(wi.PrId, out var matchedPrs))
+            var projectName = wi.ProjectName ?? "unknown";
+            var lookupKey = (wi.PrId, projectName);
+
+            if (!prLookup.TryGetValue(lookupKey, out var matchedPrs))
             {
                 throw new InvalidOperationException(
-                    $"Work Item {wi.WorkItemId} 的 PrId '{wi.PrId}' 在 PR 資料中找不到對應記錄");
+                    $"Work Item {wi.WorkItemId} 的 PrId '{wi.PrId}' (ProjectName: '{projectName}') 在 PR 資料中找不到對應記錄");
             }
 
             var key = (wi.WorkItemId, wi.PrId);
@@ -199,25 +204,18 @@ public class ConsolidateReleaseDataTask : ITask
                     WorkItem: wi,
                     PullRequests: new List<MergeRequestOutput>(),
                     AuthorNames: new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                    ProjectName: matchedPrs.FirstOrDefault().ProjectName ?? "unknown",
+                    ProjectName: projectName,
                     FirstPrTitle: matchedPrs.FirstOrDefault().PR.Title
                 );
                 workItemGroups[key] = group;
             }
 
-            foreach (var (pr, projectName) in matchedPrs)
+            foreach (var (pr, prProjectName) in matchedPrs)
             {
                 group.PullRequests.Add(pr);
                 if (!string.IsNullOrEmpty(pr.AuthorName))
                 {
                     group.AuthorNames.Add(pr.AuthorName);
-                }
-
-                // 若尚無 ProjectName（先前為 unknown），更新之
-                if (group.ProjectName == "unknown")
-                {
-                    group = group with { ProjectName = projectName };
-                    workItemGroups[key] = group;
                 }
 
                 // 若尚無 PrTitle，更新之

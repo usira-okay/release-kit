@@ -49,6 +49,15 @@ public sealed record WorkItemOutput
     public string? PrId { get; init; }
 
     /// <summary>
+    /// PR 所屬專案名稱（ProjectPath split('/') 取最後一段）
+    /// </summary>
+    /// <remarks>
+    /// 用於追蹤此 Work Item 由哪個專案的 PR 觸發查詢。
+    /// 若非由 PR 觸發，此值為 null。
+    /// </remarks>
+    public string? ProjectName { get; init; }
+
+    /// <summary>
     /// 是否成功取得 Work Item 資訊
     /// </summary>
     public required bool IsSuccess { get; init; }
