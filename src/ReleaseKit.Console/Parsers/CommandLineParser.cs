@@ -17,6 +17,7 @@ public class CommandLineParser
         { "filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser },
         { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
         { "get-user-story", TaskType.GetUserStory },
+        { "consolidate-release-data", TaskType.ConsolidateReleaseData },
         { "update-googlesheet", TaskType.UpdateGoogleSheets },
     };
 

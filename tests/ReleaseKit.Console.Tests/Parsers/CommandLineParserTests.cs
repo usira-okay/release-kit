@@ -61,6 +61,7 @@ public class CommandLineParserTests
     [InlineData("fetch-gitlab-pr", TaskType.FetchGitLabPullRequests)]
     [InlineData("fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests)]
     [InlineData("fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems)]
+    [InlineData("consolidate-release-data", TaskType.ConsolidateReleaseData)]
     [InlineData("update-googlesheet", TaskType.UpdateGoogleSheets)]
     [InlineData("fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranch)]
     [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch)]
@@ -84,6 +85,7 @@ public class CommandLineParserTests
     [InlineData("FETCH-GITLAB-PR", TaskType.FetchGitLabPullRequests)]
     [InlineData("FeTcH-BiTbUcKeT-pR", TaskType.FetchBitbucketPullRequests)]
     [InlineData("FETCH-AZURE-WORKITEMS", TaskType.FetchAzureDevOpsWorkItems)]
+    [InlineData("CONSOLIDATE-RELEASE-DATA", TaskType.ConsolidateReleaseData)]
     [InlineData("UPDATE-GOOGLESHEET", TaskType.UpdateGoogleSheets)]
     [InlineData("FETCH-GITLAB-RELEASE-BRANCH", TaskType.FetchGitLabReleaseBranch)]
     [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranch)]
@@ -131,6 +133,7 @@ public class CommandLineParserTests
         Assert.Contains("fetch-gitlab-pr", result.ErrorMessage);
         Assert.Contains("fetch-bitbucket-pr", result.ErrorMessage);
         Assert.Contains("fetch-azure-workitems", result.ErrorMessage);
+        Assert.Contains("consolidate-release-data", result.ErrorMessage);
         Assert.Contains("update-googlesheet", result.ErrorMessage);
         Assert.Contains("fetch-gitlab-release-branch", result.ErrorMessage);
         Assert.Contains("fetch-bitbucket-release-branch", result.ErrorMessage);
