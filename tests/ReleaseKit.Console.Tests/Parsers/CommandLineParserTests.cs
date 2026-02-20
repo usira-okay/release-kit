@@ -66,6 +66,7 @@ public class CommandLineParserTests
     [InlineData("fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch)]
     [InlineData("filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser)]
     [InlineData("filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser)]
+    [InlineData("consolidate-release-data", TaskType.ConsolidateReleaseData)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -89,6 +90,7 @@ public class CommandLineParserTests
     [InlineData("FETCH-BITBUCKET-RELEASE-BRANCH", TaskType.FetchBitbucketReleaseBranch)]
     [InlineData("FILTER-GITLAB-PR-BY-USER", TaskType.FilterGitLabPullRequestsByUser)]
     [InlineData("FiLtEr-BiTbUcKeT-pR-bY-uSeR", TaskType.FilterBitbucketPullRequestsByUser)]
+    [InlineData("CONSOLIDATE-RELEASE-DATA", TaskType.ConsolidateReleaseData)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -136,5 +138,6 @@ public class CommandLineParserTests
         Assert.Contains("fetch-bitbucket-release-branch", result.ErrorMessage);
         Assert.Contains("filter-gitlab-pr-by-user", result.ErrorMessage);
         Assert.Contains("filter-bitbucket-pr-by-user", result.ErrorMessage);
+        Assert.Contains("consolidate-release-data", result.ErrorMessage);
     }
 }
