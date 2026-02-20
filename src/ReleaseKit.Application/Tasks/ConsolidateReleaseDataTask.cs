@@ -169,8 +169,8 @@ public class ConsolidateReleaseDataTask : ITask
         UserStoryFetchResult userStoryResult,
         Dictionary<string, string> teamMapping)
     {
-        // 以 WorkItemId 為 Key 合併多筆記錄
-        var workItemGroups = new Dictionary<int, (
+        // 以 (WorkItemId, PrId) 為複合 Key 合併記錄（插件的 WorkItemId 可能為 0，需靠 PrId 區分）
+        var workItemGroups = new Dictionary<(int WorkItemId, string PrId), (
             UserStoryWorkItemOutput WorkItem,
             List<MergeRequestOutput> PullRequests,
             HashSet<string> AuthorNames,
@@ -179,48 +179,52 @@ public class ConsolidateReleaseDataTask : ITask
 
         foreach (var wi in userStoryResult.WorkItems)
         {
-            List<(MergeRequestOutput PR, string ProjectName)>? matchedPrs = null;
-
-            if (!string.IsNullOrEmpty(wi.PrId))
+            if (string.IsNullOrEmpty(wi.PrId))
             {
-                prLookup.TryGetValue(wi.PrId, out matchedPrs);
+                throw new InvalidOperationException(
+                    $"Work Item {wi.WorkItemId} 缺少 PrId，無法配對 PR 資料");
             }
 
-            if (!workItemGroups.TryGetValue(wi.WorkItemId, out var group))
+            if (!prLookup.TryGetValue(wi.PrId, out var matchedPrs))
+            {
+                throw new InvalidOperationException(
+                    $"Work Item {wi.WorkItemId} 的 PrId '{wi.PrId}' 在 PR 資料中找不到對應記錄");
+            }
+
+            var key = (wi.WorkItemId, wi.PrId);
+
+            if (!workItemGroups.TryGetValue(key, out var group))
             {
                 group = (
                     WorkItem: wi,
                     PullRequests: new List<MergeRequestOutput>(),
                     AuthorNames: new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                    ProjectName: matchedPrs?.FirstOrDefault().ProjectName ?? "unknown",
-                    FirstPrTitle: matchedPrs?.FirstOrDefault().PR.Title
+                    ProjectName: matchedPrs.FirstOrDefault().ProjectName ?? "unknown",
+                    FirstPrTitle: matchedPrs.FirstOrDefault().PR.Title
                 );
-                workItemGroups[wi.WorkItemId] = group;
+                workItemGroups[key] = group;
             }
 
-            if (matchedPrs != null)
+            foreach (var (pr, projectName) in matchedPrs)
             {
-                foreach (var (pr, projectName) in matchedPrs)
+                group.PullRequests.Add(pr);
+                if (!string.IsNullOrEmpty(pr.AuthorName))
                 {
-                    group.PullRequests.Add(pr);
-                    if (!string.IsNullOrEmpty(pr.AuthorName))
-                    {
-                        group.AuthorNames.Add(pr.AuthorName);
-                    }
+                    group.AuthorNames.Add(pr.AuthorName);
+                }
 
-                    // 若尚無 ProjectName（先前為 unknown），更新之
-                    if (group.ProjectName == "unknown")
-                    {
-                        group = group with { ProjectName = projectName };
-                        workItemGroups[wi.WorkItemId] = group;
-                    }
+                // 若尚無 ProjectName（先前為 unknown），更新之
+                if (group.ProjectName == "unknown")
+                {
+                    group = group with { ProjectName = projectName };
+                    workItemGroups[key] = group;
+                }
 
-                    // 若尚無 PrTitle，更新之
-                    if (group.FirstPrTitle == null)
-                    {
-                        group = group with { FirstPrTitle = pr.Title };
-                        workItemGroups[wi.WorkItemId] = group;
-                    }
+                // 若尚無 PrTitle，更新之
+                if (group.FirstPrTitle == null)
+                {
+                    group = group with { FirstPrTitle = pr.Title };
+                    workItemGroups[key] = group;
                 }
             }
         }
@@ -228,14 +232,14 @@ public class ConsolidateReleaseDataTask : ITask
         // 建立 ConsolidatedReleaseEntry 清單，以 ProjectName 分組
         var projectGroups = new Dictionary<string, List<ConsolidatedReleaseEntry>>();
 
-        foreach (var (workItemId, group) in workItemGroups)
+        foreach (var (key, group) in workItemGroups)
         {
             var teamDisplayName = GetTeamDisplayName(group.WorkItem.OriginalTeamName, teamMapping);
 
             var entry = new ConsolidatedReleaseEntry
             {
                 PrTitle = group.FirstPrTitle ?? string.Empty,
-                WorkItemId = workItemId,
+                WorkItemId = key.WorkItemId,
                 TeamDisplayName = teamDisplayName,
                 Authors = group.AuthorNames
                     .Select(name => new ConsolidatedAuthorInfo { AuthorName = name })

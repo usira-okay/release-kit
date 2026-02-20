@@ -272,13 +272,13 @@ public class ConsolidateReleaseDataTaskTests
         Assert.Equal("金流團隊", result.Projects[0].Entries[0].TeamDisplayName);
     }
 
-    // ===== T018: 驗證同一 Work Item 有多個 PR 時，Authors 與 PullRequests 清單包含所有相關 PR 資訊 =====
+    // ===== T018: 驗證同一 Work Item 有多個 PR 時，各自獨立為不同 Entry =====
 
     /// <summary>
-    /// T018: 測試同一 Work Item 有多個 PR 時，Authors 與 PullRequests 清單包含所有相關 PR 資訊（去重 AuthorName）
+    /// T018: 測試同一 Work Item 有多個 PR 時，以 (WorkItemId, PrId) 為複合 Key 產生獨立 Entry
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithMultiplePrsForSameWorkItem_ShouldMergeAuthorsAndPrs()
+    public async Task ExecuteAsync_WithMultiplePrsForSameWorkItem_ShouldCreateSeparateEntries()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -289,7 +289,7 @@ public class ConsolidateReleaseDataTaskTests
 
         SetupPrData(null, gitLabResult);
 
-        // 同一 WorkItemId 透過不同 PrId 出現多次
+        // 同一 WorkItemId 透過不同 PrId 出現多次，複合 Key 使其各自獨立
         var workItems = CreateUserStoryResult(
             CreateWorkItem(100, "pr-1", "MoneyLogistic"),
             CreateWorkItem(100, "pr-2", "MoneyLogistic"),
@@ -306,27 +306,23 @@ public class ConsolidateReleaseDataTaskTests
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.Single(result.Projects);
-        var entry = result.Projects[0].Entries[0];
 
-        // Authors 去重
-        Assert.Equal(2, entry.Authors.Count);
-        Assert.Contains(entry.Authors, a => a.AuthorName == "John Doe");
-        Assert.Contains(entry.Authors, a => a.AuthorName == "Jane Smith");
-
-        // PullRequests 包含所有 PR
-        Assert.Equal(3, entry.PullRequests.Count);
-        Assert.Contains(entry.PullRequests, p => p.Url == "https://gitlab.com/pr/1");
-        Assert.Contains(entry.PullRequests, p => p.Url == "https://gitlab.com/pr/2");
-        Assert.Contains(entry.PullRequests, p => p.Url == "https://gitlab.com/pr/3");
+        // 複合 Key (100, "pr-1"), (100, "pr-2"), (100, "pr-3") → 3 筆獨立 Entry
+        var entries = result.Projects[0].Entries;
+        Assert.Equal(3, entries.Count);
+        Assert.All(entries, e => Assert.Equal(100, e.WorkItemId));
+        Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/1"));
+        Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/2"));
+        Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/3"));
     }
 
-    // ===== T019: 驗證 PrId 為 null 的 Work Item 仍出現在結果中 =====
+    // ===== T019: 驗證 PrId 為 null 的 Work Item 拋出 InvalidOperationException =====
 
     /// <summary>
-    /// T019: 測試 PrId 為 null 的 Work Item 仍出現在結果中，PR 資訊與作者資訊為空陣列，ProjectName 為 "unknown"
+    /// T019: 測試 PrId 為 null 的 Work Item 拋出 InvalidOperationException
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithNullPrId_ShouldIncludeWithUnknownProject()
+    public async Task ExecuteAsync_WithNullPrId_ShouldThrowInvalidOperationException()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -342,20 +338,10 @@ public class ConsolidateReleaseDataTaskTests
 
         var task = CreateTask();
 
-        // Act
-        await task.ExecuteAsync();
-
-        // Assert
-        Assert.NotNull(_capturedRedisJson);
-        var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
-        Assert.NotNull(result);
-
-        var unknownProject = result.Projects.FirstOrDefault(p => p.ProjectName == "unknown");
-        Assert.NotNull(unknownProject);
-        var entry = unknownProject.Entries[0];
-        Assert.Equal(200, entry.WorkItemId);
-        Assert.Empty(entry.Authors);
-        Assert.Empty(entry.PullRequests);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => task.ExecuteAsync());
+        Assert.Contains("缺少 PrId", exception.Message);
     }
 
     // ===== T020: 驗證整合結果以 JSON 序列化後正確寫入 Redis Key =====
@@ -391,6 +377,35 @@ public class ConsolidateReleaseDataTaskTests
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.NotEmpty(result.Projects);
+    }
+
+    // ===== T021b: 驗證 PrId 存在但在 PR 資料中找不到對應記錄時拋出 InvalidOperationException =====
+
+    /// <summary>
+    /// T021b: 測試 PrId 存在但在 PR 資料中找不到對應記錄時，拋出 InvalidOperationException
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WithUnmatchedPrId_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var gitLabResult = CreateFetchResult(
+            CreateProject("group/project",
+                CreatePr("pr-1", "Author1")));
+
+        SetupPrData(null, gitLabResult);
+
+        // Work Item 的 PrId "pr-999" 不存在於 PR 資料中
+        var workItems = CreateUserStoryResult(
+            CreateWorkItem(100, "pr-999", "MoneyLogistic"));
+        SetupUserStoryData(workItems);
+
+        var task = CreateTask();
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => task.ExecuteAsync());
+        Assert.Contains("pr-999", exception.Message);
+        Assert.Contains("找不到對應記錄", exception.Message);
     }
 
     // ===== T022: 當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時拋出 InvalidOperationException =====
