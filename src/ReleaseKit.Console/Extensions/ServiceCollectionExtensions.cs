@@ -73,6 +73,9 @@ public static class ServiceCollectionExtensions
         // 註冊 UserMapping 配置
         services.Configure<UserMappingOptions>(configuration.GetSection("UserMapping"));
 
+        // 註冊 TeamMapping 配置
+        services.Configure<TeamMappingOptions>(configuration.GetSection("TeamMapping"));
+
         return services;
     }
 
@@ -223,6 +226,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<GetUserStoryTask>();
+        services.AddTransient<MapUserStoryTeamTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
