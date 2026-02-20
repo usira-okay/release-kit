@@ -9,16 +9,15 @@ public class CommandLineParser
 {
     private readonly Dictionary<string, TaskType> _taskMappings = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "fetch-gitlab-pr", TaskType.FetchGitLabPullRequests },
-        { "fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests },
-        { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
-        { "update-googlesheet", TaskType.UpdateGoogleSheets },
         { "fetch-gitlab-release-branch", TaskType.FetchGitLabReleaseBranch },
         { "fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch },
+        { "fetch-gitlab-pr", TaskType.FetchGitLabPullRequests },
+        { "fetch-bitbucket-pr", TaskType.FetchBitbucketPullRequests },
         { "filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser },
         { "filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser },
+        { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
         { "get-user-story", TaskType.GetUserStory },
-        { "map-user-story-team", TaskType.MapUserStoryTeam }
+        { "update-googlesheet", TaskType.UpdateGoogleSheets },
     };
 
     /// <summary>

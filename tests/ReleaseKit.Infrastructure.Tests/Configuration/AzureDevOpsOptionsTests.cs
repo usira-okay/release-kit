@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Common.Configuration;
+using ReleaseKit.Infrastructure.Configuration;
 using Xunit;
 
 namespace ReleaseKit.Infrastructure.Tests.Configuration;
