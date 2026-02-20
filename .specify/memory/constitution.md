@@ -242,7 +242,7 @@ Constitution 修訂 MUST 遵循以下程序：
 
 - 所有 PR/Code Review MUST 驗證是否符合 Constitution
 - 新增複雜度 MUST 有明確理由記錄於 Complexity Tracking
-- 使用 CLAUDE.md 作為執行階段開發指引
+- 使用 AGENTS.md 作為執行階段開發指引
 
 ### 語言規範
 
