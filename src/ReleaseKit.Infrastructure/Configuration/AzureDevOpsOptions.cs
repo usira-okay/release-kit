@@ -1,3 +1,5 @@
+using ReleaseKit.Common.Configuration;
+
 namespace ReleaseKit.Infrastructure.Configuration;
 
 /// <summary>
