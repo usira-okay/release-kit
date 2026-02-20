@@ -17,7 +17,8 @@ public class CommandLineParser
         { "fetch-bitbucket-release-branch", TaskType.FetchBitbucketReleaseBranch },
         { "filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser },
         { "filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser },
-        { "get-user-story", TaskType.GetUserStory }
+        { "get-user-story", TaskType.GetUserStory },
+        { "map-team-display-name", TaskType.MapTeamDisplayName }
     };
 
     /// <summary>

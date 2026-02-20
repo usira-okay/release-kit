@@ -34,6 +34,7 @@ public class TaskFactory
             TaskType.FilterGitLabPullRequestsByUser => _serviceProvider.GetRequiredService<FilterGitLabPullRequestsByUserTask>(),
             TaskType.FilterBitbucketPullRequestsByUser => _serviceProvider.GetRequiredService<FilterBitbucketPullRequestsByUserTask>(),
             TaskType.GetUserStory => _serviceProvider.GetRequiredService<GetUserStoryTask>(),
+            TaskType.MapTeamDisplayName => _serviceProvider.GetRequiredService<MapTeamDisplayNameTask>(),
             _ => throw new ArgumentException($"不支援的任務類型: {taskType}", nameof(taskType))
         };
     }

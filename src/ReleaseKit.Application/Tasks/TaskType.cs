@@ -48,5 +48,10 @@ public enum TaskType
     /// <summary>
     /// 取得 User Story 層級的 Work Item
     /// </summary>
-    GetUserStory
+    GetUserStory,
+    
+    /// <summary>
+    /// 套用 Team 顯示名稱對應
+    /// </summary>
+    MapTeamDisplayName
 }
