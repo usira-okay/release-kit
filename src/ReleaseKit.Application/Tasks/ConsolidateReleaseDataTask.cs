@@ -18,6 +18,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </remarks>
 public class ConsolidateReleaseDataTask : ITask
 {
+    private const string UnknownProjectName = "unknown";
     private readonly IRedisService _redisService;
     private readonly IOptions<ConsolidateReleaseDataOptions> _options;
     private readonly ILogger<ConsolidateReleaseDataTask> _logger;
@@ -187,7 +188,7 @@ public class ConsolidateReleaseDataTask : ITask
                     $"Work Item {wi.WorkItemId} 缺少 PrId，無法配對 PR 資料");
             }
 
-            var projectName = wi.ProjectName ?? "unknown";
+            var projectName = wi.ProjectName ?? UnknownProjectName;
             var lookupKey = (wi.PrId, projectName);
 
             if (!prLookup.TryGetValue(lookupKey, out var matchedPrs))
@@ -210,7 +211,7 @@ public class ConsolidateReleaseDataTask : ITask
                 workItemGroups[key] = group;
             }
 
-            foreach (var (pr, prProjectName) in matchedPrs)
+            foreach (var (pr, _) in matchedPrs)
             {
                 group.PullRequests.Add(pr);
                 if (!string.IsNullOrEmpty(pr.AuthorName))
