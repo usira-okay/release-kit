@@ -1,4 +1,4 @@
-namespace ReleaseKit.Infrastructure.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// Azure DevOps 團隊映射配置選項

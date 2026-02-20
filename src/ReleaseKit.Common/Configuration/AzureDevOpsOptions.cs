@@ -1,4 +1,4 @@
-namespace ReleaseKit.Infrastructure.Configuration;
+namespace ReleaseKit.Common.Configuration;
 
 /// <summary>
 /// Azure DevOps 配置選項
