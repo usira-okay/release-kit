@@ -48,5 +48,10 @@ public enum TaskType
     /// <summary>
     /// 取得 User Story 層級的 Work Item
     /// </summary>
-    GetUserStory
+    GetUserStory,
+
+    /// <summary>
+    /// 整合 Release 資料（PR 與 Work Item）
+    /// </summary>
+    ConsolidateReleaseData
 }

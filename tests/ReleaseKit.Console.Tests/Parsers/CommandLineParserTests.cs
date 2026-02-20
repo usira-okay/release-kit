@@ -137,4 +137,21 @@ public class CommandLineParserTests
         Assert.Contains("filter-gitlab-pr-by-user", result.ErrorMessage);
         Assert.Contains("filter-bitbucket-pr-by-user", result.ErrorMessage);
     }
+
+    /// <summary>
+    /// T013: 測試 consolidate-release-data 正確解析為 TaskType.ConsolidateReleaseData
+    /// </summary>
+    [Fact]
+    public void Parse_WithConsolidateReleaseData_ShouldReturnConsolidateReleaseDataTaskType()
+    {
+        // Arrange
+        var args = new[] { "consolidate-release-data" };
+
+        // Act
+        var result = _parser.Parse(args);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TaskType.ConsolidateReleaseData, result.TaskType);
+    }
 }

@@ -27,6 +27,7 @@ public class TaskFactoryTests
         services.AddSingleton(Options.Create(new BitbucketOptions()));
         services.AddSingleton(Options.Create(new FetchModeOptions()));
         services.AddSingleton(Options.Create(new UserMappingOptions()));
+        services.AddSingleton(Options.Create(new ReleaseKit.Common.Configuration.AzureDevOpsOptions()));
         
         // 註冊 Logger mocks
         services.AddSingleton(new Mock<ILogger<FetchGitLabPullRequestsTask>>().Object);
@@ -36,6 +37,8 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<GetUserStoryTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
@@ -62,6 +65,8 @@ public class TaskFactoryTests
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
+        services.AddTransient<GetUserStoryTask>();
+        services.AddTransient<ConsolidateReleaseDataTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -185,5 +190,19 @@ public class TaskFactoryTests
         Assert.NotNull(task1);
         Assert.NotNull(task2);
         Assert.NotSame(task1, task2); // 確保每次都建立新的實例
+    }
+
+    /// <summary>
+    /// T012: 測試 TaskFactory 正確建立 ConsolidateReleaseDataTask 實例
+    /// </summary>
+    [Fact]
+    public void CreateTask_WithConsolidateReleaseData_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.ConsolidateReleaseData);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<ConsolidateReleaseDataTask>(task);
     }
 }
