@@ -44,4 +44,9 @@ public static class RedisKeys
     /// Azure DevOps User Story 層級 Work Items 資料的 Redis Key
     /// </summary>
     public const string AzureDevOpsUserStoryWorkItems = "AzureDevOps:WorkItems:UserStories";
+
+    /// <summary>
+    /// 整合 Release 資料的 Redis Key
+    /// </summary>
+    public const string ConsolidatedReleaseData = "ConsolidatedReleaseData";
 }

@@ -64,6 +64,9 @@ public static class ServiceCollectionExtensions
         // 註冊 AzureDevOps 配置
         services.Configure<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
 
+        // 註冊 ConsolidateReleaseData 配置（從 AzureDevOps 節點讀取 TeamMapping）
+        services.Configure<ReleaseKit.Common.Configuration.ConsolidateReleaseDataOptions>(configuration.GetSection("AzureDevOps"));
+
         // 註冊 GitLab 配置
         services.Configure<ReleaseKit.Common.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
 
@@ -223,6 +226,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<GetUserStoryTask>();
+        services.AddTransient<ConsolidateReleaseDataTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();

@@ -62,6 +62,11 @@ public class TaskFactoryTests
         services.AddTransient<FetchBitbucketReleaseBranchTask>();
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
+        services.AddSingleton(new Mock<ILogger<GetUserStoryTask>>().Object);
+        services.AddTransient<GetUserStoryTask>();
+        services.AddSingleton(Options.Create(new ConsolidateReleaseDataOptions()));
+        services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
+        services.AddTransient<ConsolidateReleaseDataTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -161,6 +166,28 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<FilterBitbucketPullRequestsByUserTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithGetUserStory_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.GetUserStory);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<GetUserStoryTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithConsolidateReleaseData_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.ConsolidateReleaseData);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<ConsolidateReleaseDataTask>(task);
     }
 
     [Fact]
