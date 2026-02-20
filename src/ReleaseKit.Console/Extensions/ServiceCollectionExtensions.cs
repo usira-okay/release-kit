@@ -62,7 +62,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ReleaseKit.Infrastructure.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
 
         // 註冊 AzureDevOps 配置
-        services.Configure<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
+        services.Configure<AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
 
         // 註冊 GitLab 配置
         services.Configure<ReleaseKit.Common.Configuration.GitLabOptions>(configuration.GetSection("GitLab"));
@@ -157,7 +157,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(HttpClientNames.AzureDevOps, (sp, client) =>
         {
             var azureDevOpsSection = configuration.GetSection("AzureDevOps");
-            var azureDevOpsOptions = azureDevOpsSection.Get<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>();
+            var azureDevOpsOptions = azureDevOpsSection.Get<AzureDevOpsOptions>();
 
             // 依 AGENTS.md 規範，必要組態不提供預設值，缺失時應立即拋出例外並指出缺少的組態鍵
             if (azureDevOpsOptions == null || string.IsNullOrWhiteSpace(azureDevOpsOptions.OrganizationUrl))
@@ -223,6 +223,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<GetUserStoryTask>();
+        services.AddTransient<MapUserStoryTeamTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
