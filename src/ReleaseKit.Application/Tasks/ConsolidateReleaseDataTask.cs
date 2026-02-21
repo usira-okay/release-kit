@@ -156,7 +156,8 @@ public class ConsolidateReleaseDataTask : ITask
             UserStoryWorkItemOutput WorkItem,
             List<MergeRequestOutput> PullRequests,
             HashSet<string> AuthorNames,
-            string ProjectName)>();
+            string ProjectName,
+            string? FirstPrTitle)>();
 
         foreach (var wi in userStoryResult.WorkItems)
         {
@@ -183,7 +184,8 @@ public class ConsolidateReleaseDataTask : ITask
                     WorkItem: wi,
                     PullRequests: new List<MergeRequestOutput>(),
                     AuthorNames: new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                    ProjectName: projectName
+                    ProjectName: projectName,
+                    FirstPrTitle: matchedPrs.FirstOrDefault().PR?.Title
                 );
                 workItemGroups[key] = group;
             }
@@ -194,6 +196,13 @@ public class ConsolidateReleaseDataTask : ITask
                 if (!string.IsNullOrEmpty(pr.AuthorName))
                 {
                     group.AuthorNames.Add(pr.AuthorName);
+                }
+
+                // 若尚無 FirstPrTitle，更新之
+                if (group.FirstPrTitle == null)
+                {
+                    group = group with { FirstPrTitle = pr.Title };
+                    workItemGroups[key] = group;
                 }
             }
         }
@@ -207,7 +216,7 @@ public class ConsolidateReleaseDataTask : ITask
 
             var entry = new ConsolidatedReleaseEntry
             {
-                Title = group.WorkItem.Title ?? string.Empty,
+                Title = group.WorkItem.Title ?? group.FirstPrTitle ?? string.Empty,
                 WorkItemUrl = group.WorkItem.Url ?? string.Empty,
                 WorkItemId = key.WorkItemId,
                 TeamDisplayName = teamDisplayName,

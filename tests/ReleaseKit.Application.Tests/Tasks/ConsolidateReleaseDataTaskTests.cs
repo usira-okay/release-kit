@@ -565,4 +565,43 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(result);
         Assert.Equal("UnknownTeam", result.Projects[0].Entries[0].TeamDisplayName);
     }
+
+    // ===== T030: 驗證 Work Item 無標題時 Title 使用第一筆 PR 標題 =====
+
+    /// <summary>
+    /// T030: 測試 Work Item 無標題（IsSuccess = false）時，Title 應 fallback 使用第一筆配對 PR 的標題
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WithNoWorkItemTitle_ShouldFallbackToPrTitle()
+    {
+        // Arrange
+        var gitLabResult = CreateFetchResult(
+            CreateProject("group/project",
+                CreatePr("pr-1", "Author1", "PR Title Fallback")));
+
+        SetupPrData(null, gitLabResult);
+
+        // Work Item 查詢失敗，Title 為 null
+        var failedWorkItem = new UserStoryWorkItemOutput
+        {
+            WorkItemId = 0,
+            Title = null,
+            IsSuccess = false,
+            ResolutionStatus = UserStoryResolutionStatus.OriginalFetchFailed,
+            PrId = "pr-1",
+            ProjectName = "project"
+        };
+        SetupUserStoryData(CreateUserStoryResult(failedWorkItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        Assert.NotNull(_capturedRedisJson);
+        var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
+        Assert.NotNull(result);
+        Assert.Equal("PR Title Fallback", result.Projects[0].Entries[0].Title);
+    }
 }
