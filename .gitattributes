@@ -1,0 +1,2 @@
+# 強制所有文字檔使用 LF 行尾
+* text=auto eol=lf
