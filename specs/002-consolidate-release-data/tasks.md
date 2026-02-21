@@ -24,13 +24,13 @@
 
 **Purpose**: 新增 Redis Key 常數與 DTO 資料模型，作為所有 User Story 的共用基礎
 
-- [ ] T001 新增 `ConsolidatedReleaseData` 常數至 `src/ReleaseKit.Common/Constants/RedisKeys.cs`
-- [ ] T002 [P] 新增 `ConsolidatedAuthorInfo` record 至 `src/ReleaseKit.Application/Common/ConsolidatedAuthorInfo.cs`
-- [ ] T003 [P] 新增 `ConsolidatedPrInfo` record 至 `src/ReleaseKit.Application/Common/ConsolidatedPrInfo.cs`
-- [ ] T004 [P] 新增 `ConsolidatedOriginalData` record 至 `src/ReleaseKit.Application/Common/ConsolidatedOriginalData.cs`
-- [ ] T005 [P] 新增 `ConsolidatedReleaseEntry` record 至 `src/ReleaseKit.Application/Common/ConsolidatedReleaseEntry.cs`
-- [ ] T006 [P] 新增 `ConsolidatedProjectGroup` record 至 `src/ReleaseKit.Application/Common/ConsolidatedProjectGroup.cs`
-- [ ] T007 [P] 新增 `ConsolidatedReleaseResult` record 至 `src/ReleaseKit.Application/Common/ConsolidatedReleaseResult.cs`
+- [X] T001 新增 `ConsolidatedReleaseData` 常數至 `src/ReleaseKit.Common/Constants/RedisKeys.cs`
+- [X] T002 [P] 新增 `ConsolidatedAuthorInfo` record 至 `src/ReleaseKit.Application/Common/ConsolidatedAuthorInfo.cs`
+- [X] T003 [P] 新增 `ConsolidatedPrInfo` record 至 `src/ReleaseKit.Application/Common/ConsolidatedPrInfo.cs`
+- [X] T004 [P] 新增 `ConsolidatedOriginalData` record 至 `src/ReleaseKit.Application/Common/ConsolidatedOriginalData.cs`
+- [X] T005 [P] 新增 `ConsolidatedReleaseEntry` record 至 `src/ReleaseKit.Application/Common/ConsolidatedReleaseEntry.cs`
+- [X] T006 [P] 新增 `ConsolidatedProjectGroup` record 至 `src/ReleaseKit.Application/Common/ConsolidatedProjectGroup.cs`
+- [X] T007 [P] 新增 `ConsolidatedReleaseResult` record 至 `src/ReleaseKit.Application/Common/ConsolidatedReleaseResult.cs`
 
 ---
 
@@ -40,12 +40,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 新增 `ConsolidateReleaseData` 列舉值至 `src/ReleaseKit.Application/Tasks/TaskType.cs`
-- [ ] T009 新增 `ConsolidateReleaseData` case 至 `src/ReleaseKit.Application/Tasks/TaskFactory.cs` 的 switch expression
-- [ ] T010 新增 `consolidate-release-data` 指令對映至 `src/ReleaseKit.Console/Parsers/CommandLineParser.cs` 的 `_taskMappings`
-- [ ] T011 註冊 `ConsolidateReleaseDataTask` 至 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法
-- [ ] T012 新增 `TaskFactory` 測試：驗證 `ConsolidateReleaseData` 正確建立 Task 實例，於 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs`
-- [ ] T013 新增 `CommandLineParser` 測試：驗證 `consolidate-release-data` 正確解析為 `TaskType.ConsolidateReleaseData`，於 `tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs`
+- [X] T008 新增 `ConsolidateReleaseData` 列舉值至 `src/ReleaseKit.Application/Tasks/TaskType.cs`
+- [X] T009 新增 `ConsolidateReleaseData` case 至 `src/ReleaseKit.Application/Tasks/TaskFactory.cs` 的 switch expression
+- [X] T010 新增 `consolidate-release-data` 指令對映至 `src/ReleaseKit.Console/Parsers/CommandLineParser.cs` 的 `_taskMappings`
+- [X] T011 註冊 `ConsolidateReleaseDataTask` 至 `src/ReleaseKit.Console/Extensions/ServiceCollectionExtensions.cs` 的 `AddApplicationServices` 方法
+- [X] T012 新增 `TaskFactory` 測試：驗證 `ConsolidateReleaseData` 正確建立 Task 實例，於 `tests/ReleaseKit.Application.Tests/Tasks/TaskFactoryTests.cs`
+- [X] T013 新增 `CommandLineParser` 測試：驗證 `consolidate-release-data` 正確解析為 `TaskType.ConsolidateReleaseData`，於 `tests/ReleaseKit.Console.Tests/Parsers/CommandLineParserTests.cs`
 
 **Checkpoint**: Foundation ready — `consolidate-release-data` 指令可被解析並路由至 Task 實例
 
@@ -61,17 +61,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [P] [US1] 測試：讀取 Bitbucket + GitLab PR 資料並以 PrId 配對 Work Item，驗證整合記錄數量與欄位正確，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T015 [P] [US1] 測試：驗證整合結果依 ProjectPath 最後一段分組（如 `group/subgroup/project` → `project`），於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T016 [P] [US1] 測試：驗證同一專案內記錄依 TeamDisplayName 升冪、再依 WorkItemId 升冪排序，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T017 [P] [US1] 測試：驗證 TeamMapping 正確將 OriginalTeamName 轉換為 DisplayName，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T018 [P] [US1] 測試：驗證同一 Work Item 有多個 PR 時，Authors 與 PullRequests 清單包含所有相關 PR 資訊（去重 AuthorName），於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T019 [P] [US1] 測試：驗證 PrId 為 null 的 Work Item 仍出現在結果中，PR 資訊與作者資訊為空陣列，ProjectName 為 "unknown"，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T020 [P] [US1] 測試：驗證整合結果以 JSON 序列化後正確寫入 Redis Key `ConsolidatedReleaseData`，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T014 [P] [US1] 測試：讀取 Bitbucket + GitLab PR 資料並以 PrId 配對 Work Item，驗證整合記錄數量與欄位正確，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T015 [P] [US1] 測試：驗證整合結果依 ProjectPath 最後一段分組（如 `group/subgroup/project` → `project`），於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T016 [P] [US1] 測試：驗證同一專案內記錄依 TeamDisplayName 升冪、再依 WorkItemId 升冪排序，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T017 [P] [US1] 測試：驗證 TeamMapping 正確將 OriginalTeamName 轉換為 DisplayName，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T018 [P] [US1] 測試：驗證同一 Work Item 有多個 PR 時，Authors 與 PullRequests 清單包含所有相關 PR 資訊（去重 AuthorName），於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T019 [P] [US1] 測試：驗證 PrId 為 null 的 Work Item 仍出現在結果中，PR 資訊與作者資訊為空陣列，ProjectName 為 "unknown"，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T020 [P] [US1] 測試：驗證整合結果以 JSON 序列化後正確寫入 Redis Key `ConsolidatedReleaseData`，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] 實作 `ConsolidateReleaseDataTask`（實作 `ITask`）於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`，包含：
+- [X] T021 [US1] 實作 `ConsolidateReleaseDataTask`（實作 `ITask`）於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`，包含：
   - 建構子注入 `IRedisService`、`IOptions<AzureDevOpsOptions>`、`ILogger<ConsolidateReleaseDataTask>`
   - `ExecuteAsync` 方法實作完整整合流程：
     1. 從 Redis 讀取 Bitbucket/GitLab ByUser PR 資料（`FetchResult`）
@@ -98,12 +98,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T022 [P] [US2] 測試：當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時，拋出 `InvalidOperationException` 且錯誤訊息指出缺少的 Key，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T023 [P] [US2] 測試：當 Bitbucket 與 GitLab ByUser PR 資料均為空集合（`Results` 為空 List）時，拋出 `InvalidOperationException`，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T022 [P] [US2] 測試：當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時，拋出 `InvalidOperationException` 且錯誤訊息指出缺少的 Key，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T023 [P] [US2] 測試：當 Bitbucket 與 GitLab ByUser PR 資料均為空集合（`Results` 為空 List）時，拋出 `InvalidOperationException`，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] 在 `ConsolidateReleaseDataTask.ExecuteAsync` 中新增 PR 資料驗證邏輯於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`：
+- [X] T024 [US2] 在 `ConsolidateReleaseDataTask.ExecuteAsync` 中新增 PR 資料驗證邏輯於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`：
   - 讀取 Bitbucket 與 GitLab PR 資料後，檢查是否兩者皆為 null 或所有 Results 均為空
   - 若是，拋出 `InvalidOperationException`，訊息明確指出缺少的 Redis Key
 
@@ -121,12 +121,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T025 [P] [US3] 測試：當 UserStories Work Item 資料 Key 不存在時，拋出 `InvalidOperationException` 且錯誤訊息指出缺少的 Key，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T026 [P] [US3] 測試：當 UserStories Work Item 資料為空集合（`WorkItems` 為空 List）時，拋出 `InvalidOperationException`，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T025 [P] [US3] 測試：當 UserStories Work Item 資料 Key 不存在時，拋出 `InvalidOperationException` 且錯誤訊息指出缺少的 Key，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T026 [P] [US3] 測試：當 UserStories Work Item 資料為空集合（`WorkItems` 為空 List）時，拋出 `InvalidOperationException`，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] 在 `ConsolidateReleaseDataTask.ExecuteAsync` 中新增 Work Item 資料驗證邏輯於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`：
+- [X] T027 [US3] 在 `ConsolidateReleaseDataTask.ExecuteAsync` 中新增 Work Item 資料驗證邏輯於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`：
   - 讀取 UserStories 資料後，檢查是否為 null 或 WorkItems 為空
   - 若是，拋出 `InvalidOperationException`，訊息明確指出缺少的 Redis Key
 
@@ -144,12 +144,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T028 [P] [US4] 測試：TeamMapping 忽略大小寫 — OriginalTeamName 為 "moneylogistic"（全小寫）仍正確對映為 "金流團隊"，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
-- [ ] T029 [P] [US4] 測試：TeamMapping 找不到對映時 — TeamDisplayName 使用原始 OriginalTeamName，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T028 [P] [US4] 測試：TeamMapping 忽略大小寫 — OriginalTeamName 為 "moneylogistic"（全小寫）仍正確對映為 "金流團隊"，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
+- [X] T029 [P] [US4] 測試：TeamMapping 找不到對映時 — TeamDisplayName 使用原始 OriginalTeamName，於 `tests/ReleaseKit.Application.Tests/Tasks/ConsolidateReleaseDataTaskTests.cs`
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] 確認 `ConsolidateReleaseDataTask` 中 TeamMapping Dictionary 使用 `StringComparer.OrdinalIgnoreCase` 並處理 fallback 邏輯於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`
+- [X] T030 [US4] 確認 `ConsolidateReleaseDataTask` 中 TeamMapping Dictionary 使用 `StringComparer.OrdinalIgnoreCase` 並處理 fallback 邏輯於 `src/ReleaseKit.Application/Tasks/ConsolidateReleaseDataTask.cs`
 
 **Checkpoint**: User Story 4 完成 — 團隊名稱對映容錯性完備
 
@@ -159,9 +159,9 @@
 
 **Purpose**: 最終驗證與文件整理
 
-- [ ] T031 執行 `dotnet build src/release-kit.sln` 確認建置成功
-- [ ] T032 執行 `dotnet test tests/ReleaseKit.Application.Tests` 確認所有測試通過
-- [ ] T033 執行 `dotnet test` 確認全專案所有測試通過
+- [X] T031 執行 `dotnet build src/release-kit.sln` 確認建置成功
+- [X] T032 執行 `dotnet test tests/ReleaseKit.Application.Tests` 確認所有測試通過
+- [X] T033 執行 `dotnet test` 確認全專案所有測試通過
 
 ---
 

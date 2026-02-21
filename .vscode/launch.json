@@ -15,6 +15,7 @@
                 // "filter-bitbucket-pr-by-user"
                 // "fetch-azure-workitems"
                 // "get-user-story"
+                // "consolidate-release-data"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

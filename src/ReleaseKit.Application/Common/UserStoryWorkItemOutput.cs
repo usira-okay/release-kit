@@ -64,6 +64,15 @@ public sealed record UserStoryWorkItemOutput
     public string? PrId { get; init; }
 
     /// <summary>
+    /// PR 所屬專案名稱（ProjectPath split('/') 取最後一段）
+    /// </summary>
+    /// <remarks>
+    /// 記錄源頭 PR 的專案名稱，不寫入 OriginalWorkItem，
+    /// 保持 OriginalWorkItem 的原始性。
+    /// </remarks>
+    public string? ProjectName { get; init; }
+
+    /// <summary>
     /// 原始 Work Item 資訊（若無轉換則為 null）
     /// </summary>
     public WorkItemOutput? OriginalWorkItem { get; init; }
