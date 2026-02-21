@@ -52,11 +52,8 @@ public class ConsolidateReleaseDataTask : ITask
         // 2. 從 Redis 讀取 Work Item 資料
         var userStoryResult = await LoadUserStoriesAsync();
 
-        // 3. 建立 TeamMapping 查詢字典（忽略大小寫）
-        var teamMapping = BuildTeamMapping();
-
-        // 4. 整合資料
-        var consolidated = ConsolidateData(prLookup, userStoryResult, teamMapping);
+        // 3. 整合資料
+        var consolidated = ConsolidateData(prLookup, userStoryResult, _options.Value.TeamMapping);
 
         // 5. 序列化並寫入 Redis
         var json = consolidated.ToJson();
@@ -147,30 +144,12 @@ public class ConsolidateReleaseDataTask : ITask
     }
 
     /// <summary>
-    /// 建立 TeamMapping 查詢字典（忽略大小寫）
-    /// </summary>
-    private Dictionary<string, string> BuildTeamMapping()
-    {
-        var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var team in _options.Value.TeamMapping)
-        {
-            if (!string.IsNullOrEmpty(team.OriginalTeamName))
-            {
-                mapping[team.OriginalTeamName] = team.DisplayName;
-            }
-        }
-
-        return mapping;
-    }
-
-    /// <summary>
     /// 整合 PR 與 Work Item 資料
     /// </summary>
     private ConsolidatedReleaseResult ConsolidateData(
         Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>> prLookup,
         UserStoryFetchResult userStoryResult,
-        Dictionary<string, string> teamMapping)
+        IReadOnlyList<TeamMappingOptions> teamMapping)
     {
         // 以 (WorkItemId, PrId) 為複合 Key 合併記錄（插件的 WorkItemId 可能為 0，需靠 PrId 區分）
         var workItemGroups = new Dictionary<(int WorkItemId, string PrId), (
@@ -280,18 +259,19 @@ public class ConsolidateReleaseDataTask : ITask
     /// <summary>
     /// 取得團隊顯示名稱（以 Contains 忽略大小寫比對），找不到對映時使用原始名稱
     /// </summary>
-    private static string GetTeamDisplayName(string? originalTeamName, Dictionary<string, string> teamMapping)
+    private static string GetTeamDisplayName(string? originalTeamName, IReadOnlyList<TeamMappingOptions> teamMapping)
     {
         if (string.IsNullOrEmpty(originalTeamName))
         {
             return string.Empty;
         }
 
-        foreach (var (key, displayName) in teamMapping)
+        foreach (var team in teamMapping)
         {
-            if (originalTeamName.Contains(key, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(team.OriginalTeamName) &&
+                originalTeamName.Contains(team.OriginalTeamName, StringComparison.OrdinalIgnoreCase))
             {
-                return displayName;
+                return team.DisplayName;
             }
         }
 
