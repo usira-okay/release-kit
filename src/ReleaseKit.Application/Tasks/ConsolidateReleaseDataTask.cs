@@ -185,7 +185,7 @@ public class ConsolidateReleaseDataTask : ITask
                     PullRequests: new List<MergeRequestOutput>(),
                     AuthorNames: new HashSet<string>(StringComparer.OrdinalIgnoreCase),
                     ProjectName: projectName,
-                    FirstPrTitle: matchedPrs.FirstOrDefault().PR.Title
+                    FirstPrTitle: matchedPrs.FirstOrDefault().PR?.Title
                 );
                 workItemGroups[key] = group;
             }
@@ -198,7 +198,7 @@ public class ConsolidateReleaseDataTask : ITask
                     group.AuthorNames.Add(pr.AuthorName);
                 }
 
-                // 若尚無 PrTitle，更新之
+                // 若尚無 FirstPrTitle，更新之
                 if (group.FirstPrTitle == null)
                 {
                     group = group with { FirstPrTitle = pr.Title };
@@ -216,7 +216,8 @@ public class ConsolidateReleaseDataTask : ITask
 
             var entry = new ConsolidatedReleaseEntry
             {
-                PrTitle = group.FirstPrTitle ?? string.Empty,
+                Title = group.WorkItem.Title ?? group.FirstPrTitle ?? string.Empty,
+                WorkItemUrl = group.WorkItem.Url ?? string.Empty,
                 WorkItemId = key.WorkItemId,
                 TeamDisplayName = teamDisplayName,
                 Authors = group.AuthorNames

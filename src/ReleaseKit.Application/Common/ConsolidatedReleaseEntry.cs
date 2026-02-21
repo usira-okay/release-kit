@@ -6,9 +6,14 @@ namespace ReleaseKit.Application.Common;
 public sealed record ConsolidatedReleaseEntry
 {
     /// <summary>
-    /// PR 標題（取第一筆配對 PR 的標題）
+    /// User Story 標題
     /// </summary>
-    public required string PrTitle { get; init; }
+    public required string Title { get; init; }
+
+    /// <summary>
+    /// Work Item URL
+    /// </summary>
+    public required string WorkItemUrl { get; init; }
 
     /// <summary>
     /// Work Item ID

@@ -159,7 +159,8 @@ public class ConsolidateReleaseDataTaskTests
         var myRepoProject = result.Projects.First(p => p.ProjectName == "my-repo");
         Assert.Single(myRepoProject.Entries);
         Assert.Equal(12345, myRepoProject.Entries[0].WorkItemId);
-        Assert.Equal("feature/VSTS12345-add-login", myRepoProject.Entries[0].PrTitle);
+        Assert.Equal("Work Item 12345", myRepoProject.Entries[0].Title);
+        Assert.Equal("https://dev.azure.com/org/proj/_workitems/edit/12345", myRepoProject.Entries[0].WorkItemUrl);
         Assert.Equal("金流團隊", myRepoProject.Entries[0].TeamDisplayName);
         Assert.Single(myRepoProject.Entries[0].Authors);
         Assert.Equal("John Doe", myRepoProject.Entries[0].Authors[0].AuthorName);
@@ -563,5 +564,44 @@ public class ConsolidateReleaseDataTaskTests
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.Equal("UnknownTeam", result.Projects[0].Entries[0].TeamDisplayName);
+    }
+
+    // ===== T030: 驗證 Work Item 無標題時 Title 使用第一筆 PR 標題 =====
+
+    /// <summary>
+    /// T030: 測試 Work Item 無標題（IsSuccess = false）時，Title 應 fallback 使用第一筆配對 PR 的標題
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WithNoWorkItemTitle_ShouldFallbackToPrTitle()
+    {
+        // Arrange
+        var gitLabResult = CreateFetchResult(
+            CreateProject("group/project",
+                CreatePr("pr-1", "Author1", "PR Title Fallback")));
+
+        SetupPrData(null, gitLabResult);
+
+        // Work Item 查詢失敗，Title 為 null
+        var failedWorkItem = new UserStoryWorkItemOutput
+        {
+            WorkItemId = 0,
+            Title = null,
+            IsSuccess = false,
+            ResolutionStatus = UserStoryResolutionStatus.OriginalFetchFailed,
+            PrId = "pr-1",
+            ProjectName = "project"
+        };
+        SetupUserStoryData(CreateUserStoryResult(failedWorkItem));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        Assert.NotNull(_capturedRedisJson);
+        var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
+        Assert.NotNull(result);
+        Assert.Equal("PR Title Fallback", result.Projects[0].Entries[0].Title);
     }
 }
