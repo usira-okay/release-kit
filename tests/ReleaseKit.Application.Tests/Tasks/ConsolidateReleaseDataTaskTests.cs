@@ -159,7 +159,8 @@ public class ConsolidateReleaseDataTaskTests
         var myRepoProject = result.Projects.First(p => p.ProjectName == "my-repo");
         Assert.Single(myRepoProject.Entries);
         Assert.Equal(12345, myRepoProject.Entries[0].WorkItemId);
-        Assert.Equal("feature/VSTS12345-add-login", myRepoProject.Entries[0].PrTitle);
+        Assert.Equal("Work Item 12345", myRepoProject.Entries[0].Title);
+        Assert.Equal("https://dev.azure.com/org/proj/_workitems/edit/12345", myRepoProject.Entries[0].WorkItemUrl);
         Assert.Equal("金流團隊", myRepoProject.Entries[0].TeamDisplayName);
         Assert.Single(myRepoProject.Entries[0].Authors);
         Assert.Equal("John Doe", myRepoProject.Entries[0].Authors[0].AuthorName);
