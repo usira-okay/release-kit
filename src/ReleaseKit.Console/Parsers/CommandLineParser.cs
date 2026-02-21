@@ -18,6 +18,7 @@ public class CommandLineParser
         { "fetch-azure-workitems", TaskType.FetchAzureDevOpsWorkItems },
         { "get-user-story", TaskType.GetUserStory },
         { "update-googlesheet", TaskType.UpdateGoogleSheets },
+        { "consolidate-release-data", TaskType.ConsolidateReleaseData },
     };
 
     /// <summary>

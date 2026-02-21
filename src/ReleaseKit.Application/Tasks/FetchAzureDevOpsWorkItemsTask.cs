@@ -93,9 +93,9 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <summary>
     /// 從 Redis 載入 PR 資料
     /// </summary>
-    private async Task<List<MergeRequestOutput>> LoadPullRequestsFromRedisAsync()
+    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsFromRedisAsync()
     {
-        var allPullRequests = new List<MergeRequestOutput>();
+        var allPullRequests = new List<(MergeRequestOutput PR, string ProjectName)>();
 
         // 定義要讀取的 Redis Key
         var redisKeys = new[]
@@ -113,7 +113,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                 var result = json.ToTypedObject<FetchResult>();
                 if (result is not null)
                 {
-                    allPullRequests.AddRange(result.Results.SelectMany(r => r.PullRequests));
+                    foreach (var project in result.Results)
+                    {
+                        var projectName = project.ProjectPath.Split('/').Last();
+                        foreach (var pr in project.PullRequests)
+                        {
+                            allPullRequests.Add((pr, projectName));
+                        }
+                    }
                 }
             }
             else
@@ -128,17 +135,17 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <summary>
     /// 從 PR 中提取 Work Item ID 與 PR 關聯
     /// </summary>
-    /// <param name="pullRequests">PR 清單</param>
-    /// <returns>PR ID 與 Work Item ID 的對應清單（保留重複）</returns>
+    /// <param name="pullRequests">PR 與專案名稱的對應清單</param>
+    /// <returns>PR ID、Work Item ID 與專案名稱的對應清單（保留重複）</returns>
     /// <remarks>
     /// 直接使用 PR 的 WorkItemId 欄位（已從 SourceBranch 解析）。
     /// 不去重複，保留每個 PR 與 Work Item 的對應關係。
     /// </remarks>
-    private List<(string prId, int workItemId)> ExtractWorkItemIdsFromPRs(List<MergeRequestOutput> pullRequests)
+    private List<(string prId, int workItemId, string projectName)> ExtractWorkItemIdsFromPRs(List<(MergeRequestOutput PR, string ProjectName)> pullRequests)
     {
         var workItemPairs = pullRequests
-            .Where(pr => pr.WorkItemId.HasValue)
-            .Select(pr => (pr.PrId, pr.WorkItemId!.Value))
+            .Where(item => item.PR.WorkItemId.HasValue)
+            .Select(item => (item.PR.PrId, item.PR.WorkItemId!.Value, item.ProjectName))
             .ToList();
 
         return workItemPairs;
@@ -147,15 +154,15 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <summary>
     /// 逐一查詢 Work Item
     /// </summary>
-    /// <param name="workItemPairs">Work Item ID 與 PR ID 對應清單</param>
+    /// <param name="workItemPairs">Work Item ID、PR ID 與專案名稱的對應清單</param>
     /// <returns>Work Item 輸出清單</returns>
-    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(IReadOnlyList<(string prId, int workItemId)> workItemPairs)
+    private async Task<List<WorkItemOutput>> FetchWorkItemsAsync(IReadOnlyList<(string prId, int workItemId, string projectName)> workItemPairs)
     {
         var outputs = new List<WorkItemOutput>();
 
         _logger.LogInformation("開始查詢 {WorkItemCount} 個 Work Item", workItemPairs.Count);
         var processedCount = 0;
-        foreach (var (prId, workItemId) in workItemPairs)
+        foreach (var (prId, workItemId, projectName) in workItemPairs)
         {
             processedCount++;
             
@@ -182,6 +189,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     Url = result.Value.Url,
                     OriginalTeamName = result.Value.OriginalTeamName,
                     PrId = prId,
+                    ProjectName = projectName,
                     IsSuccess = true,
                     ErrorMessage = null
                 });
@@ -198,6 +206,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
                     Url = null,
                     OriginalTeamName = null,
                     PrId = prId,
+                    ProjectName = projectName,
                     IsSuccess = false,
                     ErrorMessage = result.Error.Message
                 });
