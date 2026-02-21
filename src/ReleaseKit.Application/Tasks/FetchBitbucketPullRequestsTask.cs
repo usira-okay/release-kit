@@ -43,7 +43,10 @@ public class FetchBitbucketPullRequestsTask : BaseFetchPullRequestsTask<Bitbucke
     protected override SourceControlPlatform Platform => SourceControlPlatform.Bitbucket;
 
     /// <inheritdoc />
-    protected override string RedisKey => RedisKeys.BitbucketPullRequests;
+    protected override string RedisHashKey => RedisKeys.BitbucketHash;
+
+    /// <inheritdoc />
+    protected override string RedisHashField => RedisKeys.Fields.PullRequests;
 
     /// <inheritdoc />
     protected override IEnumerable<BitbucketProjectOptions> GetProjects() => PlatformOptions.Projects;

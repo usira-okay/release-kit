@@ -27,8 +27,8 @@ public class GetUserStoryTaskTests
         _azureDevOpsRepositoryMock = new Mock<IAzureDevOpsRepository>();
         
         // Setup Redis write capture
-        _redisServiceMock.Setup(x => x.SetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems, It.IsAny<string>(), null))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => _capturedRedisJson = json)
+        _redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => _capturedRedisJson = json)
             .ReturnsAsync(true);
     }
 
@@ -48,7 +48,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(emptyResult.ToJson());
 
         var task = CreateTask();
@@ -57,7 +57,7 @@ public class GetUserStoryTaskTests
         await task.ExecuteAsync();
 
         // Assert - Should NOT write to Redis when there's no data
-        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems, It.IsAny<string>(), null), Times.Never);
+        _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories, It.IsAny<string>()), Times.Never);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         var task = CreateTask();
@@ -98,7 +98,7 @@ public class GetUserStoryTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems, It.IsAny<string>(), null), Times.Once);
+        _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories, It.IsAny<string>()), Times.Once);
         
         var result = _capturedRedisJson!.ToTypedObject<UserStoryFetchResult>();
         Assert.NotNull(result);
@@ -139,7 +139,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock the original Work Item (Bug) with Parent ID 67890
@@ -200,7 +200,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock original Bug with parent 22222
@@ -262,7 +262,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock Work Item with no parent
@@ -312,7 +312,7 @@ public class GetUserStoryTaskTests
             FailureCount = 1
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         var task = CreateTask();
@@ -359,7 +359,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock Parent API failure
@@ -408,7 +408,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock Bug 11111 with parent 22222
@@ -463,7 +463,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Create deep chain: 1 -> 2 -> 3 -> ... -> 12
@@ -538,7 +538,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock Work Item 1 (Bug) with parent 67890 (User Story)
@@ -623,7 +623,7 @@ public class GetUserStoryTaskTests
             FailureCount = 0
         };
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(workItemResult.ToJson());
 
         // Mock Bug 11111 with parent 67890

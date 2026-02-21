@@ -6,47 +6,58 @@ namespace ReleaseKit.Common.Constants;
 public static class RedisKeys
 {
     /// <summary>
-    /// GitLab Pull Request 資料的 Redis Key
+    /// GitLab 資料的 Redis Hash 鍵值
     /// </summary>
-    public const string GitLabPullRequests = "GitLab:PullRequests";
+    public const string GitLabHash = "GitLab";
 
     /// <summary>
-    /// Bitbucket Pull Request 資料的 Redis Key
+    /// Bitbucket 資料的 Redis Hash 鍵值
     /// </summary>
-    public const string BitbucketPullRequests = "Bitbucket:PullRequests";
+    public const string BitbucketHash = "Bitbucket";
 
     /// <summary>
-    /// GitLab Release Branch 資料的 Redis Key
+    /// Azure DevOps 資料的 Redis Hash 鍵值
     /// </summary>
-    public const string GitLabReleaseBranches = "GitLab:ReleaseBranches";
+    public const string AzureDevOpsHash = "AzureDevOps";
 
     /// <summary>
-    /// Bitbucket Release Branch 資料的 Redis Key
+    /// 整合後的 Release 資料的 Redis Hash 鍵值
     /// </summary>
-    public const string BitbucketReleaseBranches = "Bitbucket:ReleaseBranches";
+    public const string ReleaseDataHash = "ReleaseData";
 
     /// <summary>
-    /// 過濾後的 GitLab Pull Request 資料（依使用者）的 Redis Key
+    /// Redis Hash 欄位名稱常數
     /// </summary>
-    public const string GitLabPullRequestsByUser = "GitLab:PullRequests:ByUser";
+    public static class Fields
+    {
+        /// <summary>
+        /// Pull Request 資料的欄位名稱
+        /// </summary>
+        public const string PullRequests = "PullRequests";
 
-    /// <summary>
-    /// 過濾後的 Bitbucket Pull Request 資料（依使用者）的 Redis Key
-    /// </summary>
-    public const string BitbucketPullRequestsByUser = "Bitbucket:PullRequests:ByUser";
+        /// <summary>
+        /// 過濾後（依使用者）的 Pull Request 資料欄位名稱
+        /// </summary>
+        public const string PullRequestsByUser = "PullRequests:ByUser";
 
-    /// <summary>
-    /// Azure DevOps Work Items 資料的 Redis Key
-    /// </summary>
-    public const string AzureDevOpsWorkItems = "AzureDevOps:WorkItems";
+        /// <summary>
+        /// Release Branch 資料的欄位名稱
+        /// </summary>
+        public const string ReleaseBranches = "ReleaseBranches";
 
-    /// <summary>
-    /// Azure DevOps User Story 層級 Work Items 資料的 Redis Key
-    /// </summary>
-    public const string AzureDevOpsUserStoryWorkItems = "AzureDevOps:WorkItems:UserStories";
+        /// <summary>
+        /// Work Items 資料的欄位名稱
+        /// </summary>
+        public const string WorkItems = "WorkItems";
 
-    /// <summary>
-    /// 整合後的 Release 資料的 Redis Key
-    /// </summary>
-    public const string ConsolidatedReleaseData = "ConsolidatedReleaseData";
+        /// <summary>
+        /// User Story 層級 Work Items 資料的欄位名稱
+        /// </summary>
+        public const string WorkItemsUserStories = "WorkItems:UserStories";
+
+        /// <summary>
+        /// 整合後的 Release 資料欄位名稱
+        /// </summary>
+        public const string Consolidated = "Consolidated";
+    }
 }

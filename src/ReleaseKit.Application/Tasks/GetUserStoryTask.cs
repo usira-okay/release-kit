@@ -92,7 +92,7 @@ public class GetUserStoryTask : ITask
     /// </summary>
     private async Task<WorkItemFetchResult?> LoadWorkItemsFromRedisAsync()
     {
-        var json = await _redisService.GetAsync(RedisKeys.AzureDevOpsWorkItems);
+        var json = await _redisService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -307,6 +307,6 @@ public class GetUserStoryTask : ITask
     private async Task SaveResultAsync(UserStoryFetchResult result)
     {
         var json = result.ToJson();
-        await _redisService.SetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems, json);
+        await _redisService.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories, json);
     }
 }

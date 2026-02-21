@@ -33,11 +33,11 @@ public class RedisIntegrationTests
         
         // Mock Redis service - 設定有舊資料存在
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -55,10 +55,10 @@ public class RedisIntegrationTests
 
         // Assert - 驗證檢查並刪除舊資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.GitLabPullRequests),
+            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(RedisKeys.GitLabPullRequests),
+            x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests),
             Times.Once);
     }
 
@@ -78,9 +78,9 @@ public class RedisIntegrationTests
         
         // Mock Redis service - 設定沒有舊資料
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -98,10 +98,10 @@ public class RedisIntegrationTests
 
         // Assert - 驗證沒有嘗試刪除資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.GitLabPullRequests),
+            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(It.IsAny<string>()),
+            x => x.HashDeleteAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -161,9 +161,9 @@ public class RedisIntegrationTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.GitLabPullRequests, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -181,10 +181,10 @@ public class RedisIntegrationTests
 
         // Assert - 驗證資料已存入 Redis
         redisServiceMock.Verify(
-            x => x.SetAsync(
-                RedisKeys.GitLabPullRequests, 
-                It.Is<string>(json => json.Contains("Test MR")), 
-                null),
+            x => x.HashSetAsync(
+                RedisKeys.GitLabHash,
+                RedisKeys.Fields.PullRequests,
+                It.Is<string>(json => json.Contains("Test MR"))),
             Times.Once);
     }
 
@@ -204,11 +204,11 @@ public class RedisIntegrationTests
         
         // Mock Redis service - 設定有舊資料存在
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.BitbucketPullRequests))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.BitbucketPullRequests))
+        redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -226,10 +226,10 @@ public class RedisIntegrationTests
 
         // Assert - 驗證檢查並刪除舊資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.BitbucketPullRequests),
+            x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(RedisKeys.BitbucketPullRequests),
+            x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests),
             Times.Once);
     }
 
@@ -289,9 +289,9 @@ public class RedisIntegrationTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.BitbucketPullRequests, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -309,10 +309,10 @@ public class RedisIntegrationTests
 
         // Assert - 驗證資料已存入 Redis
         redisServiceMock.Verify(
-            x => x.SetAsync(
-                RedisKeys.BitbucketPullRequests, 
-                It.Is<string>(json => json.Contains("Test PR")), 
-                null),
+            x => x.HashSetAsync(
+                RedisKeys.BitbucketHash,
+                RedisKeys.Fields.PullRequests,
+                It.Is<string>(json => json.Contains("Test PR"))),
             Times.Once);
     }
 
@@ -328,8 +328,8 @@ public class RedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         var redisServiceMock = new Mock<IRedisService>();
         
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -344,13 +344,13 @@ public class RedisIntegrationTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證使用正確的 Redis Key
-        redisServiceMock.Verify(x => x.ExistsAsync(RedisKeys.GitLabPullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.GitLabPullRequests, It.IsAny<string>(), null), Times.Once);
+        // Assert - 驗證使用正確的 Redis Hash Key 與 Field
+        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Once);
         
-        // 確保沒有使用 Bitbucket 的 Key
-        redisServiceMock.Verify(x => x.ExistsAsync(RedisKeys.BitbucketPullRequests), Times.Never);
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.BitbucketPullRequests, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Never);
+        // 確保沒有使用 Bitbucket 的 Hash Key
+        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests), Times.Never);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -365,8 +365,8 @@ public class RedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         var redisServiceMock = new Mock<IRedisService>();
         
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -381,12 +381,12 @@ public class RedisIntegrationTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證使用正確的 Redis Key
-        redisServiceMock.Verify(x => x.ExistsAsync(RedisKeys.BitbucketPullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.BitbucketPullRequests, It.IsAny<string>(), null), Times.Once);
+        // Assert - 驗證使用正確的 Redis Hash Key 與 Field
+        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Once);
         
-        // 確保沒有使用 GitLab 的 Key
-        redisServiceMock.Verify(x => x.ExistsAsync(RedisKeys.GitLabPullRequests), Times.Never);
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.GitLabPullRequests, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Never);
+        // 確保沒有使用 GitLab 的 Hash Key
+        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Never);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Never);
     }
 }

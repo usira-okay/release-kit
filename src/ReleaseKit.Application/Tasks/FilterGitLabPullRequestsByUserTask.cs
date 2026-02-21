@@ -33,10 +33,16 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
     }
 
     /// <inheritdoc />
-    protected override string SourceRedisKey => RedisKeys.GitLabPullRequests;
+    protected override string SourceRedisHashKey => RedisKeys.GitLabHash;
 
     /// <inheritdoc />
-    protected override string TargetRedisKey => RedisKeys.GitLabPullRequestsByUser;
+    protected override string SourceRedisHashField => RedisKeys.Fields.PullRequests;
+
+    /// <inheritdoc />
+    protected override string TargetRedisHashKey => RedisKeys.GitLabHash;
+
+    /// <inheritdoc />
+    protected override string TargetRedisHashField => RedisKeys.Fields.PullRequestsByUser;
 
     /// <inheritdoc />
     protected override string PlatformName => "GitLab";

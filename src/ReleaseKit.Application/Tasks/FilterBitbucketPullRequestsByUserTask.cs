@@ -33,10 +33,16 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
     }
 
     /// <inheritdoc />
-    protected override string SourceRedisKey => RedisKeys.BitbucketPullRequests;
+    protected override string SourceRedisHashKey => RedisKeys.BitbucketHash;
 
     /// <inheritdoc />
-    protected override string TargetRedisKey => RedisKeys.BitbucketPullRequestsByUser;
+    protected override string SourceRedisHashField => RedisKeys.Fields.PullRequests;
+
+    /// <inheritdoc />
+    protected override string TargetRedisHashKey => RedisKeys.BitbucketHash;
+
+    /// <inheritdoc />
+    protected override string TargetRedisHashField => RedisKeys.Fields.PullRequestsByUser;
 
     /// <inheritdoc />
     protected override string PlatformName => "Bitbucket";

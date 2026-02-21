@@ -36,7 +36,10 @@ public class FetchBitbucketReleaseBranchTask : BaseFetchReleaseBranchTask<Bitbuc
     protected override string PlatformName => "Bitbucket";
 
     /// <inheritdoc />
-    protected override string RedisKey => RedisKeys.BitbucketReleaseBranches;
+    protected override string RedisHashKey => RedisKeys.BitbucketHash;
+
+    /// <inheritdoc />
+    protected override string RedisHashField => RedisKeys.Fields.ReleaseBranches;
 
     /// <inheritdoc />
     protected override IEnumerable<BitbucketProjectOptions> GetProjects() => PlatformOptions.Projects;

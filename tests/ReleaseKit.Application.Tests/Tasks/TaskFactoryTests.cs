@@ -52,8 +52,8 @@ public class TaskFactoryTests
         
         // 註冊 IRedisService mock
         var mockRedisService = new Mock<IRedisService>();
-        mockRedisService.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        mockRedisService.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        mockRedisService.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        mockRedisService.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         services.AddSingleton(mockRedisService.Object);
         
         // 註冊 Tasks

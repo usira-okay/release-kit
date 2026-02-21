@@ -43,7 +43,10 @@ public class FetchGitLabPullRequestsTask : BaseFetchPullRequestsTask<GitLabOptio
     protected override SourceControlPlatform Platform => SourceControlPlatform.GitLab;
 
     /// <inheritdoc />
-    protected override string RedisKey => RedisKeys.GitLabPullRequests;
+    protected override string RedisHashKey => RedisKeys.GitLabHash;
+
+    /// <inheritdoc />
+    protected override string RedisHashField => RedisKeys.Fields.PullRequests;
 
     /// <inheritdoc />
     protected override IEnumerable<GitLabProjectOptions> GetProjects() => PlatformOptions.Projects;

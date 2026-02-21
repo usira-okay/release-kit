@@ -43,7 +43,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         _logger.LogInformation("開始拉取 Azure DevOps Work Item 資訊");
 
         // 清除舊的 Azure DevOps Work Item 資料
-        await _redisService.DeleteAsync(RedisKeys.AzureDevOpsWorkItems);
+        await _redisService.HashDeleteAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
 
         // 從 Redis 讀取 PR 資料
         var allPullRequests = await LoadPullRequestsFromRedisAsync();
@@ -83,7 +83,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         };
 
         // 寫入 Redis
-        await _redisService.SetAsync(RedisKeys.AzureDevOpsWorkItems, result.ToJson(), null);
+        await _redisService.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, result.ToJson());
 
         _logger.LogInformation(
             "完成 Work Item 查詢：總計 {Total} 個，成功 {Success} 個，失敗 {Failure} 個", 
@@ -97,17 +97,17 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     {
         var allPullRequests = new List<(MergeRequestOutput PR, string ProjectName)>();
 
-        // 定義要讀取的 Redis Key
+        // 定義要讀取的 Redis Hash
         var redisKeys = new[]
         {
-            (Key: RedisKeys.GitLabPullRequestsByUser, Platform: "GitLab"),
-            (Key: RedisKeys.BitbucketPullRequestsByUser, Platform: "Bitbucket")
+            (HashKey: RedisKeys.GitLabHash, Field: RedisKeys.Fields.PullRequestsByUser, Platform: "GitLab"),
+            (HashKey: RedisKeys.BitbucketHash, Field: RedisKeys.Fields.PullRequestsByUser, Platform: "Bitbucket")
         };
 
         // 迴圈處理所有平台
-        foreach (var (key, platform) in redisKeys)
+        foreach (var (hashKey, field, platform) in redisKeys)
         {
-            var json = await _redisService.GetAsync(key);
+            var json = await _redisService.HashGetAsync(hashKey, field);
             if (json is not null)
             {
                 var result = json.ToTypedObject<FetchResult>();
@@ -125,7 +125,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
-                _logger.LogWarning("Redis Key {RedisKey} 不存在或為空", key);
+                _logger.LogWarning("Redis Hash {HashKey} Field {Field} 不存在或為空", hashKey, field);
             }
         }
 

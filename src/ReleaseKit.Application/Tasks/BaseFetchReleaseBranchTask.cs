@@ -47,9 +47,14 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
     protected abstract string PlatformName { get; }
 
     /// <summary>
-    /// 取得 Redis 儲存鍵值
+    /// 取得 Redis Hash 鍵值
     /// </summary>
-    protected abstract string RedisKey { get; }
+    protected abstract string RedisHashKey { get; }
+
+    /// <summary>
+    /// 取得 Redis Hash 欄位名稱
+    /// </summary>
+    protected abstract string RedisHashField { get; }
 
     /// <summary>
     /// 取得專案清單
@@ -64,10 +69,10 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
         _logger.LogInformation("開始執行 {Platform} Release Branch 拉取任務", PlatformName);
 
         // 檢查並清除 Redis 中的舊資料
-        if (await _redisService.ExistsAsync(RedisKey))
+        if (await _redisService.HashExistsAsync(RedisHashKey, RedisHashField))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Key: {RedisKey}", RedisKey);
-            await _redisService.DeleteAsync(RedisKey);
+            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
+            await _redisService.HashDeleteAsync(RedisHashKey, RedisHashField);
         }
 
         // 儲存結果：key = release branch 名稱，value = 專案路徑清單
@@ -137,7 +142,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
         Console.WriteLine(json);
 
         // 存入 Redis
-        await _redisService.SetAsync(RedisKey, json);
+        await _redisService.HashSetAsync(RedisHashKey, RedisHashField, json);
 
         _logger.LogInformation(
             "完成 {Platform} Release Branch 拉取任務，總專案數: {Total}，成功: {Success}，失敗/無分支: {Failure}",

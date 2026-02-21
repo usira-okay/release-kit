@@ -70,6 +70,50 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
+    /// 設定 Hash 欄位值
+    /// </summary>
+    public async Task<bool> HashSetAsync(string hashKey, string field, string value)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var result = await _database.HashSetAsync(fullKey, field, value);
+        _logger.LogInformation("Redis HSET: {Key} {Field} = {Value}, Result: {Result}", fullKey, field, value, result);
+        return result;
+    }
+
+    /// <summary>
+    /// 取得 Hash 欄位值
+    /// </summary>
+    public async Task<string?> HashGetAsync(string hashKey, string field)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var value = await _database.HashGetAsync(fullKey, field);
+        _logger.LogInformation("Redis HGET: {Key} {Field} = {Value}", fullKey, field, value.HasValue ? value.ToString() : "(null)");
+        return value.HasValue ? value.ToString() : null;
+    }
+
+    /// <summary>
+    /// 刪除 Hash 欄位
+    /// </summary>
+    public async Task<bool> HashDeleteAsync(string hashKey, string field)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var result = await _database.HashDeleteAsync(fullKey, field);
+        _logger.LogInformation("Redis HDEL: {Key} {Field}, Result: {Result}", fullKey, field, result);
+        return result;
+    }
+
+    /// <summary>
+    /// 檢查 Hash 欄位是否存在
+    /// </summary>
+    public async Task<bool> HashExistsAsync(string hashKey, string field)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var result = await _database.HashExistsAsync(fullKey, field);
+        _logger.LogInformation("Redis HEXISTS: {Key} {Field} = {Result}", fullKey, field, result);
+        return result;
+    }
+
+    /// <summary>
     /// 取得完整的快取鍵值（加上 Instance Name）
     /// </summary>
     private string GetFullKey(string key)

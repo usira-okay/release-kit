@@ -62,9 +62,14 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     protected abstract SourceControlPlatform Platform { get; }
 
     /// <summary>
-    /// 取得 Redis 儲存鍵值
+    /// 取得 Redis Hash 鍵值
     /// </summary>
-    protected abstract string RedisKey { get; }
+    protected abstract string RedisHashKey { get; }
+
+    /// <summary>
+    /// 取得 Redis Hash 欄位名稱
+    /// </summary>
+    protected abstract string RedisHashField { get; }
 
     /// <summary>
     /// 取得專案清單
@@ -79,10 +84,10 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
         _logger.LogInformation("開始執行 {Platform} Pull Request 拉取任務", PlatformName);
 
         // 檢查並清除 Redis 中的舊資料
-        if (await _redisService.ExistsAsync(RedisKey))
+        if (await _redisService.HashExistsAsync(RedisHashKey, RedisHashField))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Key: {RedisKey}", RedisKey);
-            await _redisService.DeleteAsync(RedisKey);
+            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
+            await _redisService.HashDeleteAsync(RedisHashKey, RedisHashField);
         }
 
         var projectResults = new List<ProjectResult>();
@@ -162,14 +167,14 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
         System.Console.WriteLine(json);
 
         // 將結果存入 Redis
-        var saveResult = await _redisService.SetAsync(RedisKey, json);
+        var saveResult = await _redisService.HashSetAsync(RedisHashKey, RedisHashField, json);
         if (saveResult)
         {
-            _logger.LogInformation("成功將資料存入 Redis，Key: {RedisKey}", RedisKey);
+            _logger.LogInformation("成功將資料存入 Redis，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
         }
         else
         {
-            _logger.LogWarning("將資料存入 Redis 失敗，Key: {RedisKey}", RedisKey);
+            _logger.LogWarning("將資料存入 Redis 失敗，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
         }
 
         var totalPRs = projectResults.Sum(r => r.PullRequests.Count);

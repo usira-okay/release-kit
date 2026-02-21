@@ -28,8 +28,8 @@ public class TasksTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddSingleton(gitLabOptions);
         services.AddSingleton(fetchModeOptions);
@@ -75,8 +75,8 @@ public class TasksTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddSingleton(bitbucketOptions);
         services.AddSingleton(fetchModeOptions);
@@ -163,8 +163,8 @@ public class TasksTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddSingleton(gitLabOptions);
         services.AddSingleton(fetchModeOptions);
@@ -259,8 +259,8 @@ public class TasksTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddSingleton(gitLabOptions);
         services.AddSingleton(fetchModeOptions);
@@ -356,8 +356,8 @@ public class TasksTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddSingleton(bitbucketOptions);
         services.AddSingleton(fetchModeOptions);
@@ -452,8 +452,8 @@ public class TasksTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddSingleton(bitbucketOptions);
         services.AddSingleton(fetchModeOptions);

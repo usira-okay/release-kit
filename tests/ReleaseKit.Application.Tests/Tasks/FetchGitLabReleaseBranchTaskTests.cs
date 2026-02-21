@@ -29,8 +29,8 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Mock Redis service
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
 
@@ -92,8 +92,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project2", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260201" }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -109,10 +109,10 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("release/20260201") && json.Contains("group/project1") && json.Contains("group/project2")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("release/20260201") && json.Contains("group/project1") && json.Contains("group/project2"))),
             Times.Once);
     }
 
@@ -142,8 +142,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project-no-release", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -159,10 +159,10 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("NotFound") && json.Contains("group/project-no-release")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("NotFound") && json.Contains("group/project-no-release"))),
             Times.Once);
     }
 
@@ -197,8 +197,8 @@ public class FetchGitLabReleaseBranchTaskTests
                 "release/20260210"  // 最新
             }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -214,10 +214,10 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 應該只有最新的 release/20260210
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("release/20260210") && !json.Contains("release/20260101") && !json.Contains("release/20260115")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("release/20260210") && !json.Contains("release/20260101") && !json.Contains("release/20260115"))),
             Times.Once);
     }
 
@@ -247,8 +247,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project-error", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Failed to get branches")));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -264,10 +264,10 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 失敗的專案應該歸入 NotFound
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("NotFound") && json.Contains("group/project-error")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("NotFound") && json.Contains("group/project-error"))),
             Times.Once);
     }
 
@@ -298,8 +298,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync(It.IsAny<string>(), "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { sameBranch }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -315,15 +315,15 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 所有專案應該歸在同一組
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
+                It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
                     json.Contains("release/20260210") && 
                     json.Contains("group/project1") && 
                     json.Contains("group/project2") && 
                     json.Contains("group/project3") &&
-                    !json.Contains("NotFound")),
-                It.IsAny<TimeSpan?>()),
+                    !json.Contains("NotFound"))),
             Times.Once);
     }
 
@@ -367,8 +367,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project-error", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Error")));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -384,13 +384,13 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 混合情境應該正確分組
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
+                It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
                     json.Contains("release/20260101") && json.Contains("group/project-old") &&
                     json.Contains("release/20260210") && json.Contains("group/project-new") &&
-                    json.Contains("NotFound") && json.Contains("group/project-none") && json.Contains("group/project-error")),
-                It.IsAny<TimeSpan?>()),
+                    json.Contains("NotFound") && json.Contains("group/project-none") && json.Contains("group/project-error"))),
             Times.Once);
     }
 
@@ -420,8 +420,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project2", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -437,14 +437,14 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - JSON 結構應該符合預期格式: { "branch": ["proj1", "proj2"], "NotFound": ["proj3"] }
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
+                It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
                     json.StartsWith("{") && json.EndsWith("}") &&  // 應該是 JSON 物件
                     json.Contains("\"release/20260210\"") &&       // 包含分支名稱
                     json.Contains("[") && json.Contains("]") &&    // 包含陣列
-                    json.Contains("\"NotFound\"")),                // 包含 NotFound key
-                It.IsAny<TimeSpan?>()),
+                    json.Contains("\"NotFound\""))),               // 包含 NotFound key
             Times.Once);
     }
 
@@ -483,9 +483,9 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260115" }.AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -539,9 +539,9 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -598,9 +598,9 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -670,9 +670,9 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -744,9 +744,9 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);

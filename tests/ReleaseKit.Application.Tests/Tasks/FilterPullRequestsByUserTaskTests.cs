@@ -75,9 +75,9 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         // 準備使用者對應設定
@@ -96,16 +96,16 @@ public class FilterPullRequestsByUserTaskTests
             userMappingOptions);
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.GitLabPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
         // Act
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.GetAsync(RedisKeys.GitLabPullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.GitLabPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Once);
+        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
         
         // 驗證寫入的資料僅包含匹配的 PR
         Assert.NotNull(capturedJson);
@@ -155,9 +155,9 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -175,15 +175,15 @@ public class FilterPullRequestsByUserTaskTests
             userMappingOptions);
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.GitLabPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
         // Act
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.GitLabPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
         
         Assert.NotNull(capturedJson);
         var result = capturedJson.ToTypedObject<FetchResult>();
@@ -221,16 +221,18 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
-        string? capturedKey = null;
+        string? capturedHashKey = null;
+        string? capturedField = null;
         string? capturedJson = null;
         
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) =>
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) =>
             {
-                capturedKey = key;
+                capturedHashKey = hashKey;
+                capturedField = field;
                 capturedJson = json;
             })
             .ReturnsAsync(true);
@@ -252,7 +254,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        Assert.Equal(RedisKeys.GitLabPullRequestsByUser, capturedKey);
+        Assert.Equal(RedisKeys.GitLabHash, capturedHashKey);
+        Assert.Equal(RedisKeys.Fields.PullRequestsByUser, capturedField);
         Assert.NotNull(capturedJson);
         
         var result = capturedJson.ToTypedObject<FetchResult>();
@@ -321,7 +324,7 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -339,16 +342,16 @@ public class FilterPullRequestsByUserTaskTests
             userMappingOptions);
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.BitbucketPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
         // Act
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.GetAsync(RedisKeys.BitbucketPullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.SetAsync(RedisKeys.BitbucketPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Once);
+        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
         
         // 驗證寫入的資料僅包含匹配的 PR
         Assert.NotNull(capturedJson);
@@ -386,16 +389,18 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
-        string? capturedKey = null;
+        string? capturedHashKey = null;
+        string? capturedField = null;
         string? capturedJson = null;
         
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) =>
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) =>
             {
-                capturedKey = key;
+                capturedHashKey = hashKey;
+                capturedField = field;
                 capturedJson = json;
             })
             .ReturnsAsync(true);
@@ -417,7 +422,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        Assert.Equal(RedisKeys.BitbucketPullRequestsByUser, capturedKey);
+        Assert.Equal(RedisKeys.BitbucketHash, capturedHashKey);
+        Assert.Equal(RedisKeys.Fields.PullRequestsByUser, capturedField);
         Assert.NotNull(capturedJson);
         
         var result = capturedJson.ToTypedObject<FetchResult>();
@@ -438,7 +444,7 @@ public class FilterPullRequestsByUserTaskTests
         var redisServiceMock = new Mock<IRedisService>();
         
         // Redis 中無 PR 資料
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync((string?)null);
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -458,8 +464,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.GetAsync(RedisKeys.GitLabPullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Never);
+        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
     
     /// <summary>
@@ -488,7 +494,7 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         // 空的使用者清單
@@ -506,8 +512,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.GetAsync(RedisKeys.GitLabPullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Never);
+        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
     
     /// <summary>
@@ -543,12 +549,12 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.GitLabPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -610,12 +616,12 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequests))
+        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.SetAsync(RedisKeys.GitLabPullRequestsByUser, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
         // UserMapping 包含空字串的 UserId

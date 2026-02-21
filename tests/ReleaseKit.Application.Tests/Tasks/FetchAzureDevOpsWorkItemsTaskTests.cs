@@ -192,7 +192,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
         // Assert
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
-        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null), Times.Never);
+        _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -380,7 +380,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
         // Assert
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
-        _redisServiceMock.Verify(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null), Times.Never);
+        _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -503,31 +503,31 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
     private void SetupRedis(FetchResult? gitLabData, FetchResult? bitbucketData = null)
     {
-        _redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.AzureDevOpsWorkItems))
+        _redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
             .ReturnsAsync(true);
         
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequestsByUser))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(gitLabData?.ToJson());
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequestsByUser))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(bitbucketData?.ToJson());
         
         string? capturedJson = null;
-        _redisServiceMock.Setup(x => x.SetAsync(RedisKeys.AzureDevOpsWorkItems, It.IsAny<string>(), null))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => capturedJson = json)
+        _redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
     }
 
     private void VerifyRedisWrite(Action<WorkItemFetchResult> assert)
     {
-        _redisServiceMock.Verify(x => x.SetAsync(
-            RedisKeys.AzureDevOpsWorkItems,
-            It.IsAny<string>(),
-            null), Times.Once);
+        _redisServiceMock.Verify(x => x.HashSetAsync(
+            RedisKeys.AzureDevOpsHash,
+            RedisKeys.Fields.WorkItems,
+            It.IsAny<string>()), Times.Once);
         
         // Get captured JSON from the last call
         _redisServiceMock.Invocations
-            .Where(i => i.Method.Name == nameof(IRedisService.SetAsync))
-            .Select(i => i.Arguments[1] as string)
+            .Where(i => i.Method.Name == nameof(IRedisService.HashSetAsync))
+            .Select(i => i.Arguments[2] as string)
             .Where(json => json != null)
             .ToList()
             .ForEach(json =>
