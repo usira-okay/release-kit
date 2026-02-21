@@ -32,11 +32,11 @@ public class ReleaseBranchRedisIntegrationTests
         
         // Mock Redis service - 設定有舊資料存在
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.GitLabReleaseBranches))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.GitLabReleaseBranches))
+        redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -53,10 +53,10 @@ public class ReleaseBranchRedisIntegrationTests
 
         // Assert - 驗證檢查並刪除舊資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.GitLabReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(RedisKeys.GitLabReleaseBranches),
+            x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
     }
 
@@ -75,9 +75,9 @@ public class ReleaseBranchRedisIntegrationTests
         
         // Mock Redis service - 設定沒有舊資料
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.GitLabReleaseBranches))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -94,10 +94,10 @@ public class ReleaseBranchRedisIntegrationTests
 
         // Assert - 驗證沒有嘗試刪除資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.GitLabReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(It.IsAny<string>()),
+            x => x.HashDeleteAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -128,9 +128,9 @@ public class ReleaseBranchRedisIntegrationTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -147,10 +147,10 @@ public class ReleaseBranchRedisIntegrationTests
 
         // Assert - 驗證儲存到 Redis
         redisServiceMock.Verify(
-            x => x.SetAsync(
-                RedisKeys.GitLabReleaseBranches,
-                It.Is<string>(json => json.Contains("release/20260210") && json.Contains("test/project")),
-                It.IsAny<TimeSpan?>()),
+            x => x.HashSetAsync(
+                RedisKeys.GitLabHash,
+                RedisKeys.Fields.ReleaseBranches,
+                It.Is<string>(json => json.Contains("release/20260210") && json.Contains("test/project"))),
             Times.Once);
     }
 
@@ -168,9 +168,9 @@ public class ReleaseBranchRedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         var redisServiceMock = new Mock<IRedisService>();
         
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -185,20 +185,20 @@ public class ReleaseBranchRedisIntegrationTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證使用正確的 Redis Key
+        // Assert - 驗證使用正確的 Redis Hash Key 與 Field
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.GitLabReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.SetAsync(RedisKeys.GitLabReleaseBranches, It.IsAny<string>(), It.IsAny<TimeSpan?>()),
+            x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches, It.IsAny<string>()),
             Times.Once);
         
-        // 驗證不應該使用 Bitbucket 的 Key
+        // 驗證不應該使用 Bitbucket 的 Hash Key
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.BitbucketReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches),
             Times.Never);
         redisServiceMock.Verify(
-            x => x.SetAsync(RedisKeys.BitbucketReleaseBranches, It.IsAny<string>(), It.IsAny<TimeSpan?>()),
+            x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -221,11 +221,11 @@ public class ReleaseBranchRedisIntegrationTests
         
         // Mock Redis service - 設定有舊資料存在
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.BitbucketReleaseBranches))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.DeleteAsync(RedisKeys.BitbucketReleaseBranches))
+        redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -242,10 +242,10 @@ public class ReleaseBranchRedisIntegrationTests
 
         // Assert - 驗證檢查並刪除舊資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.BitbucketReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(RedisKeys.BitbucketReleaseBranches),
+            x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
     }
 
@@ -264,9 +264,9 @@ public class ReleaseBranchRedisIntegrationTests
         
         // Mock Redis service - 設定沒有舊資料
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(RedisKeys.BitbucketReleaseBranches))
+        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -283,10 +283,10 @@ public class ReleaseBranchRedisIntegrationTests
 
         // Assert - 驗證沒有嘗試刪除資料
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.BitbucketReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.DeleteAsync(It.IsAny<string>()),
+            x => x.HashDeleteAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -317,9 +317,9 @@ public class ReleaseBranchRedisIntegrationTests
         
         // Mock Redis service
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -336,10 +336,10 @@ public class ReleaseBranchRedisIntegrationTests
 
         // Assert - 驗證儲存到 Redis
         redisServiceMock.Verify(
-            x => x.SetAsync(
-                RedisKeys.BitbucketReleaseBranches,
-                It.Is<string>(json => json.Contains("release/20260210") && json.Contains("test/project")),
-                It.IsAny<TimeSpan?>()),
+            x => x.HashSetAsync(
+                RedisKeys.BitbucketHash,
+                RedisKeys.Fields.ReleaseBranches,
+                It.Is<string>(json => json.Contains("release/20260210") && json.Contains("test/project"))),
             Times.Once);
     }
 
@@ -357,9 +357,9 @@ public class ReleaseBranchRedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         var redisServiceMock = new Mock<IRedisService>();
         
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -374,20 +374,20 @@ public class ReleaseBranchRedisIntegrationTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證使用正確的 Redis Key
+        // Assert - 驗證使用正確的 Redis Hash Key 與 Field
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.BitbucketReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches),
             Times.Once);
         redisServiceMock.Verify(
-            x => x.SetAsync(RedisKeys.BitbucketReleaseBranches, It.IsAny<string>(), It.IsAny<TimeSpan?>()),
+            x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches, It.IsAny<string>()),
             Times.Once);
         
-        // 驗證不應該使用 GitLab 的 Key
+        // 驗證不應該使用 GitLab 的 Hash Key
         redisServiceMock.Verify(
-            x => x.ExistsAsync(RedisKeys.GitLabReleaseBranches),
+            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches),
             Times.Never);
         redisServiceMock.Verify(
-            x => x.SetAsync(RedisKeys.GitLabReleaseBranches, It.IsAny<string>(), It.IsAny<TimeSpan?>()),
+            x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches, It.IsAny<string>()),
             Times.Never);
     }
 

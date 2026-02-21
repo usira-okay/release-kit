@@ -46,14 +46,24 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     }
 
     /// <summary>
-    /// 來源 Redis Key（讀取未過濾的 PR 資料）
+    /// 來源 Redis Hash 鍵值（讀取未過濾的 PR 資料）
     /// </summary>
-    protected abstract string SourceRedisKey { get; }
+    protected abstract string SourceRedisHashKey { get; }
 
     /// <summary>
-    /// 目標 Redis Key（寫入過濾後的 PR 資料）
+    /// 來源 Redis Hash 欄位名稱
     /// </summary>
-    protected abstract string TargetRedisKey { get; }
+    protected abstract string SourceRedisHashField { get; }
+
+    /// <summary>
+    /// 目標 Redis Hash 鍵值（寫入過濾後的 PR 資料）
+    /// </summary>
+    protected abstract string TargetRedisHashKey { get; }
+
+    /// <summary>
+    /// 目標 Redis Hash 欄位名稱
+    /// </summary>
+    protected abstract string TargetRedisHashField { get; }
 
     /// <summary>
     /// 平台名稱（用於日誌）
@@ -68,10 +78,10 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         Logger.LogInformation("開始過濾 {Platform} PR 資料，依使用者清單過濾", PlatformName);
 
         // 1. 從 Redis 讀取 PR 資料
-        var sourceJson = await RedisService.GetAsync(SourceRedisKey);
+        var sourceJson = await RedisService.HashGetAsync(SourceRedisHashKey, SourceRedisHashField);
         if (string.IsNullOrWhiteSpace(sourceJson))
         {
-            Logger.LogWarning("Redis Key {Key} 中無 PR 資料，略過過濾", SourceRedisKey);
+            Logger.LogWarning("Redis Hash {HashKey} Field {Field} 中無 PR 資料，略過過濾", SourceRedisHashKey, SourceRedisHashField);
             return;
         }
 
@@ -120,11 +130,11 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         // 4. 建立過濾後的 FetchResult
         var filteredFetchResult = new FetchResult { Results = filteredResults };
 
-        // 5. 寫入目標 Redis Key
+        // 5. 寫入目標 Redis Hash
         var targetJson = filteredFetchResult.ToJson();
-        await RedisService.SetAsync(TargetRedisKey, targetJson);
+        await RedisService.HashSetAsync(TargetRedisHashKey, TargetRedisHashField, targetJson);
 
-        Logger.LogInformation("過濾完成，結果已寫入 Redis Key {Key}", TargetRedisKey);
+        Logger.LogInformation("過濾完成，結果已寫入 Redis Hash {HashKey} Field {Field}", TargetRedisHashKey, TargetRedisHashField);
 
         // 6. 輸出至 stdout
         Console.WriteLine(targetJson);

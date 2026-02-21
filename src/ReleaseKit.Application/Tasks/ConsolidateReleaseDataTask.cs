@@ -57,7 +57,7 @@ public class ConsolidateReleaseDataTask : ITask
 
         // 5. 序列化並寫入 Redis
         var json = consolidated.ToJson();
-        await _redisService.SetAsync(RedisKeys.ConsolidatedReleaseData, json);
+        await _redisService.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, json);
 
         _logger.LogInformation("整合 Release 資料完成，共 {ProjectCount} 個專案",
             consolidated.Projects.Count);
@@ -68,8 +68,8 @@ public class ConsolidateReleaseDataTask : ITask
     /// </summary>
     private async Task<Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>>> LoadPullRequestsAsync()
     {
-        var bitbucketJson = await _redisService.GetAsync(RedisKeys.BitbucketPullRequestsByUser);
-        var gitLabJson = await _redisService.GetAsync(RedisKeys.GitLabPullRequestsByUser);
+        var bitbucketJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser);
+        var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser);
 
         var bitbucketResult = bitbucketJson?.ToTypedObject<FetchResult>();
         var gitLabResult = gitLabJson?.ToTypedObject<FetchResult>();
@@ -81,7 +81,7 @@ public class ConsolidateReleaseDataTask : ITask
         if (!hasBitbucketData && !hasGitLabData)
         {
             throw new InvalidOperationException(
-                $"缺少 PR 資料：Redis Key '{RedisKeys.BitbucketPullRequestsByUser}' 與 '{RedisKeys.GitLabPullRequestsByUser}' 均無有效資料");
+                $"缺少 PR 資料：Redis Hash '{RedisKeys.BitbucketHash}:{RedisKeys.Fields.PullRequestsByUser}' 與 '{RedisKeys.GitLabHash}:{RedisKeys.Fields.PullRequestsByUser}' 均無有效資料");
         }
 
         var prLookup = new Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>>();
@@ -128,14 +128,14 @@ public class ConsolidateReleaseDataTask : ITask
     /// </summary>
     private async Task<UserStoryFetchResult> LoadUserStoriesAsync()
     {
-        var json = await _redisService.GetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems);
+        var json = await _redisService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
         var result = json?.ToTypedObject<UserStoryFetchResult>();
 
         // US3: 驗證 Work Item 資料是否存在
         if (result == null || result.WorkItems.Count == 0)
         {
             throw new InvalidOperationException(
-                $"缺少 Work Item 資料：Redis Key '{RedisKeys.AzureDevOpsUserStoryWorkItems}' 無有效資料");
+                $"缺少 Work Item 資料：Redis Hash '{RedisKeys.AzureDevOpsHash}:{RedisKeys.Fields.WorkItemsUserStories}' 無有效資料");
         }
 
         _logger.LogInformation("載入 Work Item 資料完成，共 {Count} 筆", result.WorkItems.Count);

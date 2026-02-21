@@ -29,8 +29,8 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Mock Redis service
         var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
 
@@ -92,8 +92,8 @@ public class FetchBitbucketReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("workspace/project2", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260201" }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -109,10 +109,10 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Assert
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("release/20260201") && json.Contains("workspace/project1") && json.Contains("workspace/project2")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("release/20260201") && json.Contains("workspace/project1") && json.Contains("workspace/project2"))),
             Times.Once);
     }
 
@@ -142,8 +142,8 @@ public class FetchBitbucketReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("workspace/project-no-release", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -159,10 +159,10 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Assert
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("NotFound") && json.Contains("workspace/project-no-release")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("NotFound") && json.Contains("workspace/project-no-release"))),
             Times.Once);
     }
 
@@ -197,8 +197,8 @@ public class FetchBitbucketReleaseBranchTaskTests
                 "release/20260210"  // 最新
             }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -214,10 +214,10 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Assert - 應該只有最新的 release/20260210
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("release/20260210") && !json.Contains("release/20260101") && !json.Contains("release/20260115")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("release/20260210") && !json.Contains("release/20260101") && !json.Contains("release/20260115"))),
             Times.Once);
     }
 
@@ -247,8 +247,8 @@ public class FetchBitbucketReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("workspace/project-error", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Failed to get branches")));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -264,10 +264,10 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Assert - 失敗的專案應該歸入 NotFound
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
                 It.IsAny<string>(),
-                It.Is<string>(json => json.Contains("NotFound") && json.Contains("workspace/project-error")),
-                It.IsAny<TimeSpan?>()),
+                It.IsAny<string>(),
+                It.Is<string>(json => json.Contains("NotFound") && json.Contains("workspace/project-error"))),
             Times.Once);
     }
 
@@ -298,8 +298,8 @@ public class FetchBitbucketReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync(It.IsAny<string>(), "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { sameBranch }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -315,15 +315,15 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Assert - 所有專案應該歸在同一組
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
+                It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
                     json.Contains("release/20260210") && 
                     json.Contains("workspace/project1") && 
                     json.Contains("workspace/project2") && 
                     json.Contains("workspace/project3") &&
-                    !json.Contains("NotFound")),
-                It.IsAny<TimeSpan?>()),
+                    !json.Contains("NotFound"))),
             Times.Once);
     }
 
@@ -367,8 +367,8 @@ public class FetchBitbucketReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("workspace/project-error", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Error")));
 
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -384,13 +384,13 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         // Assert - 混合情境應該正確分組
         redisServiceMock.Verify(
-            x => x.SetAsync(
+            x => x.HashSetAsync(
+                It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
                     json.Contains("release/20260101") && json.Contains("workspace/project-old") &&
                     json.Contains("release/20260210") && json.Contains("workspace/project-new") &&
-                    json.Contains("NotFound") && json.Contains("workspace/project-none") && json.Contains("workspace/project-error")),
-                It.IsAny<TimeSpan?>()),
+                    json.Contains("NotFound") && json.Contains("workspace/project-none") && json.Contains("workspace/project-error"))),
             Times.Once);
     }
 
@@ -429,9 +429,9 @@ public class FetchBitbucketReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260115" }.AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -485,9 +485,9 @@ public class FetchBitbucketReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -544,9 +544,9 @@ public class FetchBitbucketReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -616,9 +616,9 @@ public class FetchBitbucketReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -690,9 +690,9 @@ public class FetchBitbucketReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
-            .Callback<string, string, TimeSpan?>((key, json, expiry) => savedJson = json)
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);

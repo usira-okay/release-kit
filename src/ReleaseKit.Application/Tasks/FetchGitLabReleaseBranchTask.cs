@@ -36,7 +36,10 @@ public class FetchGitLabReleaseBranchTask : BaseFetchReleaseBranchTask<GitLabOpt
     protected override string PlatformName => "GitLab";
 
     /// <inheritdoc />
-    protected override string RedisKey => RedisKeys.GitLabReleaseBranches;
+    protected override string RedisHashKey => RedisKeys.GitLabHash;
+
+    /// <inheritdoc />
+    protected override string RedisHashField => RedisKeys.Fields.ReleaseBranches;
 
     /// <inheritdoc />
     protected override IEnumerable<GitLabProjectOptions> GetProjects() => PlatformOptions.Projects;

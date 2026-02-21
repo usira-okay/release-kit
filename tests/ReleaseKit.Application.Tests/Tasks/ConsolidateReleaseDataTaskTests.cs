@@ -35,8 +35,8 @@ public class ConsolidateReleaseDataTaskTests
         };
 
         // Setup Redis write capture
-        _redisServiceMock.Setup(x => x.SetAsync(RedisKeys.ConsolidatedReleaseData, It.IsAny<string>(), null))
-            .Callback<string, string, TimeSpan?>((key, json, ttl) => _capturedRedisJson = json)
+        _redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()))
+            .Callback<string, string, string>((hashKey, field, json) => _capturedRedisJson = json)
             .ReturnsAsync(true);
     }
 
@@ -50,15 +50,15 @@ public class ConsolidateReleaseDataTaskTests
 
     private void SetupPrData(FetchResult? bitbucketResult, FetchResult? gitLabResult)
     {
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.BitbucketPullRequestsByUser))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(bitbucketResult?.ToJson());
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.GitLabPullRequestsByUser))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(gitLabResult?.ToJson());
     }
 
     private void SetupUserStoryData(UserStoryFetchResult? result)
     {
-        _redisServiceMock.Setup(x => x.GetAsync(RedisKeys.AzureDevOpsUserStoryWorkItems))
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories))
             .ReturnsAsync(result?.ToJson());
     }
 
@@ -371,7 +371,7 @@ public class ConsolidateReleaseDataTaskTests
 
         // Assert
         _redisServiceMock.Verify(
-            x => x.SetAsync(RedisKeys.ConsolidatedReleaseData, It.IsAny<string>(), null),
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Once);
 
         Assert.NotNull(_capturedRedisJson);
@@ -428,8 +428,8 @@ public class ConsolidateReleaseDataTaskTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.ExecuteAsync());
-        Assert.Contains(RedisKeys.BitbucketPullRequestsByUser, exception.Message);
-        Assert.Contains(RedisKeys.GitLabPullRequestsByUser, exception.Message);
+        Assert.Contains($"{RedisKeys.BitbucketHash}:{RedisKeys.Fields.PullRequestsByUser}", exception.Message);
+        Assert.Contains($"{RedisKeys.GitLabHash}:{RedisKeys.Fields.PullRequestsByUser}", exception.Message);
     }
 
     // ===== T023: 當 Bitbucket 與 GitLab ByUser PR 資料均為空集合時拋出 InvalidOperationException =====
@@ -476,7 +476,7 @@ public class ConsolidateReleaseDataTaskTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.ExecuteAsync());
-        Assert.Contains(RedisKeys.AzureDevOpsUserStoryWorkItems, exception.Message);
+        Assert.Contains($"{RedisKeys.AzureDevOpsHash}:{RedisKeys.Fields.WorkItemsUserStories}", exception.Message);
     }
 
     // ===== T026: 當 UserStories Work Item 資料為空集合時拋出 InvalidOperationException =====
@@ -499,7 +499,7 @@ public class ConsolidateReleaseDataTaskTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.ExecuteAsync());
-        Assert.Contains(RedisKeys.AzureDevOpsUserStoryWorkItems, exception.Message);
+        Assert.Contains($"{RedisKeys.AzureDevOpsHash}:{RedisKeys.Fields.WorkItemsUserStories}", exception.Message);
     }
 
     // ===== T028: TeamMapping 忽略大小寫 =====
