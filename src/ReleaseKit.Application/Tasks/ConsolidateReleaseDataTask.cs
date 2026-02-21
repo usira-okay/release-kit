@@ -278,7 +278,7 @@ public class ConsolidateReleaseDataTask : ITask
     }
 
     /// <summary>
-    /// 取得團隊顯示名稱（忽略大小寫），找不到對映時使用原始名稱
+    /// 取得團隊顯示名稱（以 Contains 忽略大小寫比對），找不到對映時使用原始名稱
     /// </summary>
     private static string GetTeamDisplayName(string? originalTeamName, Dictionary<string, string> teamMapping)
     {
@@ -287,8 +287,14 @@ public class ConsolidateReleaseDataTask : ITask
             return string.Empty;
         }
 
-        return teamMapping.TryGetValue(originalTeamName, out var displayName)
-            ? displayName
-            : originalTeamName;
+        foreach (var (key, displayName) in teamMapping)
+        {
+            if (originalTeamName.Contains(key, StringComparison.OrdinalIgnoreCase))
+            {
+                return displayName;
+            }
+        }
+
+        return originalTeamName;
     }
 }
