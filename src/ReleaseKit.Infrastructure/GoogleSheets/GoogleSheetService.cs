@@ -15,25 +15,32 @@ public class GoogleSheetService : IGoogleSheetService
     private readonly SheetsService _sheetsService;
     private readonly ILogger<GoogleSheetService> _logger;
 
+    private GoogleSheetService(SheetsService sheetsService, ILogger<GoogleSheetService> logger)
+    {
+        _sheetsService = sheetsService;
+        _logger = logger;
+    }
+
     /// <summary>
-    /// 初始化 <see cref="GoogleSheetService"/> 類別的新執行個體（使用 Service Account 認證）
+    /// 建立 <see cref="GoogleSheetService"/> 執行個體（使用 Service Account 認證）
     /// </summary>
     /// <param name="serviceAccountCredentialPath">Service Account JSON 金鑰檔路徑</param>
     /// <param name="logger">日誌記錄器</param>
-    public GoogleSheetService(string serviceAccountCredentialPath, ILogger<GoogleSheetService> logger)
+    public static async Task<GoogleSheetService> CreateAsync(
+        string serviceAccountCredentialPath,
+        ILogger<GoogleSheetService> logger)
     {
-        _logger = logger;
-
-        GoogleCredential credential;
         using var stream = File.OpenRead(serviceAccountCredentialPath);
-        credential = GoogleCredential.FromStream(stream)
-            .CreateScoped(SheetsService.Scope.Spreadsheets);
+        var credential = await GoogleCredential.FromStreamAsync(stream, CancellationToken.None);
+        credential = credential.CreateScoped(SheetsService.Scope.Spreadsheets);
 
-        _sheetsService = new SheetsService(new BaseClientService.Initializer
+        var sheetsService = new SheetsService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
             ApplicationName = "ReleaseKit"
         });
+
+        return new GoogleSheetService(sheetsService, logger);
     }
 
     /// <summary>

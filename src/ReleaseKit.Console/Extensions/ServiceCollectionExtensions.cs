@@ -225,8 +225,9 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException("缺少必要的組態鍵: GoogleSheet:ServiceAccountCredentialPath");
             }
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ReleaseKit.Infrastructure.GoogleSheets.GoogleSheetService>>();
-            return new ReleaseKit.Infrastructure.GoogleSheets.GoogleSheetService(
-                googleSheetOptions.ServiceAccountCredentialPath, logger);
+            return ReleaseKit.Infrastructure.GoogleSheets.GoogleSheetService
+                .CreateAsync(googleSheetOptions.ServiceAccountCredentialPath, logger)
+                .GetAwaiter().GetResult();
         });
         
         // 註冊任務
