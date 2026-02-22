@@ -114,7 +114,8 @@ public class UpdateGoogleSheetsTask : ITask
 
     private static void ValidateColumn(string value, string columnName)
     {
-        if (string.IsNullOrEmpty(value) || value.Length != 1 || value[0] < 'A' || value[0] > 'Z')
+        var normalized = value?.ToUpperInvariant() ?? "";
+        if (normalized.Length != 1 || normalized[0] < 'A' || normalized[0] > 'Z')
         {
             throw new InvalidOperationException(
                 $"ColumnMapping 欄位設定無效：{columnName} = \"{value}\"，必須為 A-Z 的單字母");
@@ -202,7 +203,7 @@ public class UpdateGoogleSheetsTask : ITask
                 // UK 不存在 — 新增
                 var insertRowIndex = CalculateInsertRowIndex(projectName, repoRows, sheetData.Count);
 
-                await _googleSheetService.InsertRowAsync(opts.SpreadsheetId, 0, insertRowIndex);
+                await _googleSheetService.InsertRowAsync(opts.SpreadsheetId, opts.SheetId, insertRowIndex);
 
                 // 插入後，sheetData 行號需往下移（在 insertRowIndex 以後的所有行都 +1）
                 ShiftRowIndices(repoRows, insertRowIndex);

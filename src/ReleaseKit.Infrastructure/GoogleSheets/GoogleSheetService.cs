@@ -25,11 +25,9 @@ public class GoogleSheetService : IGoogleSheetService
         _logger = logger;
 
         GoogleCredential credential;
-        using (var stream = new FileStream(serviceAccountCredentialPath, FileMode.Open, FileAccess.Read))
-        {
-            credential = GoogleCredential.FromStream(stream)
-                .CreateScoped(SheetsService.Scope.Spreadsheets);
-        }
+        using var stream = File.OpenRead(serviceAccountCredentialPath);
+        credential = GoogleCredential.FromStream(stream)
+            .CreateScoped(SheetsService.Scope.Spreadsheets);
 
         _sheetsService = new SheetsService(new BaseClientService.Initializer
         {
