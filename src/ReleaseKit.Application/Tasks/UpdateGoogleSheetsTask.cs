@@ -68,13 +68,7 @@ public class UpdateGoogleSheetsTask : ITask
         var mapping = opts.ColumnMapping;
 
         // 2. 驗證欄位設定（每個欄位必須是 A-Z 單一字母）
-        ValidateColumnLetter(nameof(mapping.RepositoryNameColumn), mapping.RepositoryNameColumn);
-        ValidateColumnLetter(nameof(mapping.FeatureColumn), mapping.FeatureColumn);
-        ValidateColumnLetter(nameof(mapping.TeamColumn), mapping.TeamColumn);
-        ValidateColumnLetter(nameof(mapping.AuthorsColumn), mapping.AuthorsColumn);
-        ValidateColumnLetter(nameof(mapping.PullRequestUrlsColumn), mapping.PullRequestUrlsColumn);
-        ValidateColumnLetter(nameof(mapping.UniqueKeyColumn), mapping.UniqueKeyColumn);
-        ValidateColumnLetter(nameof(mapping.AutoSyncColumn), mapping.AutoSyncColumn);
+        ValidateColumnMapping(mapping);
 
         // 3. 讀取 Google Sheet 資料
         var sheetData = await _googleSheetService.GetSheetDataAsync(opts.SpreadsheetId, opts.SheetName, "A:Z");
@@ -360,6 +354,20 @@ public class UpdateGoogleSheetsTask : ITask
     /// 將欄位字母轉換為 0-based 索引（A=0, B=1, ...）
     /// </summary>
     private static int ColumnLetterToIndex(string col) => col[0] - 'A';
+
+    /// <summary>
+    /// 驗證欄位映射設定中每個欄位字母是否均為有效的 A-Z 單一字母
+    /// </summary>
+    private static void ValidateColumnMapping(ColumnMappingOptions mapping)
+    {
+        ValidateColumnLetter(nameof(mapping.RepositoryNameColumn), mapping.RepositoryNameColumn);
+        ValidateColumnLetter(nameof(mapping.FeatureColumn), mapping.FeatureColumn);
+        ValidateColumnLetter(nameof(mapping.TeamColumn), mapping.TeamColumn);
+        ValidateColumnLetter(nameof(mapping.AuthorsColumn), mapping.AuthorsColumn);
+        ValidateColumnLetter(nameof(mapping.PullRequestUrlsColumn), mapping.PullRequestUrlsColumn);
+        ValidateColumnLetter(nameof(mapping.UniqueKeyColumn), mapping.UniqueKeyColumn);
+        ValidateColumnLetter(nameof(mapping.AutoSyncColumn), mapping.AutoSyncColumn);
+    }
 
     /// <summary>
     /// 驗證欄位字母設定是否為有效的 A-Z 單一字母
