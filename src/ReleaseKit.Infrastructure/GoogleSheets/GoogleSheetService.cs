@@ -31,7 +31,7 @@ public class GoogleSheetService : IGoogleSheetService
         ILogger<GoogleSheetService> logger)
     {
         using var stream = File.OpenRead(serviceAccountCredentialPath);
-        var credential = await GoogleCredential.FromStreamAsync(stream, CancellationToken.None);
+        var credential = await CredentialFactory.FromStreamAsync<GoogleCredential>(stream, CancellationToken.None);
         credential = credential.CreateScoped(SheetsService.Scope.Spreadsheets);
 
         var sheetsService = new SheetsService(new BaseClientService.Initializer
