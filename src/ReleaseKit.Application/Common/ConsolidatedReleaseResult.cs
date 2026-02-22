@@ -6,7 +6,7 @@ namespace ReleaseKit.Application.Common;
 public sealed record ConsolidatedReleaseResult
 {
     /// <summary>
-    /// 依專案分組的整合結果
+    /// 依專案名稱為 Key 的整合結果字典（每個 Key 為 ProjectName，Value 為已排序的整合記錄清單）
     /// </summary>
-    public required List<ConsolidatedProjectGroup> Projects { get; init; }
+    public required Dictionary<string, List<ConsolidatedReleaseEntry>> Projects { get; init; }
 }
