@@ -156,14 +156,15 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(result);
         Assert.Equal(2, result.Projects.Count);
 
-        var myRepoProject = result.Projects.First(p => p.ProjectName == "my-repo");
-        Assert.Single(myRepoProject.Entries);
-        Assert.Equal(12345, myRepoProject.Entries[0].WorkItemId);
-        Assert.Equal("Work Item 12345", myRepoProject.Entries[0].Title);
-        Assert.Equal("https://dev.azure.com/org/proj/_workitems/edit/12345", myRepoProject.Entries[0].WorkItemUrl);
-        Assert.Equal("金流團隊", myRepoProject.Entries[0].TeamDisplayName);
-        Assert.Single(myRepoProject.Entries[0].Authors);
-        Assert.Equal("John Doe", myRepoProject.Entries[0].Authors[0].AuthorName);
+        Assert.True(result.Projects.ContainsKey("my-repo"));
+        var myRepoEntries = result.Projects["my-repo"];
+        Assert.Single(myRepoEntries);
+        Assert.Equal(12345, myRepoEntries[0].WorkItemId);
+        Assert.Equal("Work Item 12345", myRepoEntries[0].Title);
+        Assert.Equal("https://dev.azure.com/org/proj/_workitems/edit/12345", myRepoEntries[0].WorkItemUrl);
+        Assert.Equal("金流團隊", myRepoEntries[0].TeamDisplayName);
+        Assert.Single(myRepoEntries[0].Authors);
+        Assert.Equal("John Doe", myRepoEntries[0].Authors[0].AuthorName);
     }
 
     // ===== T015: 驗證整合結果依 ProjectPath 最後一段分組 =====
@@ -195,7 +196,7 @@ public class ConsolidateReleaseDataTaskTests
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.Single(result.Projects);
-        Assert.Equal("my-project", result.Projects[0].ProjectName);
+        Assert.True(result.Projects.ContainsKey("my-project"));
     }
 
     // ===== T016: 驗證同一專案內記錄依 TeamDisplayName 升冪、再依 WorkItemId 升冪排序 =====
@@ -231,7 +232,7 @@ public class ConsolidateReleaseDataTaskTests
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.Single(result.Projects);
-        var entries = result.Projects[0].Entries;
+        var entries = result.Projects["project"];
         Assert.Equal(3, entries.Count);
 
         // 日常資源團隊 (DailyResource → 日常資源團隊) sorted first, then 金流團隊 (MoneyLogistic → 金流團隊)
@@ -271,7 +272,7 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(_capturedRedisJson);
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
-        Assert.Equal("金流團隊", result.Projects[0].Entries[0].TeamDisplayName);
+        Assert.Equal("金流團隊", result.Projects["project"][0].TeamDisplayName);
     }
 
     // ===== T018: 驗證同一 Work Item 有多個 PR 時，各自獨立為不同 Entry =====
@@ -310,7 +311,7 @@ public class ConsolidateReleaseDataTaskTests
         Assert.Single(result.Projects);
 
         // 複合 Key (100, "pr-1"), (100, "pr-2"), (100, "pr-3") → 3 筆獨立 Entry
-        var entries = result.Projects[0].Entries;
+        var entries = result.Projects["project"];
         Assert.Equal(3, entries.Count);
         Assert.All(entries, e => Assert.Equal(100, e.WorkItemId));
         Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/1"));
@@ -532,7 +533,7 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(_capturedRedisJson);
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
-        Assert.Equal("金流團隊", result.Projects[0].Entries[0].TeamDisplayName);
+        Assert.Equal("金流團隊", result.Projects["project"][0].TeamDisplayName);
     }
 
     // ===== T029: TeamMapping 找不到對映時使用原始 OriginalTeamName =====
@@ -563,7 +564,7 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(_capturedRedisJson);
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
-        Assert.Equal("UnknownTeam", result.Projects[0].Entries[0].TeamDisplayName);
+        Assert.Equal("UnknownTeam", result.Projects["project"][0].TeamDisplayName);
     }
 
     // ===== T030: 驗證 Work Item 無標題時 Title 使用第一筆 PR 標題 =====
@@ -602,6 +603,6 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(_capturedRedisJson);
         var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
-        Assert.Equal("PR Title Fallback", result.Projects[0].Entries[0].Title);
+        Assert.Equal("PR Title Fallback", result.Projects["project"][0].Title);
     }
 }

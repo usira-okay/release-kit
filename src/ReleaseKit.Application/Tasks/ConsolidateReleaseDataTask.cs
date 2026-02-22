@@ -244,15 +244,12 @@ public class ConsolidateReleaseDataTask : ITask
         // 排序：每組內依 TeamDisplayName 升冪 → WorkItemId 升冪
         var projects = projectGroups
             .OrderBy(g => g.Key, StringComparer.Ordinal)
-            .Select(g => new ConsolidatedProjectGroup
-            {
-                ProjectName = g.Key,
-                Entries = g.Value
+            .ToDictionary(
+                g => g.Key,
+                g => g.Value
                     .OrderBy(e => e.TeamDisplayName, StringComparer.Ordinal)
                     .ThenBy(e => e.WorkItemId)
-                    .ToList()
-            })
-            .ToList();
+                    .ToList());
 
         return new ConsolidatedReleaseResult { Projects = projects };
     }
