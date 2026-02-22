@@ -31,10 +31,10 @@ public interface IGoogleSheetService
     Task InsertRowAsync(string spreadsheetId, int sheetId, int rowIndex);
 
     /// <summary>
-    /// 批次更新多個儲存格值
+    /// 一次性批次寫入多個儲存格值
     /// </summary>
     /// <param name="spreadsheetId">試算表 ID</param>
     /// <param name="sheetName">工作表名稱</param>
-    /// <param name="updates">儲存格更新列表，Key 為 A1 表示法的儲存格位址，Value 為儲存格內容</param>
-    Task UpdateCellsAsync(string spreadsheetId, string sheetName, IReadOnlyDictionary<string, string> updates);
+    /// <param name="cells">儲存格寫入列表，Key 為 A1 表示法的儲存格位址，Value 為儲存格內容</param>
+    Task BatchWriteCellsAsync(string spreadsheetId, string sheetName, IReadOnlyDictionary<string, string> cells);
 }

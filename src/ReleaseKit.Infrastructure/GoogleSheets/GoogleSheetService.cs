@@ -117,15 +117,15 @@ public class GoogleSheetService : IGoogleSheetService
     }
 
     /// <summary>
-    /// 批次更新多個儲存格值
+    /// 一次性批次寫入多個儲存格值
     /// </summary>
-    public async Task UpdateCellsAsync(string spreadsheetId, string sheetName, IReadOnlyDictionary<string, string> updates)
+    public async Task BatchWriteCellsAsync(string spreadsheetId, string sheetName, IReadOnlyDictionary<string, string> cells)
     {
-        if (updates.Count == 0) return;
+        if (cells.Count == 0) return;
 
-        _logger.LogInformation("批次更新 {Count} 個儲存格", updates.Count);
+        _logger.LogInformation("一次性批次寫入 {Count} 個儲存格", cells.Count);
 
-        var valueRanges = updates.Select(kv => new ValueRange
+        var valueRanges = cells.Select(kv => new ValueRange
         {
             Range = $"{sheetName}!{kv.Key}",
             Values = new List<IList<object>> { new List<object> { kv.Value } }
@@ -138,6 +138,6 @@ public class GoogleSheetService : IGoogleSheetService
         };
 
         await _sheetsService.Spreadsheets.Values.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync();
-        _logger.LogInformation("批次更新儲存格完成");
+        _logger.LogInformation("批次寫入完成");
     }
 }

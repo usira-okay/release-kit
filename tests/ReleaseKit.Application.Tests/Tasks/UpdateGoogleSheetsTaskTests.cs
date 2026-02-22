@@ -235,7 +235,7 @@ public class UpdateGoogleSheetsTaskTests
             .ReturnsAsync(sheetData);
         _googleSheetServiceMock.Setup(x => x.InsertRowAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
             .Returns(Task.CompletedTask);
-        _googleSheetServiceMock.Setup(x => x.UpdateCellsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, string>>()))
+        _googleSheetServiceMock.Setup(x => x.BatchWriteCellsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, string>>()))
             .Returns(Task.CompletedTask);
 
         var task = CreateTask();
@@ -250,7 +250,7 @@ public class UpdateGoogleSheetsTaskTests
 
         // 驗證 UpdateCells 被呼叫（填入新列欄位值）
         _googleSheetServiceMock.Verify(
-            x => x.UpdateCellsAsync(
+            x => x.BatchWriteCellsAsync(
                 _googleSheetOptions.SpreadsheetId,
                 _googleSheetOptions.SheetName,
                 It.IsAny<IReadOnlyDictionary<string, string>>()),
@@ -258,10 +258,10 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// 測試第一個 Project 區塊插入位置（在標記列後插入）
+    /// 測試第一個 Project 區塊插入位置（在下一個標記列前插入）
     /// </summary>
     [Fact]
-    public void CalculateInsertRowIndex_FirstProject_ShouldInsertAfterRepoRow()
+    public void CalculateInsertRowIndex_FirstProject_ShouldInsertBeforeNextRepoRow()
     {
         // Arrange
         var repoRows = new List<(int RowIndex, string ProjectName)>
@@ -270,11 +270,11 @@ public class UpdateGoogleSheetsTaskTests
             (5, "repo2")
         };
 
-        // Act — 第一個 Project (repo1)：在 row 0 後插入 → row 1
+        // Act — 第一個 Project (repo1)：在下一個標記列 (repo2 at row 5) 前插入 → row 5
         var insertIdx = GetInsertRowIndex("repo1", repoRows, 10);
 
         // Assert
-        Assert.Equal(1, insertIdx);
+        Assert.Equal(5, insertIdx);
     }
 
     /// <summary>
@@ -341,11 +341,11 @@ public class UpdateGoogleSheetsTaskTests
         };
         _googleSheetServiceMock.Setup(x => x.GetSheetDataAsync(It.IsAny<string>(), It.IsAny<string>(), "A:Z"))
             .ReturnsAsync(sheetData);
-        _googleSheetServiceMock.Setup(x => x.UpdateCellsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, string>>()))
+        _googleSheetServiceMock.Setup(x => x.BatchWriteCellsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, string>>()))
             .Returns(Task.CompletedTask);
 
         Dictionary<string, string>? capturedUpdates = null;
-        _googleSheetServiceMock.Setup(x => x.UpdateCellsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, string>>()))
+        _googleSheetServiceMock.Setup(x => x.BatchWriteCellsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, string>>()))
             .Callback<string, string, IReadOnlyDictionary<string, string>>((_, _, updates) => capturedUpdates = new Dictionary<string, string>(updates))
             .Returns(Task.CompletedTask);
 
@@ -414,18 +414,18 @@ public class UpdateGoogleSheetsTaskTests
             .ReturnsAsync(new List<IList<object>>());
         mockService.Setup(x => x.InsertRowAsync("id", 0, 5))
             .Returns(Task.CompletedTask);
-        mockService.Setup(x => x.UpdateCellsAsync("id", "sheet", It.IsAny<IReadOnlyDictionary<string, string>>()))
+        mockService.Setup(x => x.BatchWriteCellsAsync("id", "sheet", It.IsAny<IReadOnlyDictionary<string, string>>()))
             .Returns(Task.CompletedTask);
 
         // Act
         await mockService.Object.GetSheetDataAsync("id", "sheet", "A:Z");
         await mockService.Object.InsertRowAsync("id", 0, 5);
-        await mockService.Object.UpdateCellsAsync("id", "sheet", new Dictionary<string, string> { ["A1"] = "test" });
+        await mockService.Object.BatchWriteCellsAsync("id", "sheet", new Dictionary<string, string> { ["A1"] = "test" });
 
         // Assert
         mockService.Verify(x => x.GetSheetDataAsync("id", "sheet", "A:Z"), Times.Once);
         mockService.Verify(x => x.InsertRowAsync("id", 0, 5), Times.Once);
-        mockService.Verify(x => x.UpdateCellsAsync("id", "sheet", It.IsAny<IReadOnlyDictionary<string, string>>()), Times.Once);
+        mockService.Verify(x => x.BatchWriteCellsAsync("id", "sheet", It.IsAny<IReadOnlyDictionary<string, string>>()), Times.Once);
     }
 
     // ===== 輔助方法 =====

@@ -46,10 +46,10 @@ public class UpdateGoogleSheetsTask : ITask
 
         var opts = _options.Value;
 
-        // 4.3 驗證 ColumnMapping
+        // 驗證 ColumnMapping
         ValidateColumnMapping(opts.ColumnMapping);
 
-        // 4.2 從 Redis 讀取整合資料
+        // 從 Redis 讀取整合資料
         var consolidatedJson = await _redisService.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
         if (string.IsNullOrEmpty(consolidatedJson))
         {
@@ -64,12 +64,13 @@ public class UpdateGoogleSheetsTask : ITask
             return;
         }
 
-        // 4.4 讀取 Google Sheet A:Z 資料
-        IList<IList<object>>? sheetData;
+        // 讀取 Google Sheet 初始資料與 Sheet ID
+        IList<IList<object>> sheetData;
         int sheetId;
         try
         {
-            sheetData = await _googleSheetService.GetSheetDataAsync(opts.SpreadsheetId, opts.SheetName, "A:Z");
+            sheetData = await _googleSheetService.GetSheetDataAsync(opts.SpreadsheetId, opts.SheetName, "A:Z")
+                        ?? new List<IList<object>>();
             sheetId = await _googleSheetService.GetSheetIdAsync(opts.SpreadsheetId, opts.SheetName);
         }
         catch (Exception ex)
@@ -78,17 +79,8 @@ public class UpdateGoogleSheetsTask : ITask
             return;
         }
 
-        if (sheetData == null)
-        {
-            sheetData = new List<IList<object>>();
-        }
-
         var colMap = opts.ColumnMapping;
-
-        // 4.5 解析 RepositoryNameColumn — 取得所有非空值的 row index 與 ProjectName
         var repoRows = ParseRepositoryRows(sheetData, colMap.RepositoryNameColumn);
-
-        // 4.6 解析 UniqueKeyColumn — 取得所有既有 UK 值與 row index 的映射
         var existingUkMap = ParseUniqueKeyRows(sheetData, colMap.UniqueKeyColumn);
 
         // 同步每個 Project 的資料
@@ -189,7 +181,10 @@ public class UpdateGoogleSheetsTask : ITask
         int sheetId)
     {
         var colMap = opts.ColumnMapping;
-        var modifiedRowIndices = new HashSet<int>();
+
+        // 收集所有待寫入儲存格（update + insert 一起累積）
+        var pendingWrites = new Dictionary<string, string>();
+        var hasModifications = false;
 
         foreach (var entry in entries)
         {
@@ -197,54 +192,55 @@ public class UpdateGoogleSheetsTask : ITask
 
             if (existingUkMap.TryGetValue(uk, out var existingRowIndex))
             {
-                // UK 已存在 — 更新
-                await UpdateEntryAsync(entry, existingRowIndex, opts, sheetData);
-                modifiedRowIndices.Add(existingRowIndex);
+                // UK 已存在 — 僅更新 Authors 與 PullRequestUrls
+                CollectUpdateCells(entry, existingRowIndex, colMap, pendingWrites);
+                hasModifications = true;
             }
             else
             {
-                // UK 不存在 — 新增
-                var insertRowIndex = CalculateInsertRowIndex(projectName, repoRows, sheetData.Count);
+                // UK 不存在 — 新增前重新撈取 Google Sheet 資料
+                var freshData = await _googleSheetService.GetSheetDataAsync(opts.SpreadsheetId, opts.SheetName, "A:Z")
+                                ?? new List<IList<object>>();
+                repoRows = ParseRepositoryRows(freshData, colMap.RepositoryNameColumn);
+                existingUkMap = ParseUniqueKeyRows(freshData, colMap.UniqueKeyColumn);
 
+                var insertRowIndex = CalculateInsertRowIndex(projectName, repoRows, freshData.Count);
                 await _googleSheetService.InsertRowAsync(opts.SpreadsheetId, sheetId, insertRowIndex);
 
-                // 插入後，sheetData 行號需往下移（在 insertRowIndex 以後的所有行都 +1）
-                ShiftRowIndices(repoRows, insertRowIndex);
-                ShiftRowIndicesInMap(existingUkMap, insertRowIndex);
-                ShiftRowIndicesInSet(modifiedRowIndices, insertRowIndex);
+                // 收集新列所有欄位值
+                CollectFillCells(entry, uk, insertRowIndex, colMap, pendingWrites);
 
-                // 將新空列插入 sheetData 以保持同步
-                sheetData.Insert(insertRowIndex, new List<object>());
-
-                // 填入欄位值
-                await FillNewRowAsync(entry, uk, insertRowIndex, opts, sheetData);
-
-                // 更新既有 UK 映射
                 existingUkMap[uk] = insertRowIndex;
-                modifiedRowIndices.Add(insertRowIndex);
-
-                // 重新讀取 repoRows（因為 sheetData 已更新）
-                repoRows = ParseRepositoryRows(sheetData, colMap.RepositoryNameColumn);
+                hasModifications = true;
             }
         }
 
-        // 7. 排序 Project 區塊
-        if (modifiedRowIndices.Count > 0)
+        // 一次性批次寫入本 Project 所有累積的儲存格變更
+        if (pendingWrites.Count > 0)
         {
-            await SortProjectBlockAsync(projectName, repoRows, sheetData, opts);
+            _logger.LogInformation("Project '{ProjectName}' 批次寫入 {Count} 個儲存格", projectName, pendingWrites.Count);
+            await _googleSheetService.BatchWriteCellsAsync(opts.SpreadsheetId, opts.SheetName, pendingWrites);
+        }
+
+        // 排序 Project 區塊（重新撈取最新資料以確保準確）
+        if (hasModifications)
+        {
+            var freshForSort = await _googleSheetService.GetSheetDataAsync(opts.SpreadsheetId, opts.SheetName, "A:Z")
+                               ?? new List<IList<object>>();
+            var freshRepoRows = ParseRepositoryRows(freshForSort, colMap.RepositoryNameColumn);
+            await SortProjectBlockAsync(projectName, freshRepoRows, freshForSort, opts);
         }
     }
 
     /// <summary>
-    /// 更新既有列的 Authors 與 PullRequestUrls
+    /// 收集更新既有列所需的儲存格（Authors 與 PullRequestUrls）
     /// </summary>
-    private async Task UpdateEntryAsync(
+    private static void CollectUpdateCells(
         ConsolidatedReleaseEntry entry,
         int rowIndex,
-        GoogleSheetOptions opts,
-        IList<IList<object>> sheetData)
+        ColumnMappingOptions colMap,
+        Dictionary<string, string> pendingWrites)
     {
-        var colMap = opts.ColumnMapping;
         var displayRowIndex = rowIndex + 1; // 1-based
 
         var authorsValue = string.Join("\n", entry.Authors
@@ -254,33 +250,20 @@ public class UpdateGoogleSheetsTask : ITask
             .Select(p => p.Url)
             .OrderBy(u => u));
 
-        var updates = new Dictionary<string, string>
-        {
-            [$"{colMap.AuthorsColumn}{displayRowIndex}"] = authorsValue,
-            [$"{colMap.PullRequestUrlsColumn}{displayRowIndex}"] = prUrlsValue
-        };
-
-        await _googleSheetService.UpdateCellsAsync(opts.SpreadsheetId, opts.SheetName, updates);
-
-        // 更新記憶體中的 sheetData
-        var row = sheetData[rowIndex];
-        SetCell(row, ColumnLetterToIndex(colMap.AuthorsColumn), authorsValue);
-        SetCell(row, ColumnLetterToIndex(colMap.PullRequestUrlsColumn), prUrlsValue);
-
-        _logger.LogInformation("更新列 {Row} 的 Authors 與 PullRequestUrls", displayRowIndex);
+        pendingWrites[$"{colMap.AuthorsColumn}{displayRowIndex}"] = authorsValue;
+        pendingWrites[$"{colMap.PullRequestUrlsColumn}{displayRowIndex}"] = prUrlsValue;
     }
 
     /// <summary>
-    /// 填入新插入列的欄位值
+    /// 收集填入新插入列所需的儲存格（所有欄位）
     /// </summary>
-    private async Task FillNewRowAsync(
+    private static void CollectFillCells(
         ConsolidatedReleaseEntry entry,
         string uk,
         int rowIndex,
-        GoogleSheetOptions opts,
-        IList<IList<object>> sheetData)
+        ColumnMappingOptions colMap,
+        Dictionary<string, string> pendingWrites)
     {
-        var colMap = opts.ColumnMapping;
         var displayRowIndex = rowIndex + 1; // 1-based
 
         var featureText = $"VSTS{entry.WorkItemId} - {entry.Title}";
@@ -295,28 +278,12 @@ public class UpdateGoogleSheetsTask : ITask
             .Select(p => p.Url)
             .OrderBy(u => u));
 
-        var updates = new Dictionary<string, string>
-        {
-            [$"{colMap.FeatureColumn}{displayRowIndex}"] = featureValue,
-            [$"{colMap.TeamColumn}{displayRowIndex}"] = entry.TeamDisplayName,
-            [$"{colMap.AuthorsColumn}{displayRowIndex}"] = authorsValue,
-            [$"{colMap.PullRequestUrlsColumn}{displayRowIndex}"] = prUrlsValue,
-            [$"{colMap.UniqueKeyColumn}{displayRowIndex}"] = uk,
-            [$"{colMap.AutoSyncColumn}{displayRowIndex}"] = "TRUE"
-        };
-
-        await _googleSheetService.UpdateCellsAsync(opts.SpreadsheetId, opts.SheetName, updates);
-
-        // 更新記憶體中的 sheetData
-        var row = sheetData[rowIndex];
-        SetCell(row, ColumnLetterToIndex(colMap.FeatureColumn), featureValue);
-        SetCell(row, ColumnLetterToIndex(colMap.TeamColumn), entry.TeamDisplayName);
-        SetCell(row, ColumnLetterToIndex(colMap.AuthorsColumn), authorsValue);
-        SetCell(row, ColumnLetterToIndex(colMap.PullRequestUrlsColumn), prUrlsValue);
-        SetCell(row, ColumnLetterToIndex(colMap.UniqueKeyColumn), uk);
-        SetCell(row, ColumnLetterToIndex(colMap.AutoSyncColumn), "TRUE");
-
-        _logger.LogInformation("填入新列 {Row} 的欄位值，UK={UK}", displayRowIndex, uk);
+        pendingWrites[$"{colMap.FeatureColumn}{displayRowIndex}"] = featureValue;
+        pendingWrites[$"{colMap.TeamColumn}{displayRowIndex}"] = entry.TeamDisplayName;
+        pendingWrites[$"{colMap.AuthorsColumn}{displayRowIndex}"] = authorsValue;
+        pendingWrites[$"{colMap.PullRequestUrlsColumn}{displayRowIndex}"] = prUrlsValue;
+        pendingWrites[$"{colMap.UniqueKeyColumn}{displayRowIndex}"] = uk;
+        pendingWrites[$"{colMap.AutoSyncColumn}{displayRowIndex}"] = "TRUE";
     }
 
     /// <summary>
@@ -335,7 +302,14 @@ public class UpdateGoogleSheetsTask : ITask
         }
 
         var currentRepoRow = repoRows[projectIdx];
-        // 第一個 Project：在標記列的下一行插入
+
+        if (projectIdx + 1 < repoRows.Count)
+        {
+            // 非最後一個 Project：在下一個標記列前插入
+            return repoRows[projectIdx + 1].RowIndex;
+        }
+
+        // 最後一個（或唯一）Project：在標記列後插入
         return currentRepoRow.RowIndex + 1;
     }
 
@@ -422,12 +396,9 @@ public class UpdateGoogleSheetsTask : ITask
                 var value = colIdx < sourceRow.Count ? sourceRow[colIdx]?.ToString() ?? "" : "";
                 updates[$"{col}{targetRowDisplay}"] = value;
             }
-
-            // 更新記憶體中的 sheetData
-            sheetData[startRow + i] = sortedRows[i].Row;
         }
 
-        await _googleSheetService.UpdateCellsAsync(opts.SpreadsheetId, opts.SheetName, updates);
+        await _googleSheetService.BatchWriteCellsAsync(opts.SpreadsheetId, opts.SheetName, updates);
         _logger.LogInformation("排序寫回完成");
     }
 
@@ -449,59 +420,5 @@ public class UpdateGoogleSheetsTask : ITask
         if (string.IsNullOrEmpty(letter) || letter.Length != 1)
             throw new ArgumentException($"欄位字母必須為單一字母，實際值：{letter}", nameof(letter));
         return letter.ToUpperInvariant()[0] - 'A';
-    }
-
-    /// <summary>
-    /// 設定記憶體列指定欄位的值（必要時擴展列長度）
-    /// </summary>
-    private static void SetCell(IList<object> row, int colIndex, string value)
-    {
-        while (row.Count <= colIndex)
-        {
-            row.Add("");
-        }
-        row[colIndex] = value;
-    }
-
-    /// <summary>
-    /// 將 insertRowIndex 以後（包含）的 row index 都 +1
-    /// </summary>
-    private static void ShiftRowIndices(List<(int RowIndex, string ProjectName)> repoRows, int insertRowIndex)
-    {
-        for (int i = 0; i < repoRows.Count; i++)
-        {
-            if (repoRows[i].RowIndex >= insertRowIndex)
-            {
-                repoRows[i] = (repoRows[i].RowIndex + 1, repoRows[i].ProjectName);
-            }
-        }
-    }
-
-    /// <summary>
-    /// 將 insertRowIndex 以後的 map 中的 row index 都 +1
-    /// </summary>
-    private static void ShiftRowIndicesInMap(Dictionary<string, int> map, int insertRowIndex)
-    {
-        var keys = map.Keys.ToList();
-        foreach (var key in keys)
-        {
-            if (map[key] >= insertRowIndex)
-            {
-                map[key]++;
-            }
-        }
-    }
-
-    /// <summary>
-    /// 將 insertRowIndex 以後的 set 中的 row index 都 +1
-    /// </summary>
-    private static void ShiftRowIndicesInSet(HashSet<int> set, int insertRowIndex)
-    {
-        var toUpdate = set.Where(idx => idx >= insertRowIndex).ToList();
-        foreach (var idx in toUpdate)
-        {
-            set.Remove(idx);
-            set.Add(idx + 1);
-        }
     }
 }
