@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
@@ -59,7 +60,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ReleaseKit.Common.Configuration.FetchModeOptions>(configuration);
 
         // 註冊 GoogleSheet 配置
-        services.Configure<ReleaseKit.Infrastructure.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
+        services.Configure<ReleaseKit.Common.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
 
         // 註冊 AzureDevOps 配置
         services.Configure<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
@@ -216,6 +217,16 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ReleaseKit.Domain.Abstractions.IAzureDevOpsRepository, 
             ReleaseKit.Infrastructure.AzureDevOps.AzureDevOpsRepository>();
         
+        // 註冊 Google Sheet 服務
+        services.AddTransient<IGoogleSheetService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<ReleaseKit.Common.Configuration.GoogleSheetOptions>>().Value;
+            var logger = sp.GetRequiredService<ILogger<ReleaseKit.Infrastructure.GoogleSheets.GoogleSheetService>>();
+            if (string.IsNullOrWhiteSpace(options.ServiceAccountCredentialPath))
+                throw new InvalidOperationException("缺少必要的組態鍵: GoogleSheet:ServiceAccountCredentialPath");
+            return new ReleaseKit.Infrastructure.GoogleSheets.GoogleSheetService(options.ServiceAccountCredentialPath, logger);
+        });
+
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();

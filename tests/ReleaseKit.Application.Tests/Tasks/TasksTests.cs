@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Domain.Abstractions;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
@@ -493,13 +494,39 @@ public class TasksTests
     }
 
     [Fact]
-    public async Task UpdateGoogleSheetsTask_ExecuteAsync_ShouldThrowNotImplementedException()
+    public async Task UpdateGoogleSheetsTask_ExecuteAsync_ShouldReturnWhenNoRedisData()
     {
         // Arrange
-        var task = new UpdateGoogleSheetsTask();
+        var redisServiceMock = new Mock<IRedisService>();
+        var googleSheetServiceMock = new Mock<IGoogleSheetService>();
+        var loggerMock = new Mock<ILogger<UpdateGoogleSheetsTask>>();
+        var options = Options.Create(new ReleaseKit.Common.Configuration.GoogleSheetOptions
+        {
+            SpreadsheetId = "id",
+            SheetName = "Sheet",
+            ColumnMapping = new ReleaseKit.Common.Configuration.ColumnMappingOptions
+            {
+                RepositoryNameColumn = "Z", FeatureColumn = "B", TeamColumn = "D",
+                AuthorsColumn = "W", PullRequestUrlsColumn = "X", UniqueKeyColumn = "Y", AutoSyncColumn = "F"
+            }
+        });
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("更新 Google Sheets 資訊功能尚未實作", exception.Message);
+        redisServiceMock
+            .Setup(x => x.HashGetAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        var task = new UpdateGoogleSheetsTask(
+            redisServiceMock.Object,
+            googleSheetServiceMock.Object,
+            options,
+            loggerMock.Object);
+
+        // Act：無資料時應正常返回，不拋出例外
+        await task.ExecuteAsync();
+
+        // Assert：不應呼叫 Google Sheet API
+        googleSheetServiceMock.Verify(
+            x => x.GetSheetDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 }

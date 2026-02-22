@@ -29,6 +29,7 @@ public class TaskFactoryTests
         services.AddSingleton(Options.Create(new FetchModeOptions()));
         services.AddSingleton(Options.Create(new UserMappingOptions()));
         services.AddSingleton(Options.Create(new ConsolidateReleaseDataOptions()));
+        services.AddSingleton(Options.Create(new GoogleSheetOptions()));
         
         // 註冊 Logger mocks
         services.AddSingleton(new Mock<ILogger<FetchGitLabPullRequestsTask>>().Object);
@@ -39,6 +40,10 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<UpdateGoogleSheetsTask>>().Object);
+
+        // 註冊 IGoogleSheetService mock
+        services.AddSingleton(new Mock<IGoogleSheetService>().Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
