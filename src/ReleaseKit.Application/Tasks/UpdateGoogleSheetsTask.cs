@@ -335,25 +335,8 @@ public class UpdateGoogleSheetsTask : ITask
         }
 
         var currentRepoRow = repoRows[projectIdx];
-
-        if (projectIdx == 0)
-        {
-            // 第一個 Project：在標記列的下一行插入
-            return currentRepoRow.RowIndex + 1;
-        }
-        else
-        {
-            // 非第一個 Project：在下一個 RepositoryNameColumn 前插入
-            if (projectIdx + 1 < repoRows.Count)
-            {
-                return repoRows[projectIdx + 1].RowIndex;
-            }
-            else
-            {
-                // 最後一個 Project：在標記列的下一行插入
-                return currentRepoRow.RowIndex + 1;
-            }
-        }
+        // 第一個 Project：在標記列的下一行插入
+        return currentRepoRow.RowIndex + 1;
     }
 
     /// <summary>
