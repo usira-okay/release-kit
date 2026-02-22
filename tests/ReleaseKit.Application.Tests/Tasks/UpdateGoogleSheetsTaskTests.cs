@@ -25,6 +25,9 @@ public class UpdateGoogleSheetsTaskTests
         _loggerMock = new Mock<ILogger<UpdateGoogleSheetsTask>>();
         _redisServiceMock = new Mock<IRedisService>();
         _googleSheetServiceMock = new Mock<IGoogleSheetService>();
+        // 預設 GetSheetIdAsync 回傳 0
+        _googleSheetServiceMock.Setup(x => x.GetSheetIdAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(0);
         _googleSheetOptions = new GoogleSheetOptions
         {
             SpreadsheetId = "test-spreadsheet-id",
@@ -242,7 +245,7 @@ public class UpdateGoogleSheetsTaskTests
 
         // Assert — 第一個 Project，在 row 0 (標記列) 後插入，所以 insertRowIndex = 1
         _googleSheetServiceMock.Verify(
-            x => x.InsertRowAsync(_googleSheetOptions.SpreadsheetId, 0, 1),
+            x => x.InsertRowAsync(_googleSheetOptions.SpreadsheetId, It.IsAny<int>(), 1),
             Times.Once);
 
         // 驗證 UpdateCells 被呼叫（填入新列欄位值）

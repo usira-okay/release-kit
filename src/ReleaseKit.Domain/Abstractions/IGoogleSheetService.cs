@@ -15,6 +15,14 @@ public interface IGoogleSheetService
     Task<IList<IList<object>>?> GetSheetDataAsync(string spreadsheetId, string sheetName, string range);
 
     /// <summary>
+    /// 透過工作表名稱取得工作表整數 ID
+    /// </summary>
+    /// <param name="spreadsheetId">試算表 ID</param>
+    /// <param name="sheetName">工作表名稱</param>
+    /// <returns>工作表整數 ID（gid）</returns>
+    Task<int> GetSheetIdAsync(string spreadsheetId, string sheetName);
+
+    /// <summary>
     /// 在指定位置插入空白列
     /// </summary>
     /// <param name="spreadsheetId">試算表 ID</param>

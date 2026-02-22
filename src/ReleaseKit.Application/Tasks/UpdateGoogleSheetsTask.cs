@@ -66,9 +66,11 @@ public class UpdateGoogleSheetsTask : ITask
 
         // 4.4 讀取 Google Sheet A:Z 資料
         IList<IList<object>>? sheetData;
+        int sheetId;
         try
         {
             sheetData = await _googleSheetService.GetSheetDataAsync(opts.SpreadsheetId, opts.SheetName, "A:Z");
+            sheetId = await _googleSheetService.GetSheetIdAsync(opts.SpreadsheetId, opts.SheetName);
         }
         catch (Exception ex)
         {
@@ -92,7 +94,7 @@ public class UpdateGoogleSheetsTask : ITask
         // 同步每個 Project 的資料
         foreach (var (projectName, entries) in consolidatedResult.Projects)
         {
-            await SyncProjectAsync(projectName, entries, sheetData, repoRows, existingUkMap, opts);
+            await SyncProjectAsync(projectName, entries, sheetData, repoRows, existingUkMap, opts, sheetId);
         }
 
         _logger.LogInformation("更新 Google Sheets 完成");
@@ -183,7 +185,8 @@ public class UpdateGoogleSheetsTask : ITask
         IList<IList<object>> sheetData,
         List<(int RowIndex, string ProjectName)> repoRows,
         Dictionary<string, int> existingUkMap,
-        GoogleSheetOptions opts)
+        GoogleSheetOptions opts,
+        int sheetId)
     {
         var colMap = opts.ColumnMapping;
         var modifiedRowIndices = new HashSet<int>();
@@ -203,7 +206,7 @@ public class UpdateGoogleSheetsTask : ITask
                 // UK 不存在 — 新增
                 var insertRowIndex = CalculateInsertRowIndex(projectName, repoRows, sheetData.Count);
 
-                await _googleSheetService.InsertRowAsync(opts.SpreadsheetId, opts.SheetId, insertRowIndex);
+                await _googleSheetService.InsertRowAsync(opts.SpreadsheetId, sheetId, insertRowIndex);
 
                 // 插入後，sheetData 行號需往下移（在 insertRowIndex 以後的所有行都 +1）
                 ShiftRowIndices(repoRows, insertRowIndex);
