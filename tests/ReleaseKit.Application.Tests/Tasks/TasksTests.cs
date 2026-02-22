@@ -493,13 +493,45 @@ public class TasksTests
     }
 
     [Fact]
-    public async Task UpdateGoogleSheetsTask_ExecuteAsync_ShouldThrowNotImplementedException()
+    public async Task UpdateGoogleSheetsTask_ExecuteAsync_WithNoConsolidatedData_ShouldCompleteWithoutException()
     {
         // Arrange
-        var task = new UpdateGoogleSheetsTask();
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+        var googleSheetServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IGoogleSheetService>();
+        var loggerMock = new Mock<ILogger<UpdateGoogleSheetsTask>>();
+        var googleSheetOptions = Options.Create(new ReleaseKit.Common.Configuration.GoogleSheetOptions
+        {
+            SpreadsheetId = "test-id",
+            SheetName = "TestSheet",
+            ServiceAccountCredentialPath = "/path/to/credentials.json",
+            ColumnMapping = new ReleaseKit.Common.Configuration.ColumnMappingOptions
+            {
+                RepositoryNameColumn = "Z",
+                FeatureColumn = "B",
+                TeamColumn = "D",
+                AuthorsColumn = "W",
+                PullRequestUrlsColumn = "X",
+                UniqueKeyColumn = "Y",
+                AutoSyncColumn = "F"
+            }
+        });
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("更新 Google Sheets 資訊功能尚未實作", exception.Message);
+        // Redis 中無整合資料
+        redisServiceMock.Setup(x => x.HashGetAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        var task = new UpdateGoogleSheetsTask(
+            redisServiceMock.Object,
+            googleSheetServiceMock.Object,
+            googleSheetOptions,
+            loggerMock.Object);
+
+        // Act — 應正常結束不拋出例外
+        await task.ExecuteAsync();
+
+        // Assert — Google Sheet 服務未被呼叫（因為無資料提前結束）
+        googleSheetServiceMock.Verify(
+            x => x.GetSheetDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 }

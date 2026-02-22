@@ -39,6 +39,26 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>().Object);
         services.AddSingleton(new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<UpdateGoogleSheetsTask>>().Object);
+        
+        // 註冊 IGoogleSheetService mock
+        var mockGoogleSheetService = new Mock<IGoogleSheetService>();
+        services.AddSingleton(mockGoogleSheetService.Object);
+        
+        // 註冊 GoogleSheetOptions
+        services.AddSingleton(Options.Create(new GoogleSheetOptions
+        {
+            ColumnMapping = new ColumnMappingOptions
+            {
+                RepositoryNameColumn = "Z",
+                FeatureColumn = "B",
+                TeamColumn = "D",
+                AuthorsColumn = "W",
+                PullRequestUrlsColumn = "X",
+                UniqueKeyColumn = "Y",
+                AutoSyncColumn = "F"
+            }
+        }));
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
