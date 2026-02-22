@@ -290,11 +290,12 @@ public class UpdateGoogleSheetsTaskTests
         Assert.Contains("Y2", capturedUpdates.Keys); // UniqueKeyColumn=Y, row=2
         Assert.Equal($"{workItemId}{projectName}", capturedUpdates["Y2"]);
         Assert.Contains("B2", capturedUpdates.Keys); // FeatureColumn=B
-        Assert.Equal("New Feature", capturedUpdates["B2"]);
+        Assert.StartsWith("=HYPERLINK(", capturedUpdates["B2"]); // HYPERLINK 公式
+        Assert.Contains($"VSTS{workItemId} - New Feature", capturedUpdates["B2"]);
         Assert.Contains("W2", capturedUpdates.Keys); // AuthorsColumn=W
         Assert.Equal(authorName, capturedUpdates["W2"]);
         Assert.Contains("F2", capturedUpdates.Keys); // AutoSyncColumn=F
-        Assert.Equal("Y", capturedUpdates["F2"]);
+        Assert.Equal("TRUE", capturedUpdates["F2"]);
     }
 
     // ===== T005: 既有記錄（UniqueKey 已在 Sheet 中）應只更新 Authors 與 PullRequestUrls =====

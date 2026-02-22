@@ -275,12 +275,12 @@ public class UpdateGoogleSheetsTask : ITask
     {
         return new Dictionary<string, string>
         {
-            [$"{mapping.FeatureColumn}{rowNum}"] = entry.Title,
+            [$"{mapping.FeatureColumn}{rowNum}"] = FormatFeature(entry),
             [$"{mapping.TeamColumn}{rowNum}"] = entry.TeamDisplayName,
             [$"{mapping.AuthorsColumn}{rowNum}"] = FormatAuthors(entry),
             [$"{mapping.PullRequestUrlsColumn}{rowNum}"] = FormatPrUrls(entry),
             [$"{mapping.UniqueKeyColumn}{rowNum}"] = $"{entry.WorkItemId}{projectName}",
-            [$"{mapping.AutoSyncColumn}{rowNum}"] = "Y"
+            [$"{mapping.AutoSyncColumn}{rowNum}"] = "TRUE"
         };
     }
 
@@ -293,12 +293,12 @@ public class UpdateGoogleSheetsTask : ITask
         ColumnMappingOptions mapping)
     {
         var row = Enumerable.Range(0, 26).Select(_ => (object)string.Empty).ToList();
-        row[ColumnLetterToIndex(mapping.FeatureColumn)] = entry.Title;
+        row[ColumnLetterToIndex(mapping.FeatureColumn)] = FormatFeature(entry);
         row[ColumnLetterToIndex(mapping.TeamColumn)] = entry.TeamDisplayName;
         row[ColumnLetterToIndex(mapping.AuthorsColumn)] = FormatAuthors(entry);
         row[ColumnLetterToIndex(mapping.PullRequestUrlsColumn)] = FormatPrUrls(entry);
         row[ColumnLetterToIndex(mapping.UniqueKeyColumn)] = $"{entry.WorkItemId}{projectName}";
-        row[ColumnLetterToIndex(mapping.AutoSyncColumn)] = "Y";
+        row[ColumnLetterToIndex(mapping.AutoSyncColumn)] = "TRUE";
         return row;
     }
 
@@ -312,20 +312,33 @@ public class UpdateGoogleSheetsTask : ITask
     }
 
     /// <summary>
-    /// 格式化作者清單為逗號分隔字串
+    /// 格式化 Feature 欄位：以 HYPERLINK 公式呈現 VSTS{workItemId} - {title}
     /// </summary>
-    private static string FormatAuthors(ConsolidatedReleaseEntry entry) =>
-        string.Join(", ", entry.Authors.Select(a => a.AuthorName));
+    private static string FormatFeature(ConsolidatedReleaseEntry entry)
+    {
+        var display = $"VSTS{entry.WorkItemId} - {entry.Title}";
+        if (!string.IsNullOrEmpty(entry.WorkItemUrl))
+            return $"=HYPERLINK(\"{entry.WorkItemUrl}\",\"{display}\")";
+        return display;
+    }
 
     /// <summary>
-    /// 格式化 PR URL 清單（單一 URL 使用 HYPERLINK 公式，多個則以逗號分隔）
+    /// 格式化作者清單：依 authorName 排序後以換行符號分隔
+    /// </summary>
+    private static string FormatAuthors(ConsolidatedReleaseEntry entry) =>
+        string.Join("\n", entry.Authors
+            .Select(a => a.AuthorName)
+            .OrderBy(n => n, StringComparer.Ordinal));
+
+    /// <summary>
+    /// 格式化 PR URL 清單：依 url 排序後以換行符號分隔
     /// </summary>
     private static string FormatPrUrls(ConsolidatedReleaseEntry entry)
     {
         if (entry.PullRequests.Count == 0) return string.Empty;
-        if (entry.PullRequests.Count == 1)
-            return $"=HYPERLINK(\"{entry.PullRequests[0].Url}\",\"PR\")";
-        return string.Join(", ", entry.PullRequests.Select(p => p.Url));
+        return string.Join("\n", entry.PullRequests
+            .Select(p => p.Url)
+            .OrderBy(u => u, StringComparer.Ordinal));
     }
 
     /// <summary>
