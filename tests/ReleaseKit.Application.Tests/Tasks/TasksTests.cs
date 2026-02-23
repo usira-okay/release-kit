@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Application.Tasks;
+using ReleaseKit.Domain.Abstractions;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
@@ -492,14 +493,43 @@ public class TasksTests
             Times.Once);
     }
 
+    /// <summary>
+    /// 測試 UpdateGoogleSheetsTask 建構式已改為需要注入依賴
+    /// </summary>
     [Fact]
-    public async Task UpdateGoogleSheetsTask_ExecuteAsync_ShouldThrowNotImplementedException()
+    public async Task UpdateGoogleSheetsTask_ExecuteAsync_WithNoRedisData_ShouldLogWarningAndReturn()
     {
         // Arrange
-        var task = new UpdateGoogleSheetsTask();
+        var redisService = new Mock<IRedisService>();
+        var googleSheetService = new Mock<IGoogleSheetService>();
+        var options = Options.Create(new ReleaseKit.Common.Configuration.GoogleSheetOptions
+        {
+            SpreadsheetId = "test",
+            SheetName = "Sheet1",
+            ColumnMapping = new ReleaseKit.Common.Configuration.ColumnMappingOptions
+            {
+                RepositoryNameColumn = "Z",
+                FeatureColumn = "B",
+                TeamColumn = "D",
+                AuthorsColumn = "W",
+                PullRequestUrlsColumn = "X",
+                UniqueKeyColumn = "Y",
+                AutoSyncColumn = "F"
+            }
+        });
+        var logger = new Mock<ILogger<UpdateGoogleSheetsTask>>();
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("更新 Google Sheets 資訊功能尚未實作", exception.Message);
+        redisService.Setup(x => x.HashGetAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        var task = new UpdateGoogleSheetsTask(redisService.Object, googleSheetService.Object, options, logger.Object);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 無資料時應正常結束
+        googleSheetService.Verify(
+            x => x.GetSheetDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 }
