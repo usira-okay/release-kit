@@ -23,6 +23,15 @@ public interface IGoogleSheetService
     Task InsertRowAsync(string spreadsheetId, int sheetId, int rowIndex);
 
     /// <summary>
+    /// 由工作表名稱取得工作表 ID
+    /// </summary>
+    /// <param name="spreadsheetId">試算表 ID</param>
+    /// <param name="sheetName">工作表名稱</param>
+    /// <returns>工作表 ID（數字）</returns>
+    /// <exception cref="InvalidOperationException">找不到指定名稱的工作表時拋出</exception>
+    Task<int> GetSheetIdByNameAsync(string spreadsheetId, string sheetName);
+
+    /// <summary>
     /// 批次更新多個儲存格值（支援文字與 HYPERLINK 公式）
     /// </summary>
     /// <param name="spreadsheetId">試算表 ID</param>

@@ -62,6 +62,29 @@ public class GoogleSheetService : IGoogleSheetService
     }
 
     /// <summary>
+    /// 由工作表名稱取得工作表 ID
+    /// </summary>
+    public async Task<int> GetSheetIdByNameAsync(string spreadsheetId, string sheetName)
+    {
+        _logger.LogInformation("取得工作表 '{SheetName}' 的 SheetId", sheetName);
+
+        var request = _sheetsService.Spreadsheets.Get(spreadsheetId);
+        request.Fields = "sheets.properties";
+        var response = await request.ExecuteAsync();
+
+        var sheet = response.Sheets
+            .FirstOrDefault(s => string.Equals(s.Properties.Title, sheetName, StringComparison.OrdinalIgnoreCase));
+
+        if (sheet == null)
+        {
+            throw new InvalidOperationException($"找不到工作表名稱 '{sheetName}'");
+        }
+
+        return sheet.Properties.SheetId
+            ?? throw new InvalidOperationException($"工作表 '{sheetName}' 的 SheetId 為 null");
+    }
+
+    /// <summary>
     /// 在指定位置插入空白列
     /// </summary>
     public async Task InsertRowAsync(string spreadsheetId, int sheetId, int rowIndex)

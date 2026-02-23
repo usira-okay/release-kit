@@ -37,6 +37,27 @@ public class IGoogleSheetServiceTests
     }
 
     /// <summary>
+    /// 驗證 IGoogleSheetService 的 GetSheetIdByNameAsync 可被 Mock 並正確回傳 SheetId
+    /// </summary>
+    [Fact]
+    public async Task GetSheetIdByNameAsync_WithMock_ShouldReturnExpectedSheetId()
+    {
+        // Arrange
+        var mock = new Mock<IGoogleSheetService>();
+        mock.Setup(x => x.GetSheetIdByNameAsync("spreadsheet-id", "Sheet1"))
+            .ReturnsAsync(42);
+
+        IGoogleSheetService service = mock.Object;
+
+        // Act
+        var result = await service.GetSheetIdByNameAsync("spreadsheet-id", "Sheet1");
+
+        // Assert
+        Assert.Equal(42, result);
+        mock.Verify(x => x.GetSheetIdByNameAsync("spreadsheet-id", "Sheet1"), Times.Once);
+    }
+
+    /// <summary>
     /// 驗證 IGoogleSheetService 的 InsertRowAsync 可被 Mock 並正確呼叫
     /// </summary>
     [Fact]

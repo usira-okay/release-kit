@@ -28,7 +28,6 @@ public class UpdateGoogleSheetsTaskTests
         _options = new GoogleSheetOptions
         {
             SpreadsheetId = "test-spreadsheet-id",
-            SheetId = 0,
             SheetName = "Sheet1",
             ColumnMapping = new ColumnMappingOptions
             {
@@ -414,14 +413,17 @@ public class UpdateGoogleSheetsTaskTests
             .ReturnsAsync(sheetData)
             .ReturnsAsync(sheetData); // 排序階段重新讀取
 
+        _googleSheetServiceMock.Setup(x => x.GetSheetIdByNameAsync("test-spreadsheet-id", "Sheet1"))
+            .ReturnsAsync(42);
+
         var task = CreateTask();
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 應呼叫 InsertRow
+        // Assert - 應呼叫 InsertRow（SheetId 由 SheetName 動態取得）
         _googleSheetServiceMock.Verify(
-            x => x.InsertRowAsync("test-spreadsheet-id", 0, It.IsAny<int>()),
+            x => x.InsertRowAsync("test-spreadsheet-id", 42, It.IsAny<int>()),
             Times.Once);
 
         // Assert - 應呼叫 UpdateCells 填入欄位值（含 AutoSync = TRUE）

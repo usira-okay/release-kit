@@ -81,6 +81,9 @@ public class UpdateGoogleSheetsTask : ITask
         // 追蹤插入列的偏移量（因為插入列會影響後續 row index）
         var insertOffset = 0;
 
+        // 延遲取得 SheetId（僅在首次需要插入列時呼叫一次）
+        int? sheetId = null;
+
         // 處理每個 Project 的資料
         foreach (var (projectName, entries) in consolidatedResult.Projects)
         {
@@ -104,7 +107,8 @@ public class UpdateGoogleSheetsTask : ITask
                         continue;
                     }
 
-                    await _googleSheetService.InsertRowAsync(config.SpreadsheetId, config.SheetId, insertRowIndex);
+                    sheetId ??= await _googleSheetService.GetSheetIdByNameAsync(config.SpreadsheetId, config.SheetName);
+                    await _googleSheetService.InsertRowAsync(config.SpreadsheetId, sheetId.Value, insertRowIndex);
                     await FillNewRowAsync(config, columnMapping, insertRowIndex, entry, uniqueKey, projectName);
                     insertOffset++;
                     affectedProjects.Add(projectName);
