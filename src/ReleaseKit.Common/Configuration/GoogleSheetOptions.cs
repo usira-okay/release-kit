@@ -11,11 +11,6 @@ public class GoogleSheetOptions
     public string SpreadsheetId { get; init; } = string.Empty;
 
     /// <summary>
-    /// 工作表 ID（數字，用於 InsertRow 等操作）
-    /// </summary>
-    public int SheetId { get; init; }
-
-    /// <summary>
     /// 工作表名稱
     /// </summary>
     public string SheetName { get; init; } = string.Empty;
