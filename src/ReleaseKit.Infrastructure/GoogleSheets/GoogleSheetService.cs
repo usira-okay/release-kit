@@ -34,7 +34,9 @@ public class GoogleSheetService : IGoogleSheetService
             throw new InvalidOperationException("缺少必要的組態鍵: GoogleSheet:ServiceAccountCredentialPath");
         }
 
-        var credential = GoogleCredential.FromFile(credentialPath)
+        var credential = CredentialFactory
+            .FromFile<ServiceAccountCredential>(credentialPath)
+            .ToGoogleCredential()
             .CreateScoped(SheetsService.Scope.Spreadsheets);
 
         _sheetsService = new SheetsService(new BaseClientService.Initializer
