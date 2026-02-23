@@ -323,17 +323,17 @@ public class UpdateGoogleSheetsTaskTests
         };
 
         // Act
-        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo1", 0);
+        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo1");
 
         // Assert - 第一個 Project 在 header 下一行插入
         Assert.Equal(1, result);
     }
 
     /// <summary>
-    /// 測試中間 Project 區塊的新增列定位（在下一個 Project 前插入）
+    /// 測試中間 Project 區塊的新增列定位（在 header 下一行插入）
     /// </summary>
     [Fact]
-    public void CalculateInsertRowIndex_ForMiddleProject_ShouldInsertBeforeNextProject()
+    public void CalculateInsertRowIndex_ForMiddleProject_ShouldInsertAfterHeader()
     {
         // Arrange
         var blocks = new List<(int RowIndex, string ProjectName)>
@@ -344,10 +344,10 @@ public class UpdateGoogleSheetsTaskTests
         };
 
         // Act
-        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo2", 0);
+        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo2");
 
-        // Assert - 在下一個 RepositoryNameColumn 之前
-        Assert.Equal(10, result);
+        // Assert - 中間 Project 在 header 下一行插入
+        Assert.Equal(6, result);
     }
 
     /// <summary>
@@ -365,7 +365,7 @@ public class UpdateGoogleSheetsTaskTests
         };
 
         // Act
-        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo3", 0);
+        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo3");
 
         // Assert - 最後一個 Project 在 header 下一行插入
         Assert.Equal(11, result);
@@ -381,7 +381,7 @@ public class UpdateGoogleSheetsTaskTests
         var blocks = new List<(int RowIndex, string ProjectName)> { (0, "repo1") };
 
         // Act
-        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "unknown", 0);
+        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "unknown");
 
         // Assert
         Assert.Equal(-1, result);
@@ -620,10 +620,10 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// 測試 CalculateInsertRowIndex 考慮 insertOffset
+    /// 測試 CalculateInsertRowIndex 回傳 header 下一行
     /// </summary>
     [Fact]
-    public void CalculateInsertRowIndex_WithOffset_ShouldApplyOffset()
+    public void CalculateInsertRowIndex_ShouldInsertAfterHeader()
     {
         // Arrange
         var blocks = new List<(int RowIndex, string ProjectName)>
@@ -632,10 +632,10 @@ public class UpdateGoogleSheetsTaskTests
             (5, "repo2")
         };
 
-        // Act - 已有 2 筆插入的偏移
-        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo1", 2);
+        // Act
+        var result = UpdateGoogleSheetsTask.CalculateInsertRowIndex(blocks, "repo1");
 
         // Assert
-        Assert.Equal(3, result); // 0 + 1 + 2 offset
+        Assert.Equal(1, result); // 0 + 1
     }
 }
