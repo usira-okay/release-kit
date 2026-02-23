@@ -78,9 +78,6 @@ public class UpdateGoogleSheetsTask : ITask
         // 追蹤受影響的 Project，用於排序
         var affectedProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // 追蹤插入列的偏移量（因為插入列會影響後續 row index）
-        var insertOffset = 0;
-
         // 延遲取得 SheetId（僅在首次需要插入列時呼叫一次）
         int? sheetId = null;
 
@@ -94,13 +91,13 @@ public class UpdateGoogleSheetsTask : ITask
                 if (existingUniqueKeys.TryGetValue(uniqueKey, out var existingRowIndex))
                 {
                     // 更新既有資料
-                    await UpdateExistingRowAsync(config, columnMapping, existingRowIndex + insertOffset, entry);
+                    await UpdateExistingRowAsync(config, columnMapping, existingRowIndex , entry);
                     affectedProjects.Add(projectName);
                 }
                 else
                 {
                     // 新增資料
-                    var insertRowIndex = CalculateInsertRowIndex(projectBlocks, projectName, insertOffset);
+                    var insertRowIndex = CalculateInsertRowIndex(projectBlocks, projectName);
                     if (insertRowIndex < 0)
                     {
                         _logger.LogWarning("找不到 Project '{ProjectName}' 的區塊，跳過新增", projectName);
@@ -110,7 +107,6 @@ public class UpdateGoogleSheetsTask : ITask
                     sheetId ??= await _googleSheetService.GetSheetIdByNameAsync(config.SpreadsheetId, config.SheetName);
                     await _googleSheetService.InsertRowAsync(config.SpreadsheetId, sheetId.Value, insertRowIndex);
                     await FillNewRowAsync(config, columnMapping, insertRowIndex, entry, uniqueKey, projectName);
-                    insertOffset++;
                     affectedProjects.Add(projectName);
                 }
             }
@@ -233,8 +229,7 @@ public class UpdateGoogleSheetsTask : ITask
     /// </summary>
     internal static int CalculateInsertRowIndex(
         List<(int RowIndex, string ProjectName)> projectBlocks,
-        string projectName,
-        int insertOffset)
+        string projectName)
     {
         var blockIndex = projectBlocks.FindIndex(b =>
             string.Equals(b.ProjectName, projectName, StringComparison.OrdinalIgnoreCase));
@@ -243,21 +238,7 @@ public class UpdateGoogleSheetsTask : ITask
 
         var currentBlock = projectBlocks[blockIndex];
 
-        if (blockIndex == 0)
-        {
-            // 第一個 Project：在 RepositoryNameColumn 行的下一行插入
-            return currentBlock.RowIndex + 1 + insertOffset;
-        }
-
-        // 非第一個 Project：在下一個 RepositoryNameColumn 之前插入
-        if (blockIndex < projectBlocks.Count - 1)
-        {
-            var nextBlock = projectBlocks[blockIndex + 1];
-            return nextBlock.RowIndex + insertOffset;
-        }
-
-        // 最後一個 Project：在 RepositoryNameColumn 行的下一行插入
-        return currentBlock.RowIndex + 1 + insertOffset;
+        return currentBlock.RowIndex + 1;
     }
 
     /// <summary>
