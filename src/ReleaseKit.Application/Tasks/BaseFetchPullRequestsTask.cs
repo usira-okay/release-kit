@@ -77,6 +77,14 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     protected abstract IEnumerable<TProjectOptions> GetProjects();
 
     /// <summary>
+    /// 最大同時並行處理的專案數量
+    /// </summary>
+    /// <remarks>
+    /// 預設為 1（循序處理）。子類別可覆寫此屬性以啟用並行處理。
+    /// </remarks>
+    protected virtual int MaxConcurrentProjects => 1;
+
+    /// <summary>
     /// 執行拉取 Pull Request 資訊任務
     /// </summary>
     public async Task ExecuteAsync()
@@ -90,71 +98,24 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
             await _redisService.HashDeleteAsync(RedisHashKey, RedisHashField);
         }
 
-        var projectResults = new List<ProjectResult>();
+        // 並行處理每個專案（透過 SemaphoreSlim 限制最大並行數）
+        var projectList = GetProjects().ToList();
+        var semaphore = new SemaphoreSlim(MaxConcurrentProjects, MaxConcurrentProjects);
 
-        // 處理每個專案
-        foreach (var project in GetProjects())
+        var projectTasks = projectList.Select(async project =>
         {
-            _logger.LogInformation("處理專案: {ProjectPath}", project.ProjectPath);
-
-            var projectResult = new ProjectResult
-            {
-                ProjectPath = project.ProjectPath,
-                Platform = Platform,
-                PullRequests = new List<MergeRequestOutput>()
-            };
-
+            await semaphore.WaitAsync();
             try
             {
-                // 專案層級設定覆蓋全域設定
-                var fetchMode = project.FetchMode ?? _fetchModeOptions.FetchMode;
-                
-                List<MergeRequest> mergeRequests;
-                
-                if (fetchMode == FetchMode.DateTimeRange)
-                {
-                    mergeRequests = await ExecuteDateTimeRangeModeAsync(_repository, project);
-                }
-                else if (fetchMode == FetchMode.BranchDiff)
-                {
-                    mergeRequests = await ExecuteBranchDiffModeAsync(_repository, project);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"不支援的擷取模式: {fetchMode}");
-                }
-
-                // 轉換為輸出格式
-                projectResult = projectResult with
-                {
-                    PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
-                    {
-                        Title = mr.Title,
-                        Description = mr.Description,
-                        SourceBranch = mr.SourceBranch,
-                        TargetBranch = mr.TargetBranch,
-                        CreatedAt = mr.CreatedAt,
-                        MergedAt = mr.MergedAt,
-                        State = mr.State,
-                        AuthorUserId = mr.AuthorUserId,
-                        AuthorName = mr.AuthorName,
-                        PrId = mr.PrId,
-                        PRUrl = mr.PRUrl,
-                        WorkItemId = mr.WorkItemId
-                    }).ToList()
-                };
+                return await ProcessProjectAsync(project);
             }
-            catch (Exception ex)
+            finally
             {
-                _logger.LogError(ex, "處理專案 {ProjectPath} 時發生例外", project.ProjectPath);
-                projectResult = projectResult with
-                {
-                    Error = $"處理失敗: {ex.Message}"
-                };
+                semaphore.Release();
             }
+        });
 
-            projectResults.Add(projectResult);
-        }
+        var projectResults = (await Task.WhenAll(projectTasks)).ToList();
 
         // 建立最終輸出
         var fetchResult = new FetchResult
@@ -185,6 +146,72 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
             projectResults.Count,
             totalPRs,
             failedProjects);
+    }
+
+    /// <summary>
+    /// 處理單一專案的 PR 拉取
+    /// </summary>
+    private async Task<ProjectResult> ProcessProjectAsync(TProjectOptions project)
+    {
+        _logger.LogInformation("處理專案: {ProjectPath}", project.ProjectPath);
+
+        var projectResult = new ProjectResult
+        {
+            ProjectPath = project.ProjectPath,
+            Platform = Platform,
+            PullRequests = new List<MergeRequestOutput>()
+        };
+
+        try
+        {
+            // 專案層級設定覆蓋全域設定
+            var fetchMode = project.FetchMode ?? _fetchModeOptions.FetchMode;
+
+            List<MergeRequest> mergeRequests;
+
+            if (fetchMode == FetchMode.DateTimeRange)
+            {
+                mergeRequests = await ExecuteDateTimeRangeModeAsync(_repository, project);
+            }
+            else if (fetchMode == FetchMode.BranchDiff)
+            {
+                mergeRequests = await ExecuteBranchDiffModeAsync(_repository, project);
+            }
+            else
+            {
+                throw new InvalidOperationException($"不支援的擷取模式: {fetchMode}");
+            }
+
+            // 轉換為輸出格式
+            projectResult = projectResult with
+            {
+                PullRequests = mergeRequests.Select(mr => new MergeRequestOutput
+                {
+                    Title = mr.Title,
+                    Description = mr.Description,
+                    SourceBranch = mr.SourceBranch,
+                    TargetBranch = mr.TargetBranch,
+                    CreatedAt = mr.CreatedAt,
+                    MergedAt = mr.MergedAt,
+                    State = mr.State,
+                    AuthorUserId = mr.AuthorUserId,
+                    AuthorName = mr.AuthorName,
+                    PrId = mr.PrId,
+                    PRUrl = mr.PRUrl,
+                    WorkItemId = mr.WorkItemId
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "處理專案 {ProjectPath} 時發生例外", project.ProjectPath);
+            projectResult = projectResult with
+            {
+                Error = $"處理失敗: {ex.Message}"
+            };
+        }
+
+        return projectResult;
     }
 
     /// <summary>

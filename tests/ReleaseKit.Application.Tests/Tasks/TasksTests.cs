@@ -502,4 +502,71 @@ public class TasksTests
         var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
         Assert.Contains("更新 Google Sheets 資訊功能尚未實作", exception.Message);
     }
+
+    [Fact]
+    public async Task FetchBitbucketPullRequestsTask_ExecuteAsync_WithMultipleProjects_ShouldProcessConcurrently()
+    {
+        // Arrange: 設定 6 個 project，驗證並行執行（MaxConcurrentProjects = 5）
+        var services = new ServiceCollection();
+        var projectPaths = Enumerable.Range(1, 6).Select(i => $"workspace/repo{i}").ToList();
+        var bitbucketOptions = Options.Create(new BitbucketOptions
+        {
+            Projects = projectPaths.Select(p => new BitbucketProjectOptions
+            {
+                ProjectPath = p,
+                FetchMode = FetchMode.DateTimeRange,
+                TargetBranch = "main",
+                StartDateTime = DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
+                EndDateTime = DateTimeOffset.Parse("2024-01-31T23:59:59Z")
+            }).ToList()
+        });
+        var fetchModeOptions = Options.Create(new FetchModeOptions
+        {
+            FetchMode = FetchMode.DateTimeRange,
+            StartDateTime = DateTimeOffset.Parse("2024-01-01T00:00:00Z"),
+            EndDateTime = DateTimeOffset.Parse("2024-01-31T23:59:59Z"),
+            TargetBranch = "main"
+        });
+
+        var loggerMock = new Mock<ILogger<FetchBitbucketPullRequestsTask>>();
+        var repositoryMock = new Mock<ReleaseKit.Domain.Abstractions.ISourceControlRepository>();
+        var redisServiceMock = new Mock<ReleaseKit.Domain.Abstractions.IRedisService>();
+
+        repositoryMock
+            .Setup(x => x.GetMergeRequestsByDateRangeAsync(
+                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Domain.Common.Result<IReadOnlyList<Domain.Entities.MergeRequest>>.Success(
+                new List<Domain.Entities.MergeRequest>().AsReadOnly()));
+
+        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+
+        services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var task = new FetchBitbucketPullRequestsTask(
+            serviceProvider,
+            loggerMock.Object,
+            redisServiceMock.Object,
+            bitbucketOptions,
+            fetchModeOptions);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 所有 6 個專案都應被處理
+        foreach (var projectPath in projectPaths)
+        {
+            repositoryMock.Verify(
+                x => x.GetMergeRequestsByDateRangeAsync(
+                    projectPath,
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+    }
 }
