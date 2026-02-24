@@ -661,6 +661,79 @@ public class UpdateGoogleSheetsTaskTests
             Times.AtLeastOnce);
     }
 
+    /// <summary>
+    /// T014: 測試排序時 feature 有填寫的列依序排列，feature 為空白的列排在最後面
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_Sort_EmptyFieldsShouldBeSortedLast()
+    {
+        // Arrange - 3 個現有列（update 路徑），確保專案被加入 affectedProjects 而觸發排序
+        var result = CreateConsolidatedResult(
+            ("test-repo", new[]
+            {
+                CreateEntry(100),  // UniqueKey = "100test-repo"
+                CreateEntry(200),  // UniqueKey = "200test-repo"
+                CreateEntry(300),  // UniqueKey = "300test-repo"
+            }));
+        SetupRedisConsolidatedData(result);
+        SetupSheetId(0);
+
+        // 建立 Sheet 資料：header + 3 個資料列
+        // row1: Team Z, Feature 有填寫 → feature 有填寫，Team Z 排在 Team A 後面，故排第二
+        // row2: Team A, Feature 空白   → feature 未填寫，直接排在最後面（不參與排序）
+        // row3: Team A, Feature 有填寫 → feature 有填寫，Team A 排在最前面，故排第一
+        var sheetData = new List<IList<object>>();
+
+        var headerRow = new List<object>(new object[26]);
+        headerRow[25] = "test-repo"; // Z 欄 = RepositoryNameColumn
+        sheetData.Add(headerRow);
+
+        var row1 = new List<object>(new object[26]);
+        row1[1] = "Feature Z";        // B 欄 = FeatureColumn
+        row1[3] = "Team Z";           // D 欄 = TeamColumn
+        row1[24] = "100test-repo";    // Y 欄 = UniqueKeyColumn
+        sheetData.Add(row1);
+
+        var row2 = new List<object>(new object[26]);
+        row2[1] = string.Empty;       // B 欄 = FeatureColumn（空白）→ 排到最後
+        row2[3] = "Team A";           // D 欄 = TeamColumn
+        row2[24] = "200test-repo";    // Y 欄 = UniqueKeyColumn
+        sheetData.Add(row2);
+
+        var row3 = new List<object>(new object[26]);
+        row3[1] = "Feature A";        // B 欄 = FeatureColumn
+        row3[3] = "Team A";           // D 欄 = TeamColumn
+        row3[24] = "300test-repo";    // Y 欄 = UniqueKeyColumn
+        sheetData.Add(row3);
+
+        SetupSheetData(sheetData);
+
+        IList<IList<object>>? capturedSortedRows = null;
+        _googleSheetServiceMock
+            .Setup(x => x.BatchUpdateCellsAsync(It.IsAny<string>(), It.IsAny<IList<(string, IList<IList<object>>)>>()))
+            .Callback<string, IList<(string, IList<IList<object>>)>>((_, updates) =>
+            {
+                // 排序的 BatchUpdate 範圍涵蓋 3 個資料列（A2:Z4）
+                var sortUpdate = updates.FirstOrDefault(u => u.Item1 == $"'{_defaultOptions.SheetName}'!A2:Z4");
+                if (sortUpdate.Item2 != null)
+                    capturedSortedRows = sortUpdate.Item2;
+            });
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - feature 有填寫的列依 Team 排序在前，feature 空白的列排在最後面
+        Assert.NotNull(capturedSortedRows);
+        Assert.Equal(3, capturedSortedRows!.Count);
+        // Feature 有填寫的列依 Team 排序（Team A 在 Team Z 前）
+        Assert.Equal("Feature A", capturedSortedRows[0][1]?.ToString() ?? string.Empty);
+        Assert.Equal("Feature Z", capturedSortedRows[1][1]?.ToString() ?? string.Empty);
+        // Feature 空白的列排在最後面
+        Assert.Equal(string.Empty, capturedSortedRows[2][1]?.ToString() ?? string.Empty);
+    }
+
     // ===== T015: 完整 ExecuteAsync 端對端流程 =====
 
     /// <summary>

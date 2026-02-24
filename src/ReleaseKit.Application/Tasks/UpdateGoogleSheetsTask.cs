@@ -284,11 +284,15 @@ public class UpdateGoogleSheetsTask : ITask
                     .Take(segment.DataEndRowIndex - segment.DataStartRowIndex + 1)
                     .ToList();
 
-                var sortedRows = dataRows
-                    .OrderBy(r => GetCellStringValue(r, teamColIdx))
-                    .ThenBy(r => GetCellStringValue(r, authorsColIdx))
-                    .ThenBy(r => GetCellStringValue(r, featureColIdx))
-                    .ThenBy(r => GetCellStringValue(r, uniqueKeyColIdx))
+                // 只排序 feature 欄位有填寫的列，feature 為空白的列排在最後面
+                var rowsByFeatureFilled = dataRows.ToLookup(r => !string.IsNullOrEmpty(GetCellStringValue(r, featureColIdx)));
+
+                var sortedRows = rowsByFeatureFilled[true]
+                    .OrderBy(r => SortKeyEmptyLast(r, teamColIdx))
+                    .ThenBy(r => SortKeyEmptyLast(r, authorsColIdx))
+                    .ThenBy(r => SortKeyEmptyLast(r, featureColIdx))
+                    .ThenBy(r => SortKeyEmptyLast(r, uniqueKeyColIdx))
+                    .Concat(rowsByFeatureFilled[false])
                     .Select(PadRowTo26)
                     .ToList<IList<object>>();
 
@@ -414,6 +418,15 @@ public class UpdateGoogleSheetsTask : ITask
     /// </summary>
     private static string GetCellStringValue(IList<object> row, int colIndex)
         => colIndex < row.Count ? row[colIndex]?.ToString() ?? string.Empty : string.Empty;
+
+    /// <summary>
+    /// 排序鍵：空白欄位排在最後面
+    /// </summary>
+    private static (int, string) SortKeyEmptyLast(IList<object> row, int colIndex)
+    {
+        var value = GetCellStringValue(row, colIndex);
+        return (string.IsNullOrEmpty(value) ? 1 : 0, value);
+    }
 
     /// <summary>
     /// 將列補齊至 26 欄（A–Z），不足部分填入空字串
