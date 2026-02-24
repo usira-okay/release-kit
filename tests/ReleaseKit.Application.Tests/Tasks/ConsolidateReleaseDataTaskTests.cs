@@ -275,13 +275,13 @@ public class ConsolidateReleaseDataTaskTests
         Assert.Equal("金流團隊", result.Projects["project"][0].TeamDisplayName);
     }
 
-    // ===== T018: 驗證同一 Work Item 有多個 PR 時，各自獨立為不同 Entry =====
+    // ===== T018: 驗證同一 Work Item 在同一專案有多個 PR 時，合併為單一 Entry =====
 
     /// <summary>
-    /// T018: 測試同一 Work Item 有多個 PR 時，以 (WorkItemId, PrId) 為複合 Key 產生獨立 Entry
+    /// T018: 測試同一 Work Item 在同一專案有多個 PR 時，以 (WorkItemId, ProjectName) 為複合 Key 合併為單一 Entry
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithMultiplePrsForSameWorkItem_ShouldCreateSeparateEntries()
+    public async Task ExecuteAsync_WithMultiplePrsForSameWorkItemInSameProject_ShouldMergeIntoSingleEntry()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -292,7 +292,7 @@ public class ConsolidateReleaseDataTaskTests
 
         SetupPrData(null, gitLabResult);
 
-        // 同一 WorkItemId 透過不同 PrId 出現多次，複合 Key 使其各自獨立
+        // 同一 WorkItemId 在同一 ProjectName 透過不同 PrId 出現多次，以 (WorkItemId, ProjectName) 為 Key 合併為一筆
         var workItems = CreateUserStoryResult(
             CreateWorkItem(100, "pr-1", "MoneyLogistic", "project"),
             CreateWorkItem(100, "pr-2", "MoneyLogistic", "project"),
@@ -310,13 +310,14 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(result);
         Assert.Single(result.Projects);
 
-        // 複合 Key (100, "pr-1"), (100, "pr-2"), (100, "pr-3") → 3 筆獨立 Entry
+        // 複合 Key (100, "project") → 1 筆 Entry，包含 3 個 PR
         var entries = result.Projects["project"];
-        Assert.Equal(3, entries.Count);
-        Assert.All(entries, e => Assert.Equal(100, e.WorkItemId));
-        Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/1"));
-        Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/2"));
-        Assert.Contains(entries, e => e.PullRequests.Any(p => p.Url == "https://gitlab.com/pr/3"));
+        Assert.Single(entries);
+        Assert.Equal(100, entries[0].WorkItemId);
+        Assert.Equal(3, entries[0].PullRequests.Count);
+        Assert.Contains(entries[0].PullRequests, p => p.Url == "https://gitlab.com/pr/1");
+        Assert.Contains(entries[0].PullRequests, p => p.Url == "https://gitlab.com/pr/2");
+        Assert.Contains(entries[0].PullRequests, p => p.Url == "https://gitlab.com/pr/3");
     }
 
     // ===== T019: 驗證 PrId 為 null 的 Work Item 拋出 InvalidOperationException =====
