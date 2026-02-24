@@ -16,6 +16,7 @@
                 // "fetch-azure-workitems"
                 // "get-user-story"
                 // "consolidate-release-data"
+                "update-googlesheet"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

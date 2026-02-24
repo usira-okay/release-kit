@@ -492,11 +492,6 @@ public class TasksTests
             Times.Once);
     }
 
-    [Fact]
-    public async Task UpdateGoogleSheetsTask_ExecuteAsync_ShouldThrowNotImplementedException()
-    {
-        // Arrange
-        var task = new UpdateGoogleSheetsTask();
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
