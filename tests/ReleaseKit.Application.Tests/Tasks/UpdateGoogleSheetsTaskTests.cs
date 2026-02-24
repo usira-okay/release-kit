@@ -662,7 +662,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T014: 測試排序時空白欄位應排在最後面
+    /// T014: 測試排序時 feature 有填寫的列依序排列，feature 為空白的列排在最後面
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_Sort_EmptyFieldsShouldBeSortedLast()
@@ -678,7 +678,10 @@ public class UpdateGoogleSheetsTaskTests
         SetupRedisConsolidatedData(result);
         SetupSheetId(0);
 
-        // 建立 Sheet 資料：header + 3 個資料列，Team 欄（D, index=3）依序為：Team Z、空白、Team A
+        // 建立 Sheet 資料：header + 3 個資料列
+        // row1: Team Z, Feature 有填寫 → feature 有填寫，Team Z 排在 Team A 後面，故排第二
+        // row2: Team A, Feature 空白   → feature 未填寫，直接排在最後面（不參與排序）
+        // row3: Team A, Feature 有填寫 → feature 有填寫，Team A 排在最前面，故排第一
         var sheetData = new List<IList<object>>();
 
         var headerRow = new List<object>(new object[26]);
@@ -686,18 +689,21 @@ public class UpdateGoogleSheetsTaskTests
         sheetData.Add(headerRow);
 
         var row1 = new List<object>(new object[26]);
-        row1[3] = "Team Z";        // D 欄 = TeamColumn
-        row1[24] = "100test-repo"; // Y 欄 = UniqueKeyColumn
+        row1[1] = "Feature Z";        // B 欄 = FeatureColumn
+        row1[3] = "Team Z";           // D 欄 = TeamColumn
+        row1[24] = "100test-repo";    // Y 欄 = UniqueKeyColumn
         sheetData.Add(row1);
 
         var row2 = new List<object>(new object[26]);
-        row2[3] = string.Empty;    // D 欄 = TeamColumn（空白）
-        row2[24] = "200test-repo"; // Y 欄 = UniqueKeyColumn
+        row2[1] = string.Empty;       // B 欄 = FeatureColumn（空白）→ 排到最後
+        row2[3] = "Team A";           // D 欄 = TeamColumn
+        row2[24] = "200test-repo";    // Y 欄 = UniqueKeyColumn
         sheetData.Add(row2);
 
         var row3 = new List<object>(new object[26]);
-        row3[3] = "Team A";        // D 欄 = TeamColumn
-        row3[24] = "300test-repo"; // Y 欄 = UniqueKeyColumn
+        row3[1] = "Feature A";        // B 欄 = FeatureColumn
+        row3[3] = "Team A";           // D 欄 = TeamColumn
+        row3[24] = "300test-repo";    // Y 欄 = UniqueKeyColumn
         sheetData.Add(row3);
 
         SetupSheetData(sheetData);
@@ -718,14 +724,14 @@ public class UpdateGoogleSheetsTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 排序後空白 Team 欄位應排在最後面
+        // Assert - feature 有填寫的列依 Team 排序在前，feature 空白的列排在最後面
         Assert.NotNull(capturedSortedRows);
         Assert.Equal(3, capturedSortedRows!.Count);
-        // 非空白 Team 依字母排序在前面
-        Assert.Equal("Team A", capturedSortedRows[0][3]?.ToString() ?? string.Empty);
-        Assert.Equal("Team Z", capturedSortedRows[1][3]?.ToString() ?? string.Empty);
-        // 空白 Team 排在最後面
-        Assert.Equal(string.Empty, capturedSortedRows[2][3]?.ToString() ?? string.Empty);
+        // Feature 有填寫的列依 Team 排序（Team A 在 Team Z 前）
+        Assert.Equal("Feature A", capturedSortedRows[0][1]?.ToString() ?? string.Empty);
+        Assert.Equal("Feature Z", capturedSortedRows[1][1]?.ToString() ?? string.Empty);
+        // Feature 空白的列排在最後面
+        Assert.Equal(string.Empty, capturedSortedRows[2][1]?.ToString() ?? string.Empty);
     }
 
     // ===== T015: 完整 ExecuteAsync 端對端流程 =====

@@ -284,11 +284,15 @@ public class UpdateGoogleSheetsTask : ITask
                     .Take(segment.DataEndRowIndex - segment.DataStartRowIndex + 1)
                     .ToList();
 
-                var sortedRows = dataRows
+                // 只排序 feature 欄位有填寫的列，feature 為空白的列排在最後面
+                var rowsByFeatureFilled = dataRows.ToLookup(r => !string.IsNullOrEmpty(GetCellStringValue(r, featureColIdx)));
+
+                var sortedRows = rowsByFeatureFilled[true]
                     .OrderBy(r => SortKeyEmptyLast(r, teamColIdx))
                     .ThenBy(r => SortKeyEmptyLast(r, authorsColIdx))
                     .ThenBy(r => SortKeyEmptyLast(r, featureColIdx))
                     .ThenBy(r => SortKeyEmptyLast(r, uniqueKeyColIdx))
+                    .Concat(rowsByFeatureFilled[false])
                     .Select(PadRowTo26)
                     .ToList<IList<object>>();
 
