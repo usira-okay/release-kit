@@ -354,13 +354,22 @@ public class UpdateGoogleSheetsTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert
+        // Assert - HYPERLINK 公式應以 '=' 開頭加入 BatchUpdateCellsAsync
+        _googleSheetServiceMock.Verify(
+            x => x.BatchUpdateCellsAsync(
+                _defaultOptions.SpreadsheetId,
+                It.Is<IList<(string Range, IList<IList<object>> Values)>>(updates =>
+                    updates.Any(u =>
+                        u.Range.Contains("B") &&
+                        u.Values[0][0].ToString()!.StartsWith("=HYPERLINK(") &&
+                        u.Values[0][0].ToString()!.Contains("VSTS12345 - Login Feature") &&
+                        u.Values[0][0].ToString()!.Contains("https://dev.azure.com/org/proj/_workitems/edit/12345")))),
+            Times.Once);
         _googleSheetServiceMock.Verify(
             x => x.UpdateCellWithHyperlinkAsync(
-                _defaultOptions.SpreadsheetId, 0, 1, 1, // B=1
-                "VSTS12345 - Login Feature",
-                "https://dev.azure.com/org/proj/_workitems/edit/12345"),
-            Times.Once);
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     /// <summary>
