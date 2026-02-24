@@ -493,17 +493,6 @@ public class TasksTests
     }
 
     [Fact]
-    public async Task UpdateGoogleSheetsTask_ExecuteAsync_ShouldThrowNotImplementedException()
-    {
-        // Arrange
-        var task = new UpdateGoogleSheetsTask();
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("更新 Google Sheets 資訊功能尚未實作", exception.Message);
-    }
-
-    [Fact]
     public async Task FetchBitbucketPullRequestsTask_ExecuteAsync_WithMultipleProjects_ShouldProcessConcurrently()
     {
         // Arrange: 設定 6 個 project，驗證並行執行（MaxConcurrentProjects = 5）
