@@ -646,18 +646,19 @@ public class UpdateGoogleSheetsTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - sort specs should be TeamColumn(D=3), AuthorsColumn(E=4), FeatureColumn(B=1), UniqueKeyColumn(Y=24)
+        // Assert - 排序應在記憶體中完成後以 BatchUpdateCellsAsync 寫回，不呼叫 SortRangeAsync
         _googleSheetServiceMock.Verify(
             x => x.SortRangeAsync(
-                _defaultOptions.SpreadsheetId, 0,
-                It.IsAny<int>(), It.IsAny<int>(),
-                It.Is<IList<(int ColumnIndex, bool Ascending)>>(specs =>
-                    specs.Count == 4 &&
-                    specs[0].ColumnIndex == 3 && specs[0].Ascending &&  // TeamColumn D
-                    specs[1].ColumnIndex == 4 && specs[1].Ascending &&  // AuthorsColumn E
-                    specs[2].ColumnIndex == 1 && specs[2].Ascending &&  // FeatureColumn B
-                    specs[3].ColumnIndex == 24 && specs[3].Ascending)), // UniqueKeyColumn Y
-            Times.Once);
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<IList<(int ColumnIndex, bool Ascending)>>()),
+            Times.Never);
+        // 排序後回寫的範圍應涵蓋 my-repo 區段的資料列（0-based row 1 → 1-based A2:Z2）
+        _googleSheetServiceMock.Verify(
+            x => x.BatchUpdateCellsAsync(
+                _defaultOptions.SpreadsheetId,
+                It.Is<IList<(string Range, IList<IList<object>> Values)>>(updates =>
+                    updates.Any(u => u.Range == $"'{_defaultOptions.SheetName}'!A2:Z2"))),
+            Times.AtLeastOnce);
     }
 
     // ===== T015: 完整 ExecuteAsync 端對端流程 =====
@@ -709,11 +710,6 @@ public class UpdateGoogleSheetsTaskTests
         _googleSheetServiceMock.Setup(x => x.BatchUpdateCellsAsync(It.IsAny<string>(), It.IsAny<IList<(string, IList<IList<object>>)>>()))
             .Callback(() => callOrder.Add("Sheet.BatchUpdate"));
 
-        _googleSheetServiceMock.Setup(x => x.SortRangeAsync(
-                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
-                It.IsAny<IList<(int, bool)>>()))
-            .Callback(() => callOrder.Add("Sheet.Sort"));
-
         var task = CreateTask();
 
         // Act
@@ -723,7 +719,8 @@ public class UpdateGoogleSheetsTaskTests
         Assert.True(callOrder.IndexOf("Redis.Read") < callOrder.IndexOf("Sheet.GetId"));
         Assert.True(callOrder.IndexOf("Sheet.GetId") < callOrder.IndexOf("Sheet.Read"));
         Assert.True(callOrder.IndexOf("Sheet.InsertRows") < callOrder.IndexOf("Sheet.BatchUpdate"));
-        Assert.True(callOrder.IndexOf("Sheet.BatchUpdate") < callOrder.IndexOf("Sheet.Sort"));
+        // 排序的 re-read 必須在資料填入的 BatchUpdate 之後
+        Assert.True(callOrder.LastIndexOf("Sheet.Read") > callOrder.IndexOf("Sheet.BatchUpdate"));
     }
 
     /// <summary>
@@ -752,13 +749,19 @@ public class UpdateGoogleSheetsTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - both projects get sorted
+        // Assert - 兩個專案的排序應在記憶體中完成後以單一 BatchUpdateCellsAsync 呼叫寫回，不呼叫 SortRangeAsync
         _googleSheetServiceMock.Verify(
             x => x.SortRangeAsync(
-                _defaultOptions.SpreadsheetId, 0,
-                It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
                 It.IsAny<IList<(int ColumnIndex, bool Ascending)>>()),
-            Times.Exactly(2));
+            Times.Never);
+        _googleSheetServiceMock.Verify(
+            x => x.BatchUpdateCellsAsync(
+                _defaultOptions.SpreadsheetId,
+                It.Is<IList<(string Range, IList<IList<object>> Values)>>(updates =>
+                    updates.Any(u => u.Range == $"'{_defaultOptions.SheetName}'!A2:Z2") &&
+                    updates.Any(u => u.Range == $"'{_defaultOptions.SheetName}'!A4:Z4"))),
+            Times.AtLeastOnce);
     }
 
     // ===== ColumnLetterToIndex 輔助方法 =====
