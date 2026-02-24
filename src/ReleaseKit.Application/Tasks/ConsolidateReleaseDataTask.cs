@@ -151,8 +151,8 @@ public class ConsolidateReleaseDataTask : ITask
         UserStoryFetchResult userStoryResult,
         IReadOnlyList<TeamMappingOptions> teamMapping)
     {
-        // 以 (WorkItemId, PrId) 為複合 Key 合併記錄（插件的 WorkItemId 可能為 0，需靠 PrId 區分）
-        var workItemGroups = new Dictionary<(int WorkItemId, string PrId), (
+        // 以 (WorkItemId, ProjectName) 為複合 Key 合併記錄（同一 Work Item 在同一專案的多個 PR 合併為一筆）
+        var workItemGroups = new Dictionary<(int WorkItemId, string ProjectName), (
             UserStoryWorkItemOutput WorkItem,
             List<MergeRequestOutput> PullRequests,
             HashSet<string> AuthorNames,
@@ -176,7 +176,7 @@ public class ConsolidateReleaseDataTask : ITask
                     $"Work Item {wi.WorkItemId} 的 PrId '{wi.PrId}' (ProjectName: '{projectName}') 在 PR 資料中找不到對應記錄");
             }
 
-            var key = (wi.WorkItemId, wi.PrId);
+            var key = (wi.WorkItemId, projectName);
 
             if (!workItemGroups.TryGetValue(key, out var group))
             {
