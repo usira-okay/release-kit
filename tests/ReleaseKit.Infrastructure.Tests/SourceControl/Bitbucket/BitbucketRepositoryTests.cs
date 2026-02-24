@@ -477,6 +477,100 @@ public class BitbucketRepositoryTests
         Assert.Empty(result.Value);
     }
 
+    [Fact]
+    public async Task GetMergeRequestsByDateRangeAsync_WithRateLimitThenSuccess_ShouldRetryAndReturnMergeRequests()
+    {
+        // Arrange
+        var successResponse = new BitbucketPageResponse<BitbucketPullRequestResponse>
+        {
+            Values = new List<BitbucketPullRequestResponse>
+            {
+                CreateSamplePullRequest("PR 1", "2024-01-15T10:00:00Z", "2024-01-20T14:00:00Z")
+            },
+            Next = null
+        };
+
+        var callCount = 0;
+        _httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount == 1)
+                {
+                    // 第一次回傳 429
+                    return new HttpResponseMessage { StatusCode = HttpStatusCode.TooManyRequests };
+                }
+                // 第二次回傳成功
+                var json = successResponse.ToJson();
+                return new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+                };
+            });
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object, TimeSpan.Zero);
+        var startDateTime = new DateTimeOffset(2024, 1, 15, 0, 0, 0, TimeSpan.Zero);
+        var endDateTime = new DateTimeOffset(2024, 1, 25, 0, 0, 0, TimeSpan.Zero);
+
+        // Act
+        var result = await repository.GetMergeRequestsByDateRangeAsync(
+            "test/repo",
+            "main",
+            startDateTime,
+            endDateTime);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Single(result.Value);
+        Assert.Equal(2, callCount); // 應重試一次
+    }
+
+    [Fact]
+    public async Task GetMergeRequestsByDateRangeAsync_WithRateLimitExceedingMaxRetries_ShouldReturnRateLimitError()
+    {
+        // Arrange - 所有請求都回傳 429
+        _httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.TooManyRequests });
+
+        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        {
+            BaseAddress = new Uri("https://api.bitbucket.org/2.0/")
+        };
+        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
+
+        var repository = new BitbucketRepository(_httpClientFactoryMock.Object, _loggerMock.Object, TimeSpan.Zero);
+        var startDateTime = new DateTimeOffset(2024, 1, 15, 0, 0, 0, TimeSpan.Zero);
+        var endDateTime = new DateTimeOffset(2024, 1, 25, 0, 0, 0, TimeSpan.Zero);
+
+        // Act
+        var result = await repository.GetMergeRequestsByDateRangeAsync(
+            "test/repo",
+            "main",
+            startDateTime,
+            endDateTime);
+
+        // Assert - 超過重試次數後應回傳錯誤
+        Assert.False(result.IsSuccess);
+        Assert.NotNull(result.Error);
+        Assert.Contains("429", result.Error.Message);
+    }
+
     // Helper methods
     private static BitbucketPullRequestResponse CreateSamplePullRequest(
         string title,

@@ -15,6 +15,10 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ReleaseKit.Infrastructure.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

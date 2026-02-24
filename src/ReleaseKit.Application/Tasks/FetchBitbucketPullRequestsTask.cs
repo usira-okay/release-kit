@@ -49,5 +49,8 @@ public class FetchBitbucketPullRequestsTask : BaseFetchPullRequestsTask<Bitbucke
     protected override string RedisHashField => RedisKeys.Fields.PullRequests;
 
     /// <inheritdoc />
+    protected override int MaxConcurrentProjects => 5;
+
+    /// <inheritdoc />
     protected override IEnumerable<BitbucketProjectOptions> GetProjects() => PlatformOptions.Projects;
 }

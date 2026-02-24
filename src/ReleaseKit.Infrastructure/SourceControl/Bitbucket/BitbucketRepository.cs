@@ -19,6 +19,16 @@ public class BitbucketRepository : ISourceControlRepository
     private readonly ILogger<BitbucketRepository> _logger;
 
     /// <summary>
+    /// Rate Limit 重試次數上限
+    /// </summary>
+    private const int RateLimitMaxRetries = 5;
+
+    /// <summary>
+    /// Rate Limit 重試等待時間
+    /// </summary>
+    private readonly TimeSpan _rateLimitDelay;
+
+    /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="httpClientFactory">HttpClient 工廠</param>
@@ -27,6 +37,19 @@ public class BitbucketRepository : ISourceControlRepository
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _rateLimitDelay = TimeSpan.FromSeconds(30);
+    }
+
+    /// <summary>
+    /// 測試用建構子（可指定 Rate Limit 重試等待時間）
+    /// </summary>
+    /// <param name="httpClientFactory">HttpClient 工廠</param>
+    /// <param name="logger">日誌記錄器</param>
+    /// <param name="rateLimitDelay">Rate Limit 重試等待時間</param>
+    internal BitbucketRepository(IHttpClientFactory httpClientFactory, ILogger<BitbucketRepository> logger, TimeSpan rateLimitDelay)
+        : this(httpClientFactory, logger)
+    {
+        _rateLimitDelay = rateLimitDelay;
     }
 
     /// <inheritdoc />
@@ -54,7 +77,7 @@ public class BitbucketRepository : ISourceControlRepository
 
         while (!string.IsNullOrEmpty(url))
         {
-            var response = await httpClient.GetAsync(url, cancellationToken);
+            var response = await SendWithRateLimitRetryAsync(httpClient, url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -104,7 +127,7 @@ public class BitbucketRepository : ISourceControlRepository
 
         while (!string.IsNullOrEmpty(url))
         {
-            var response = await httpClient.GetAsync(url, cancellationToken);
+            var response = await SendWithRateLimitRetryAsync(httpClient, url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -153,7 +176,7 @@ public class BitbucketRepository : ISourceControlRepository
         // Bitbucket API: GET /2.0//2.0/repositories/{workspace}/{repo_slug}/commit/{commit}/pullrequests
         var url = $"/2.0/repositories/{projectPath}/commit/{commitSha}/pullrequests?fields=*.*";
 
-        var response = await httpClient.GetAsync(url, cancellationToken);
+        var response = await SendWithRateLimitRetryAsync(httpClient, url, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -201,7 +224,7 @@ public class BitbucketRepository : ISourceControlRepository
 
         while (!string.IsNullOrEmpty(commitsUrl))
         {
-            var commitsResponse = await httpClient.GetAsync(commitsUrl, cancellationToken);
+            var commitsResponse = await SendWithRateLimitRetryAsync(httpClient, commitsUrl, cancellationToken);
 
             if (!commitsResponse.IsSuccessStatusCode)
             {
@@ -258,5 +281,40 @@ public class BitbucketRepository : ISourceControlRepository
         _logger.LogInformation("完成 commit PR 查詢，共找到 {TotalPRCount} 個不重複的 PR", allMergeRequests.Count);
 
         return Result<IReadOnlyList<MergeRequest>>.Success(allMergeRequests);
+    }
+
+    /// <summary>
+    /// 發送 HTTP GET 請求，並在遇到 Rate Limit (HTTP 429) 時自動重試
+    /// </summary>
+    /// <param name="httpClient">HTTP 客戶端</param>
+    /// <param name="url">請求 URL</param>
+    /// <param name="cancellationToken">取消權杖</param>
+    /// <returns>HTTP 回應訊息</returns>
+    /// <remarks>
+    /// 當收到 HTTP 429 Too Many Requests 時，會等待 30 秒後重試，最多重試 5 次。
+    /// </remarks>
+    private async Task<HttpResponseMessage> SendWithRateLimitRetryAsync(
+        HttpClient httpClient,
+        string url,
+        CancellationToken cancellationToken)
+    {
+        var retryCount = 0;
+        while (true)
+        {
+            var response = await httpClient.GetAsync(url, cancellationToken);
+
+            if (response.StatusCode != HttpStatusCode.TooManyRequests || retryCount >= RateLimitMaxRetries)
+            {
+                return response;
+            }
+
+            retryCount++;
+            _logger.LogWarning(
+                "達到 Bitbucket API 請求限制 (HTTP 429)，等待 {Delay} 秒後重試（第 {RetryCount}/{MaxRetries} 次）",
+                _rateLimitDelay.TotalSeconds,
+                retryCount,
+                RateLimitMaxRetries);
+            await Task.Delay(_rateLimitDelay, cancellationToken);
+        }
     }
 }
