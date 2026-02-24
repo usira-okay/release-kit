@@ -8,6 +8,7 @@ using ReleaseKit.Common.Constants;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Infrastructure.GoogleSheets;
 using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.Time;
 using StackExchange.Redis;
@@ -59,7 +60,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ReleaseKit.Common.Configuration.FetchModeOptions>(configuration);
 
         // 註冊 GoogleSheet 配置
-        services.Configure<ReleaseKit.Infrastructure.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
+        services.Configure<ReleaseKit.Common.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));
 
         // 註冊 AzureDevOps 配置
         services.Configure<ReleaseKit.Infrastructure.Configuration.AzureDevOpsOptions>(configuration.GetSection("AzureDevOps"));
@@ -205,6 +206,9 @@ public static class ServiceCollectionExtensions
         
         // 註冊時間服務
         services.AddSingleton<INow, SystemNow>();
+
+        // 註冊 Google Sheet 服務
+        services.AddSingleton<IGoogleSheetService, GoogleSheetService>();
         
         // 註冊 Source Control Repositories
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 

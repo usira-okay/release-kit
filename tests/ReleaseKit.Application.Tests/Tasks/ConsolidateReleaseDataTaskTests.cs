@@ -411,13 +411,13 @@ public class ConsolidateReleaseDataTaskTests
         Assert.Contains("找不到對應記錄", exception.Message);
     }
 
-    // ===== T022: 當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時拋出 InvalidOperationException =====
+    // ===== T022: 當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時正常結束 =====
 
     /// <summary>
-    /// T022: 測試當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時，拋出 InvalidOperationException 且錯誤訊息指出缺少的 Key
+    /// T022: 測試當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時，正常結束不拋例外
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithNoPrDataKeys_ShouldThrowInvalidOperationException()
+    public async Task ExecuteAsync_WithNoPrDataKeys_ShouldReturnNormally()
     {
         // Arrange
         SetupPrData(null, null);
@@ -427,20 +427,22 @@ public class ConsolidateReleaseDataTaskTests
 
         var task = CreateTask();
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.ExecuteAsync());
-        Assert.Contains($"{RedisKeys.BitbucketHash}:{RedisKeys.Fields.PullRequestsByUser}", exception.Message);
-        Assert.Contains($"{RedisKeys.GitLabHash}:{RedisKeys.Fields.PullRequestsByUser}", exception.Message);
+        // Act & Assert - 正常結束不拋例外
+        await task.ExecuteAsync();
+
+        // 不應寫入 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Never);
     }
 
-    // ===== T023: 當 Bitbucket 與 GitLab ByUser PR 資料均為空集合時拋出 InvalidOperationException =====
+    // ===== T023: 當 Bitbucket 與 GitLab ByUser PR 資料均為空集合時正常結束 =====
 
     /// <summary>
-    /// T023: 測試當 Bitbucket 與 GitLab ByUser PR 資料均為空集合（Results 為空 List）時，拋出 InvalidOperationException
+    /// T023: 測試當 Bitbucket 與 GitLab ByUser PR 資料均為空集合（Results 為空 List）時，正常結束不拋例外
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithEmptyPrResults_ShouldThrowInvalidOperationException()
+    public async Task ExecuteAsync_WithEmptyPrResults_ShouldReturnNormally()
     {
         // Arrange
         var emptyBitbucket = CreateFetchResult();
@@ -452,19 +454,22 @@ public class ConsolidateReleaseDataTaskTests
 
         var task = CreateTask();
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.ExecuteAsync());
-        Assert.Contains("缺少 PR 資料", exception.Message);
+        // Act & Assert - 正常結束不拋例外
+        await task.ExecuteAsync();
+
+        // 不應寫入 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Never);
     }
 
-    // ===== T025: 當 UserStories Work Item 資料 Key 不存在時拋出 InvalidOperationException =====
+    // ===== T025: 當 UserStories Work Item 資料 Key 不存在時正常結束 =====
 
     /// <summary>
-    /// T025: 測試當 UserStories Work Item 資料 Key 不存在時，拋出 InvalidOperationException 且錯誤訊息指出缺少的 Key
+    /// T025: 測試當 UserStories Work Item 資料 Key 不存在時，正常結束不拋例外
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithNoWorkItemDataKey_ShouldThrowInvalidOperationException()
+    public async Task ExecuteAsync_WithNoWorkItemDataKey_ShouldReturnNormally()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -475,19 +480,22 @@ public class ConsolidateReleaseDataTaskTests
 
         var task = CreateTask();
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.ExecuteAsync());
-        Assert.Contains($"{RedisKeys.AzureDevOpsHash}:{RedisKeys.Fields.WorkItemsUserStories}", exception.Message);
+        // Act & Assert - 正常結束不拋例外
+        await task.ExecuteAsync();
+
+        // 不應寫入 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Never);
     }
 
-    // ===== T026: 當 UserStories Work Item 資料為空集合時拋出 InvalidOperationException =====
+    // ===== T026: 當 UserStories Work Item 資料為空集合時正常結束 =====
 
     /// <summary>
-    /// T026: 測試當 UserStories Work Item 資料為空集合（WorkItems 為空 List）時，拋出 InvalidOperationException
+    /// T026: 測試當 UserStories Work Item 資料為空集合（WorkItems 為空 List）時，正常結束不拋例外
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithEmptyWorkItems_ShouldThrowInvalidOperationException()
+    public async Task ExecuteAsync_WithEmptyWorkItems_ShouldReturnNormally()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -498,10 +506,13 @@ public class ConsolidateReleaseDataTaskTests
 
         var task = CreateTask();
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => task.ExecuteAsync());
-        Assert.Contains($"{RedisKeys.AzureDevOpsHash}:{RedisKeys.Fields.WorkItemsUserStories}", exception.Message);
+        // Act & Assert - 正常結束不拋例外
+        await task.ExecuteAsync();
+
+        // 不應寫入 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Never);
     }
 
     // ===== T028: TeamMapping 忽略大小寫 =====
