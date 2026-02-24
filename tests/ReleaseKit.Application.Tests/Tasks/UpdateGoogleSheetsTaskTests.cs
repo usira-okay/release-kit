@@ -72,6 +72,9 @@ public class UpdateGoogleSheetsTaskTests
         _googleSheetServiceMock.Setup(x => x.GetSheetDataAsync(
                 _defaultOptions.SpreadsheetId, It.IsAny<string>()))
             .ReturnsAsync(data);
+        _googleSheetServiceMock.Setup(x => x.GetSheetDataWithFormulasAsync(
+                _defaultOptions.SpreadsheetId, It.IsAny<string>()))
+            .ReturnsAsync(data);
     }
 
     private static ConsolidatedReleaseResult CreateConsolidatedResult(
@@ -743,6 +746,76 @@ public class UpdateGoogleSheetsTaskTests
         Assert.Equal(string.Empty, capturedSortedRows[2][1]?.ToString() ?? string.Empty);
     }
 
+    /// <summary>
+    /// T014: 排序後 HYPERLINK 公式應原樣保留，不應退化為純文字
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_Sort_ShouldPreserveHyperlinkFormulas()
+    {
+        // Arrange - 2 個現有列（update 路徑），Feature 欄位包含 HYPERLINK 公式
+        var result = CreateConsolidatedResult(
+            ("test-repo", new[]
+            {
+                CreateEntry(100),  // UniqueKey = "100test-repo"
+                CreateEntry(200),  // UniqueKey = "200test-repo"
+            }));
+        SetupRedisConsolidatedData(result);
+        SetupSheetId(0);
+
+        var headerRow = new List<object>(new object[26]);
+        headerRow[25] = "test-repo"; // Z 欄 = RepositoryNameColumn
+
+        // row1: Team B, Feature 為 HYPERLINK 公式（排序後應原樣保留）
+        var row1 = new List<object>(new object[26]);
+        row1[1] = "=HYPERLINK(\"https://dev.azure.com/1\",\"VSTS100 - Feature B\")"; // B 欄 = FeatureColumn
+        row1[3] = "Team B";        // D 欄 = TeamColumn
+        row1[24] = "100test-repo"; // Y 欄 = UniqueKeyColumn
+        // row2: Team A, Feature 為 HYPERLINK 公式（排序後應排在 row1 之前）
+        var row2 = new List<object>(new object[26]);
+        row2[1] = "=HYPERLINK(\"https://dev.azure.com/2\",\"VSTS200 - Feature A\")"; // B 欄 = FeatureColumn
+        row2[3] = "Team A";        // D 欄 = TeamColumn
+        row2[24] = "200test-repo"; // Y 欄 = UniqueKeyColumn
+
+        var sheetData = new List<IList<object>> { headerRow, row1, row2 };
+
+        // GetSheetDataAsync 回傳一般資料（初始讀取用）
+        _googleSheetServiceMock.Setup(x => x.GetSheetDataAsync(
+                _defaultOptions.SpreadsheetId, It.IsAny<string>()))
+            .ReturnsAsync(sheetData);
+        // GetSheetDataWithFormulasAsync 回傳含公式的資料（排序重讀用）
+        _googleSheetServiceMock.Setup(x => x.GetSheetDataWithFormulasAsync(
+                _defaultOptions.SpreadsheetId, It.IsAny<string>()))
+            .ReturnsAsync(sheetData);
+        _googleSheetServiceMock.Setup(x => x.GetSheetIdByNameAsync(
+                _defaultOptions.SpreadsheetId, _defaultOptions.SheetName))
+            .ReturnsAsync(0);
+
+        IList<IList<object>>? capturedSortedRows = null;
+        _googleSheetServiceMock
+            .Setup(x => x.BatchUpdateCellsAsync(It.IsAny<string>(), It.IsAny<IList<(string, IList<IList<object>>)>>()))
+            .Callback<string, IList<(string, IList<IList<object>>)>>((_, updates) =>
+            {
+                var sortUpdate = updates.FirstOrDefault(u => u.Item1 == $"'{_defaultOptions.SheetName}'!A2:Z3");
+                if (sortUpdate.Item2 != null)
+                    capturedSortedRows = sortUpdate.Item2;
+            });
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - HYPERLINK 公式應保留，且依顯示文字排序（Team A 排在 Team B 前）
+        Assert.NotNull(capturedSortedRows);
+        Assert.Equal(2, capturedSortedRows!.Count);
+        // 排序後 Team A 的那列排在第一位
+        Assert.Equal("=HYPERLINK(\"https://dev.azure.com/2\",\"VSTS200 - Feature A\")",
+            capturedSortedRows[0][1]?.ToString() ?? string.Empty);
+        // 排序後 Team B 的那列排在第二位
+        Assert.Equal("=HYPERLINK(\"https://dev.azure.com/1\",\"VSTS100 - Feature B\")",
+            capturedSortedRows[1][1]?.ToString() ?? string.Empty);
+    }
+
     // ===== T015: 完整 ExecuteAsync 端對端流程 =====
 
     /// <summary>
@@ -781,6 +854,10 @@ public class UpdateGoogleSheetsTaskTests
             .Callback(() => callOrder.Add("Sheet.Read"))
             .ReturnsAsync(sheetData);
 
+        _googleSheetServiceMock.Setup(x => x.GetSheetDataWithFormulasAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback(() => callOrder.Add("Sheet.ReadFormulas"))
+            .ReturnsAsync(sheetData);
+
         _googleSheetServiceMock.Setup(x => x.InsertRowsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
             .Callback(() => callOrder.Add("Sheet.InsertRows"));
 
@@ -801,8 +878,8 @@ public class UpdateGoogleSheetsTaskTests
         Assert.True(callOrder.IndexOf("Redis.Read") < callOrder.IndexOf("Sheet.GetId"));
         Assert.True(callOrder.IndexOf("Sheet.GetId") < callOrder.IndexOf("Sheet.Read"));
         Assert.True(callOrder.IndexOf("Sheet.InsertRows") < callOrder.IndexOf("Sheet.BatchUpdate"));
-        // 排序的 re-read 必須在資料填入的 BatchUpdate 之後
-        Assert.True(callOrder.LastIndexOf("Sheet.Read") > callOrder.IndexOf("Sheet.BatchUpdate"));
+        // 排序的 re-read（使用公式模式）必須在資料填入的 BatchUpdate 之後
+        Assert.True(callOrder.IndexOf("Sheet.ReadFormulas") > callOrder.IndexOf("Sheet.BatchUpdate"));
     }
 
     /// <summary>
