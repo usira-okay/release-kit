@@ -259,30 +259,54 @@ public class UpdateGoogleSheetsTask : ITask
             _logger.LogInformation("批次更新 {Count} 個儲存格範圍", batchUpdates.Count);
         }
 
-        // 排序受影響的專案區段
-        // 重新讀取 segments（因為插入和更新後 row index 可能變了）
-        segments = BuildProjectSegments(sheetData, repoColIndex);
+        // 排序受影響的專案區段（在記憶體中排序後再寫回）
+        // 重新讀取 Sheet 以取得批次更新後的最新資料
+        var sortSheetData = await _googleSheetService.GetSheetDataAsync(
+            _options.SpreadsheetId, $"'{_options.SheetName}'!A:Z");
 
-        foreach (var projectName in affectedProjects)
+        if (sortSheetData != null)
         {
-            var segment = segments.FirstOrDefault(s => s.ProjectName == projectName);
-            if (segment == null || segment.DataStartRowIndex > segment.DataEndRowIndex) continue;
+            var sortSegments = BuildProjectSegments(sortSheetData, repoColIndex);
+            var teamColIdx = ColumnLetterToIndex(columnMapping.TeamColumn);
+            var authorsColIdx = ColumnLetterToIndex(columnMapping.AuthorsColumn);
+            var featureColIdx = ColumnLetterToIndex(columnMapping.FeatureColumn);
+            var uniqueKeyColIdx = ColumnLetterToIndex(columnMapping.UniqueKeyColumn);
 
-            var sortSpecs = new List<(int ColumnIndex, bool Ascending)>
+            var sortBatchUpdates = new List<(string Range, IList<IList<object>> Values)>();
+
+            foreach (var projectName in affectedProjects)
             {
-                (ColumnLetterToIndex(columnMapping.TeamColumn), true),
-                (ColumnLetterToIndex(columnMapping.AuthorsColumn), true),
-                (ColumnLetterToIndex(columnMapping.FeatureColumn), true),
-                (ColumnLetterToIndex(columnMapping.UniqueKeyColumn), true)
-            };
+                var segment = sortSegments.FirstOrDefault(s => s.ProjectName == projectName);
+                if (segment == null || segment.DataStartRowIndex > segment.DataEndRowIndex) continue;
 
-            await _googleSheetService.SortRangeAsync(
-                _options.SpreadsheetId, sheetId.Value,
-                segment.DataStartRowIndex, segment.DataEndRowIndex + 1,
-                sortSpecs);
+                var dataRows = sortSheetData
+                    .Skip(segment.DataStartRowIndex)
+                    .Take(segment.DataEndRowIndex - segment.DataStartRowIndex + 1)
+                    .ToList();
 
-            _logger.LogInformation("排序專案 '{ProjectName}' 區段（列 {Start}-{End}）",
-                projectName, segment.DataStartRowIndex, segment.DataEndRowIndex);
+                var sortedRows = dataRows
+                    .OrderBy(r => GetCellStringValue(r, teamColIdx))
+                    .ThenBy(r => GetCellStringValue(r, authorsColIdx))
+                    .ThenBy(r => GetCellStringValue(r, featureColIdx))
+                    .ThenBy(r => GetCellStringValue(r, uniqueKeyColIdx))
+                    .Select(PadRowTo26)
+                    .ToList<IList<object>>();
+
+                var startRow1Based = segment.DataStartRowIndex + 1;
+                var endRow1Based = segment.DataEndRowIndex + 1;
+                sortBatchUpdates.Add((
+                    $"'{_options.SheetName}'!A{startRow1Based}:Z{endRow1Based}",
+                    sortedRows));
+
+                _logger.LogInformation("排序專案 '{ProjectName}' 區段（列 {Start}-{End}）",
+                    projectName, segment.DataStartRowIndex, segment.DataEndRowIndex);
+            }
+
+            if (sortBatchUpdates.Count > 0)
+            {
+                await _googleSheetService.BatchUpdateCellsAsync(_options.SpreadsheetId, sortBatchUpdates);
+                _logger.LogInformation("排序完成，更新 {Count} 個專案區段", sortBatchUpdates.Count);
+            }
         }
 
         _logger.LogInformation("Google Sheet 同步完成");
@@ -383,6 +407,23 @@ public class UpdateGoogleSheetsTask : ITask
     internal static int ColumnLetterToIndex(string column)
     {
         return column[0] - 'A';
+    }
+
+    /// <summary>
+    /// 取得列中指定欄位的字串值
+    /// </summary>
+    private static string GetCellStringValue(IList<object> row, int colIndex)
+        => colIndex < row.Count ? row[colIndex]?.ToString() ?? string.Empty : string.Empty;
+
+    /// <summary>
+    /// 將列補齊至 26 欄（A–Z），不足部分填入空字串
+    /// </summary>
+    private static IList<object> PadRowTo26(IList<object> row)
+    {
+        var padded = new List<object>(row);
+        while (padded.Count < 26)
+            padded.Add(string.Empty);
+        return padded;
     }
 }
 

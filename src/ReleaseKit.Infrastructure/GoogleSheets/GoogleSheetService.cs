@@ -126,7 +126,7 @@ public class GoogleSheetService : IGoogleSheetService
                             {
                                 UserEnteredValue = new ExtendedValue
                                 {
-                                    FormulaValue = $"=HYPERLINK(\"{url}\",\"{displayText}\")"
+                                    FormulaValue = $"=HYPERLINK(\"{url.Replace("\"", "\"\"")}\",\"{displayText.Replace("\"", "\"\"")}\")"
                                 }
                             }
                         }
