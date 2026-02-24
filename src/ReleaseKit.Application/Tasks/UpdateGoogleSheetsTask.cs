@@ -367,6 +367,10 @@ public class UpdateGoogleSheetsTask : ITask
         var featureColIdx = ColumnLetterToIndex(columnMapping.FeatureColumn);
         var uniqueKeyColIdx = ColumnLetterToIndex(columnMapping.UniqueKeyColumn);
 
+        var teamSortOrder = _options.TeamSortRules
+            .GroupBy(r => r.TeamDisplayName, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First().Sort, StringComparer.Ordinal);
+
         var sortBatchUpdates = new List<(string Range, IList<IList<object>> Values)>();
 
         foreach (var projectName in affectedProjects)
@@ -374,7 +378,7 @@ public class UpdateGoogleSheetsTask : ITask
             var segment = sortSegments.FirstOrDefault(s => s.ProjectName == projectName);
             if (segment == null || segment.DataStartRowIndex > segment.DataEndRowIndex) continue;
 
-            var sortedRows = BuildSortedRows(sortSheetData, segment, teamColIdx, authorsColIdx, featureColIdx, uniqueKeyColIdx);
+            var sortedRows = BuildSortedRows(sortSheetData, segment, teamColIdx, authorsColIdx, featureColIdx, uniqueKeyColIdx, teamSortOrder);
             var startRow1Based = segment.DataStartRowIndex + 1;
             var endRow1Based = segment.DataEndRowIndex + 1;
 
@@ -394,12 +398,14 @@ public class UpdateGoogleSheetsTask : ITask
     }
 
     /// <summary>
-    /// 對指定專案區段的資料列在記憶體中排序，feature 有值的排前面，空白的排後面
+    /// 對指定專案區段的資料列在記憶體中排序，feature 有值的排前面，空白的排後面；
+    /// Team 欄位依 teamSortOrder 的 Sort 數字由小到大排序，未設定的 Team 排在最後
     /// </summary>
     private static List<IList<object>> BuildSortedRows(
         IList<IList<object>> sheetData,
         SheetProjectSegment segment,
-        int teamColIdx, int authorsColIdx, int featureColIdx, int uniqueKeyColIdx)
+        int teamColIdx, int authorsColIdx, int featureColIdx, int uniqueKeyColIdx,
+        Dictionary<string, int> teamSortOrder)
     {
         var dataRows = sheetData
             .Skip(segment.DataStartRowIndex)
@@ -410,13 +416,24 @@ public class UpdateGoogleSheetsTask : ITask
             !string.IsNullOrEmpty(GetCellStringValue(r, featureColIdx)));
 
         return rowsByFeatureFilled[true]
-            .OrderBy(r => SortKeyEmptyLast(r, teamColIdx))
+            .OrderBy(r => TeamSortKey(r, teamColIdx, teamSortOrder))
             .ThenBy(r => SortKeyEmptyLast(r, authorsColIdx))
             .ThenBy(r => SortKeyEmptyLast(r, featureColIdx))
             .ThenBy(r => SortKeyEmptyLast(r, uniqueKeyColIdx))
             .Concat(rowsByFeatureFilled[false])
             .Select(PadRowTo26)
             .ToList<IList<object>>();
+    }
+
+    /// <summary>
+    /// 取得 Team 欄位的排序鍵：依 teamSortOrder 中設定的 Sort 數字排序；未設定的 Team 以 int.MaxValue 排在最後
+    /// </summary>
+    private static int TeamSortKey(IList<object> row, int teamColIdx, Dictionary<string, int> teamSortOrder)
+    {
+        var teamName = GetCellStringValue(row, teamColIdx);
+        if (teamSortOrder.TryGetValue(teamName, out var sortValue))
+            return sortValue;
+        return int.MaxValue;
     }
 
     /// <summary>
