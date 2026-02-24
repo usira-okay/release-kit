@@ -131,6 +131,17 @@ public class GoogleSheetService : IGoogleSheetService
     }
 
     /// <summary>
+    /// 讀取指定範圍的儲存格資料（含公式原文，用於保留 HYPERLINK 等公式）
+    /// </summary>
+    public async Task<IList<IList<object>>?> GetSheetDataWithFormulasAsync(string spreadsheetId, string range)
+    {
+        var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
+        request.ValueRenderOption = SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMULA;
+        var response = await ExecuteWithRateLimitAsync(() => request.ExecuteAsync());
+        return response.Values;
+    }
+
+    /// <summary>
     /// 在指定位置批次插入空白列
     /// </summary>
     public async Task InsertRowsAsync(string spreadsheetId, int sheetId, int rowIndex, int count)

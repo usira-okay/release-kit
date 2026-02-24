@@ -22,6 +22,14 @@ public interface IGoogleSheetService
     Task<IList<IList<object>>?> GetSheetDataAsync(string spreadsheetId, string range);
 
     /// <summary>
+    /// 讀取指定範圍的儲存格資料（含公式原文，用於保留 HYPERLINK 等公式）
+    /// </summary>
+    /// <param name="spreadsheetId">試算表 ID</param>
+    /// <param name="range">讀取範圍（如 "A:Z"）</param>
+    /// <returns>儲存格資料（公式欄位回傳公式字串），無法讀取時回傳 null</returns>
+    Task<IList<IList<object>>?> GetSheetDataWithFormulasAsync(string spreadsheetId, string range);
+
+    /// <summary>
     /// 在指定位置批次插入空白列
     /// </summary>
     /// <param name="spreadsheetId">試算表 ID</param>

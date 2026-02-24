@@ -355,7 +355,7 @@ public class UpdateGoogleSheetsTask : ITask
     {
         if (affectedProjects.Count == 0) return;
 
-        var sortSheetData = await _googleSheetService.GetSheetDataAsync(
+        var sortSheetData = await _googleSheetService.GetSheetDataWithFormulasAsync(
             _options.SpreadsheetId, $"'{_options.SheetName}'!A:Z");
 
         if (sortSheetData == null) return;
@@ -521,12 +521,33 @@ public class UpdateGoogleSheetsTask : ITask
         => colIndex < row.Count ? row[colIndex]?.ToString() ?? string.Empty : string.Empty;
 
     /// <summary>
-    /// 排序鍵：空白欄位排在最後面
+    /// 排序鍵：空白欄位排在最後面；若儲存格為 HYPERLINK 公式則取出顯示文字作為排序依據
     /// </summary>
     private static (int, string) SortKeyEmptyLast(IList<object> row, int colIndex)
     {
         var value = GetCellStringValue(row, colIndex);
-        return (string.IsNullOrEmpty(value) ? 1 : 0, value);
+        var displayValue = ExtractDisplayValue(value);
+        return (string.IsNullOrEmpty(displayValue) ? 1 : 0, displayValue);
+    }
+
+    /// <summary>
+    /// 從儲存格值中提取可供排序的顯示文字；若為 HYPERLINK 公式則取出第二個參數（顯示文字），否則原樣回傳
+    /// </summary>
+    private static string ExtractDisplayValue(string cellValue)
+    {
+        // =HYPERLINK("url","display text") → 提取顯示文字
+        if (cellValue.StartsWith("=HYPERLINK(\"", StringComparison.OrdinalIgnoreCase))
+        {
+            var lastCommaQuoteIdx = cellValue.LastIndexOf(",\"");
+            if (lastCommaQuoteIdx >= 0 && cellValue.EndsWith("\")"))
+            {
+                var start = lastCommaQuoteIdx + 2;
+                var displayText = cellValue[start..^2];
+                return displayText.Replace("\"\"", "\"");
+            }
+        }
+
+        return cellValue;
     }
 
     /// <summary>
