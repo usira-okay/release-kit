@@ -24,4 +24,9 @@ public class GoogleSheetOptions
     /// 欄位映射配置
     /// </summary>
     public ColumnMappingOptions ColumnMapping { get; init; } = new();
+
+    /// <summary>
+    /// 團隊排序規則清單（依 Sort 數字由小到大排序）
+    /// </summary>
+    public List<TeamSortRule> TeamSortRules { get; init; } = [];
 }

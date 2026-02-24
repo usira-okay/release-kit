@@ -753,6 +753,20 @@ public class UpdateGoogleSheetsTaskTests
     public async Task ExecuteAsync_Sort_ShouldPreserveHyperlinkFormulas()
     {
         // Arrange - 2 個現有列（update 路徑），Feature 欄位包含 HYPERLINK 公式
+        // 設定 TeamSortRules：Team A Sort=1, Team B Sort=2，確保 Team A 排在 Team B 前
+        var options = new GoogleSheetOptions
+        {
+            SpreadsheetId = _defaultOptions.SpreadsheetId,
+            SheetName = _defaultOptions.SheetName,
+            ServiceAccountCredentialPath = _defaultOptions.ServiceAccountCredentialPath,
+            ColumnMapping = _defaultOptions.ColumnMapping,
+            TeamSortRules =
+            [
+                new TeamSortRule { TeamDisplayName = "Team A", Sort = 1 },
+                new TeamSortRule { TeamDisplayName = "Team B", Sort = 2 }
+            ]
+        };
+
         var result = CreateConsolidatedResult(
             ("test-repo", new[]
             {
@@ -800,12 +814,12 @@ public class UpdateGoogleSheetsTaskTests
                     capturedSortedRows = sortUpdate.Item2;
             });
 
-        var task = CreateTask();
+        var task = CreateTask(options);
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert - HYPERLINK 公式應保留，且依顯示文字排序（Team A 排在 Team B 前）
+        // Assert - HYPERLINK 公式應保留，且依 TeamSortRules 排序（Team A Sort=1 排在 Team B Sort=2 前）
         Assert.NotNull(capturedSortedRows);
         Assert.Equal(2, capturedSortedRows!.Count);
         // 排序後 Team A 的那列排在第一位
@@ -1110,5 +1124,158 @@ public class UpdateGoogleSheetsTaskTests
                         u.Range.Contains("D") &&
                         u.Values[0][0].ToString() == "金流團隊"))),
             Times.Once);
+    }
+
+    // ===== T016: TeamSortRules 排序 =====
+
+    /// <summary>
+    /// T016: 當 TeamSortRules 設定時，排序應依 Sort 數字由小到大，而非依字母順序
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_Sort_ShouldUseTeamSortRulesOrder()
+    {
+        // Arrange - 3 個現有列（update 路徑），設定 TeamSortRules：B 團隊 Sort=1，A 團隊 Sort=2，C 團隊未設定
+        var options = new GoogleSheetOptions
+        {
+            SpreadsheetId = _defaultOptions.SpreadsheetId,
+            SheetName = _defaultOptions.SheetName,
+            ServiceAccountCredentialPath = _defaultOptions.ServiceAccountCredentialPath,
+            ColumnMapping = _defaultOptions.ColumnMapping,
+            TeamSortRules =
+            [
+                new TeamSortRule { TeamDisplayName = "Team B", Sort = 1 },
+                new TeamSortRule { TeamDisplayName = "Team A", Sort = 2 }
+            ]
+        };
+
+        var result = CreateConsolidatedResult(
+            ("test-repo", new[]
+            {
+                CreateEntry(100),  // UniqueKey = "100test-repo"
+                CreateEntry(200),  // UniqueKey = "200test-repo"
+                CreateEntry(300),  // UniqueKey = "300test-repo"
+            }));
+        SetupRedisConsolidatedData(result);
+        SetupSheetId(0);
+
+        var sheetData = new List<IList<object>>();
+
+        var headerRow = new List<object>(new object[26]);
+        headerRow[25] = "test-repo"; // Z 欄 = RepositoryNameColumn
+        sheetData.Add(headerRow);
+
+        // row1: Team A, Feature 有填寫（Sort=2，排在第二位）
+        var row1 = new List<object>(new object[26]);
+        row1[1] = "Feature A";       // B 欄 = FeatureColumn
+        row1[3] = "Team A";          // D 欄 = TeamColumn
+        row1[24] = "100test-repo";   // Y 欄 = UniqueKeyColumn
+        sheetData.Add(row1);
+
+        // row2: Team B, Feature 有填寫（Sort=1，應排在第一位）
+        var row2 = new List<object>(new object[26]);
+        row2[1] = "Feature B";       // B 欄 = FeatureColumn
+        row2[3] = "Team B";          // D 欄 = TeamColumn
+        row2[24] = "200test-repo";   // Y 欄 = UniqueKeyColumn
+        sheetData.Add(row2);
+
+        // row3: Team C, Feature 有填寫（未在 TeamSortRules，以 int.MaxValue 排在最後）
+        var row3 = new List<object>(new object[26]);
+        row3[1] = "Feature C";       // B 欄 = FeatureColumn
+        row3[3] = "Team C";          // D 欄 = TeamColumn
+        row3[24] = "300test-repo";   // Y 欄 = UniqueKeyColumn
+        sheetData.Add(row3);
+
+        SetupSheetData(sheetData);
+
+        IList<IList<object>>? capturedSortedRows = null;
+        _googleSheetServiceMock
+            .Setup(x => x.BatchUpdateCellsAsync(It.IsAny<string>(), It.IsAny<IList<(string, IList<IList<object>>)>>()))
+            .Callback<string, IList<(string, IList<IList<object>>)>>((_, updates) =>
+            {
+                var sortUpdate = updates.FirstOrDefault(u => u.Item1 == $"'{_defaultOptions.SheetName}'!A2:Z4");
+                if (sortUpdate.Item2 != null)
+                    capturedSortedRows = sortUpdate.Item2;
+            });
+
+        var task = CreateTask(options);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 依 Sort 數字排序：Team B(1) → Team A(2) → Team C(未設定)
+        Assert.NotNull(capturedSortedRows);
+        Assert.Equal(3, capturedSortedRows!.Count);
+        Assert.Equal("Feature B", capturedSortedRows[0][1]?.ToString() ?? string.Empty); // Sort=1
+        Assert.Equal("Feature A", capturedSortedRows[1][1]?.ToString() ?? string.Empty); // Sort=2
+        Assert.Equal("Feature C", capturedSortedRows[2][1]?.ToString() ?? string.Empty); // 未設定，排最後
+    }
+
+    /// <summary>
+    /// T016: 當 TeamSortRules 為空時，所有 Team 視為未設定（排序鍵為 int.MaxValue），依次要排序（team sort → authors → feature → uniqueKey）排序
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_Sort_EmptyTeamSortRules_ShouldSortBySecondaryKeys()
+    {
+        // Arrange - TeamSortRules 為空，三個 Team 名稱不同，應全部以 int.MaxValue 排序，次要排序依 authors
+        var result = CreateConsolidatedResult(
+            ("test-repo", new[]
+            {
+                CreateEntry(100),
+                CreateEntry(200),
+                CreateEntry(300),
+            }));
+        SetupRedisConsolidatedData(result);
+        SetupSheetId(0);
+
+        var sheetData = new List<IList<object>>();
+        var headerRow = new List<object>(new object[26]);
+        headerRow[25] = "test-repo";
+        sheetData.Add(headerRow);
+
+        var row1 = new List<object>(new object[26]);
+        row1[1] = "Feature X";       // B 欄 = FeatureColumn
+        row1[3] = "Team Z";          // D 欄 = TeamColumn（未設定 sort）
+        row1[4] = "Bob";             // E 欄 = AuthorsColumn
+        row1[24] = "100test-repo";
+        sheetData.Add(row1);
+
+        var row2 = new List<object>(new object[26]);
+        row2[1] = "Feature Y";       // B 欄 = FeatureColumn
+        row2[3] = "Team A";          // D 欄 = TeamColumn（未設定 sort）
+        row2[4] = "Alice";           // E 欄 = AuthorsColumn
+        row2[24] = "200test-repo";
+        sheetData.Add(row2);
+
+        var row3 = new List<object>(new object[26]);
+        row3[1] = "Feature Z";       // B 欄 = FeatureColumn
+        row3[3] = "Team M";          // D 欄 = TeamColumn（未設定 sort）
+        row3[4] = "Charlie";         // E 欄 = AuthorsColumn
+        row3[24] = "300test-repo";
+        sheetData.Add(row3);
+
+        SetupSheetData(sheetData);
+
+        IList<IList<object>>? capturedSortedRows = null;
+        _googleSheetServiceMock
+            .Setup(x => x.BatchUpdateCellsAsync(It.IsAny<string>(), It.IsAny<IList<(string, IList<IList<object>>)>>()))
+            .Callback<string, IList<(string, IList<IList<object>>)>>((_, updates) =>
+            {
+                var sortUpdate = updates.FirstOrDefault(u => u.Item1 == $"'{_defaultOptions.SheetName}'!A2:Z4");
+                if (sortUpdate.Item2 != null)
+                    capturedSortedRows = sortUpdate.Item2;
+            });
+
+        // 使用預設選項（TeamSortRules 為空）
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - TeamSortRules 為空時全部為 int.MaxValue，次要排序依 AuthorsColumn（Alice < Bob < Charlie）
+        Assert.NotNull(capturedSortedRows);
+        Assert.Equal(3, capturedSortedRows!.Count);
+        Assert.Equal("Alice", capturedSortedRows[0][4]?.ToString() ?? string.Empty);
+        Assert.Equal("Bob", capturedSortedRows[1][4]?.ToString() ?? string.Empty);
+        Assert.Equal("Charlie", capturedSortedRows[2][4]?.ToString() ?? string.Empty);
     }
 }
