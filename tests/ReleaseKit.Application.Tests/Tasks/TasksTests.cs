@@ -492,12 +492,6 @@ public class TasksTests
             Times.Once);
     }
 
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<NotImplementedException>(() => task.ExecuteAsync());
-        Assert.Contains("更新 Google Sheets 資訊功能尚未實作", exception.Message);
-    }
-
     [Fact]
     public async Task FetchBitbucketPullRequestsTask_ExecuteAsync_WithMultipleProjects_ShouldProcessConcurrently()
     {
