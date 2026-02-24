@@ -69,14 +69,17 @@ public class UpdateGoogleSheetsTask : ITask
             .GroupBy(i => i.ProjectName)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        sheetData = await InsertNewRowsAsync(insertsByProject, segments, sheetId.Value);
-        if (sheetData == null) return;
+        if (insertItems.Count > 0)
+        {
+            sheetData = await InsertNewRowsAsync(insertsByProject, segments, sheetId.Value);
+            if (sheetData == null) return;
 
-        segments = BuildProjectSegments(sheetData, repoColIndex);
-        existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
+            segments = BuildProjectSegments(sheetData, repoColIndex);
+            existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
+        }
 
         var (batchUpdates, affectedProjects) =
-            await BuildInsertBatchUpdatesAsync(insertsByProject, segments, sheetId.Value);
+            BuildInsertBatchUpdates(insertsByProject, segments);
 
         AppendUpdateBatchUpdates(batchUpdates, updateItems, existingUniqueKeys, affectedProjects);
 
@@ -212,13 +215,12 @@ public class UpdateGoogleSheetsTask : ITask
     /// <summary>
     /// 為新增列建立批次更新資料
     /// </summary>
-    private async Task<(
+    private (
         List<(string Range, IList<IList<object>> Values)> BatchUpdates,
-        HashSet<string> AffectedProjects)>
-        BuildInsertBatchUpdatesAsync(
+        HashSet<string> AffectedProjects)
+        BuildInsertBatchUpdates(
             Dictionary<string, List<(string ProjectName, ConsolidatedReleaseEntry Entry)>> insertsByProject,
-            List<SheetProjectSegment> segments,
-            int sheetId)
+            List<SheetProjectSegment> segments)
     {
         var batchUpdates = new List<(string Range, IList<IList<object>> Values)>();
         var affectedProjects = new HashSet<string>();
@@ -238,7 +240,7 @@ public class UpdateGoogleSheetsTask : ITask
                 var row1Based = rowIndex + 1;
                 var uniqueKey = $"{entry.WorkItemId}{projectName}";
 
-                await AddFeatureCellAsync(batchUpdates, entry, sheetId, rowIndex, row1Based, columnMapping);
+                AddFeatureCell(batchUpdates, entry, row1Based, columnMapping);
                 AddInsertRowCells(batchUpdates, entry, projectName, row1Based, uniqueKey, columnMapping);
             }
         }
@@ -247,31 +249,37 @@ public class UpdateGoogleSheetsTask : ITask
     }
 
     /// <summary>
-    /// 新增 Feature 欄位資料（含超連結或純文字）
+    /// 新增 Feature 欄位資料（含超連結公式或純文字）
     /// </summary>
-    private async Task AddFeatureCellAsync(
+    private void AddFeatureCell(
         List<(string Range, IList<IList<object>> Values)> batchUpdates,
         ConsolidatedReleaseEntry entry,
-        int sheetId,
-        int rowIndex,
         int row1Based,
         ColumnMappingOptions columnMapping)
     {
         var featureDisplayText = $"VSTS{entry.WorkItemId} - {entry.Title}";
 
-        if (!string.IsNullOrEmpty(entry.WorkItemUrl))
-        {
-            await _googleSheetService.UpdateCellWithHyperlinkAsync(
-                _options.SpreadsheetId, sheetId, rowIndex,
-                ColumnLetterToIndex(columnMapping.FeatureColumn),
-                featureDisplayText, entry.WorkItemUrl);
-        }
-        else
-        {
-            batchUpdates.Add((
-                $"'{_options.SheetName}'!{columnMapping.FeatureColumn}{row1Based}",
-                new List<IList<object>> { new List<object> { featureDisplayText } }));
-        }
+        var featureCellValue = !string.IsNullOrEmpty(entry.WorkItemUrl)
+            ? BuildHyperlinkFormula(entry.WorkItemUrl, featureDisplayText)
+            : featureDisplayText;
+
+        batchUpdates.Add((
+            $"'{_options.SheetName}'!{columnMapping.FeatureColumn}{row1Based}",
+            new List<IList<object>> { new List<object> { featureCellValue } }));
+    }
+
+    /// <summary>
+    /// 建立 HYPERLINK 公式字串，以 '=' 開頭供 USER_ENTERED 模式解析
+    /// </summary>
+    private static string BuildHyperlinkFormula(string url, string displayText)
+    {
+        // 移除控制字元（含換行）避免公式語法錯誤，並將雙引號改為兩個雙引號以符合試算表公式逸出規則
+        static string Sanitize(string s) =>
+            s.Replace("\"", "\"\"")
+             .Replace("\r", string.Empty)
+             .Replace("\n", string.Empty);
+
+        return $"=HYPERLINK(\"{Sanitize(url)}\",\"{Sanitize(displayText)}\")";
     }
 
     /// <summary>
@@ -445,7 +453,7 @@ public class UpdateGoogleSheetsTask : ITask
     internal static List<SheetProjectSegment> BuildProjectSegments(
         IList<IList<object>> sheetData, int repoColIndex)
     {
-        var segments = new List<SheetProjectSegment>();
+        var headers = new List<(string ProjectName, int RowIndex)>();
 
         for (var i = 0; i < sheetData.Count; i++)
         {
@@ -454,26 +462,19 @@ public class UpdateGoogleSheetsTask : ITask
             {
                 var cellValue = row[repoColIndex]?.ToString();
                 if (!string.IsNullOrEmpty(cellValue))
-                {
-                    segments.Add(new SheetProjectSegment
-                    {
-                        ProjectName = cellValue,
-                        HeaderRowIndex = i
-                    });
-                }
+                    headers.Add((cellValue, i));
             }
         }
 
-        // 計算每個區段的資料範圍
-        for (var i = 0; i < segments.Count; i++)
+        return headers.Select((h, idx) => new SheetProjectSegment
         {
-            segments[i].DataStartRowIndex = segments[i].HeaderRowIndex + 1;
-            segments[i].DataEndRowIndex = i < segments.Count - 1
-                ? segments[i + 1].HeaderRowIndex - 1
-                : sheetData.Count - 1;
-        }
-
-        return segments;
+            ProjectName = h.ProjectName,
+            HeaderRowIndex = h.RowIndex,
+            DataStartRowIndex = h.RowIndex + 1,
+            DataEndRowIndex = idx < headers.Count - 1
+                ? headers[idx + 1].RowIndex - 1
+                : sheetData.Count - 1
+        }).ToList();
     }
 
     /// <summary>
@@ -505,6 +506,11 @@ public class UpdateGoogleSheetsTask : ITask
     /// </summary>
     internal static int ColumnLetterToIndex(string column)
     {
+        if (string.IsNullOrEmpty(column) || column[0] < 'A' || column[0] > 'Z')
+        {
+            throw new ArgumentException("Column must be a non-empty string.", nameof(column));
+        }
+
         return column[0] - 'A';
     }
 
@@ -533,30 +539,4 @@ public class UpdateGoogleSheetsTask : ITask
             padded.Add(string.Empty);
         return padded;
     }
-}
-
-/// <summary>
-/// 代表 Google Sheet 中一個專案區段的位置資訊
-/// </summary>
-internal class SheetProjectSegment
-{
-    /// <summary>
-    /// 專案名稱
-    /// </summary>
-    public string ProjectName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 專案表頭列的 0-based row index
-    /// </summary>
-    public int HeaderRowIndex { get; set; }
-
-    /// <summary>
-    /// 資料起始列的 0-based row index
-    /// </summary>
-    public int DataStartRowIndex { get; set; }
-
-    /// <summary>
-    /// 資料結束列的 0-based row index
-    /// </summary>
-    public int DataEndRowIndex { get; set; }
 }
