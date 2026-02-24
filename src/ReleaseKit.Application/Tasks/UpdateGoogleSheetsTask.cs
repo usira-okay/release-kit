@@ -44,86 +44,143 @@ public class UpdateGoogleSheetsTask : ITask
     {
         _logger.LogInformation("開始同步整合資料至 Google Sheet");
 
-        // US3: 驗證欄位對應設定
         ValidateColumnMapping(_options.ColumnMapping);
 
-        // US2: 讀取 Redis 整合資料
+        var consolidatedResult = await ReadConsolidatedDataAsync();
+        if (consolidatedResult == null) return;
+
+        var sheetId = await ResolveSheetIdAsync();
+        if (sheetId == null) return;
+
+        var sheetData = await ReadSheetDataAsync();
+        if (sheetData == null) return;
+
+        var repoColIndex = ColumnLetterToIndex(_options.ColumnMapping.RepositoryNameColumn);
+        var uniqueKeyColIndex = ColumnLetterToIndex(_options.ColumnMapping.UniqueKeyColumn);
+
+        var segments = BuildProjectSegments(sheetData, repoColIndex);
+        var existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
+
+        var (insertItems, updateItems) = ClassifyItems(consolidatedResult.Projects, existingUniqueKeys);
+        _logger.LogInformation("分類完成：新增 {InsertCount} 筆，更新 {UpdateCount} 筆",
+            insertItems.Count, updateItems.Count);
+
+        var insertsByProject = insertItems
+            .GroupBy(i => i.ProjectName)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        sheetData = await InsertNewRowsAsync(insertsByProject, segments, sheetId.Value);
+        if (sheetData == null) return;
+
+        segments = BuildProjectSegments(sheetData, repoColIndex);
+        existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
+
+        var (batchUpdates, affectedProjects) =
+            await BuildInsertBatchUpdatesAsync(insertsByProject, segments, sheetId.Value);
+
+        AppendUpdateBatchUpdates(batchUpdates, updateItems, existingUniqueKeys, affectedProjects);
+
+        if (batchUpdates.Count > 0)
+        {
+            await _googleSheetService.BatchUpdateCellsAsync(_options.SpreadsheetId, batchUpdates);
+            _logger.LogInformation("批次更新 {Count} 個儲存格範圍", batchUpdates.Count);
+        }
+
+        await SortAffectedProjectsAsync(affectedProjects, repoColIndex);
+
+        _logger.LogInformation("Google Sheet 同步完成");
+    }
+
+    /// <summary>
+    /// 從 Redis 讀取整合資料，若無資料則回傳 null
+    /// </summary>
+    private async Task<ConsolidatedReleaseResult?> ReadConsolidatedDataAsync()
+    {
         var consolidatedJson = await _redisService.HashGetAsync(
             RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
 
         if (string.IsNullOrEmpty(consolidatedJson))
         {
             _logger.LogInformation("Redis 中沒有整合資料，結束同步");
-            return;
+            return null;
         }
 
-        var consolidatedResult = consolidatedJson.ToTypedObject<ConsolidatedReleaseResult>();
-        if (consolidatedResult?.Projects == null || consolidatedResult.Projects.Count == 0)
+        var result = consolidatedJson.ToTypedObject<ConsolidatedReleaseResult>();
+        if (result?.Projects == null || result.Projects.Count == 0)
         {
             _logger.LogInformation("Redis 中沒有整合資料，結束同步");
-            return;
+            return null;
         }
 
-        // US3: 動態取得 SheetId
+        return result;
+    }
+
+    /// <summary>
+    /// 動態取得工作表 SheetId，若找不到則回傳 null
+    /// </summary>
+    private async Task<int?> ResolveSheetIdAsync()
+    {
         var sheetId = await _googleSheetService.GetSheetIdByNameAsync(
             _options.SpreadsheetId, _options.SheetName);
 
         if (sheetId == null)
-        {
             _logger.LogWarning("找不到工作表 '{SheetName}'，結束同步", _options.SheetName);
-            return;
-        }
 
-        // 讀取 Sheet 資料
-        var sheetData = await _googleSheetService.GetSheetDataAsync(
+        return sheetId;
+    }
+
+    /// <summary>
+    /// 讀取工作表 A:Z 範圍資料，若失敗則回傳 null
+    /// </summary>
+    private async Task<IList<IList<object>>?> ReadSheetDataAsync()
+    {
+        var data = await _googleSheetService.GetSheetDataAsync(
             _options.SpreadsheetId, $"'{_options.SheetName}'!A:Z");
 
-        if (sheetData == null)
-        {
+        if (data == null)
             _logger.LogWarning("無法讀取工作表 '{SheetName}' 的資料，結束同步", _options.SheetName);
-            return;
-        }
 
-        var columnMapping = _options.ColumnMapping;
-        var repoColIndex = ColumnLetterToIndex(columnMapping.RepositoryNameColumn);
-        var uniqueKeyColIndex = ColumnLetterToIndex(columnMapping.UniqueKeyColumn);
+        return data;
+    }
 
-        // 建立專案區段索引
-        var segments = BuildProjectSegments(sheetData, repoColIndex);
-
-        // 建立既有 UniqueKey → row index 映射
-        var existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
-
-        // 分類 Insert/Update
+    /// <summary>
+    /// 將整合資料分類為新增與更新清單
+    /// </summary>
+    private static (
+        List<(string ProjectName, ConsolidatedReleaseEntry Entry)> InsertItems,
+        List<(string ProjectName, ConsolidatedReleaseEntry Entry, int RowIndex)> UpdateItems)
+        ClassifyItems(
+            Dictionary<string, List<ConsolidatedReleaseEntry>> projects,
+            Dictionary<string, int> existingUniqueKeys)
+    {
         var insertItems = new List<(string ProjectName, ConsolidatedReleaseEntry Entry)>();
         var updateItems = new List<(string ProjectName, ConsolidatedReleaseEntry Entry, int RowIndex)>();
 
-        foreach (var (projectName, entries) in consolidatedResult.Projects)
+        foreach (var (projectName, entries) in projects)
         {
             foreach (var entry in entries)
             {
                 var uniqueKey = $"{entry.WorkItemId}{projectName}";
                 if (existingUniqueKeys.TryGetValue(uniqueKey, out var rowIndex))
-                {
                     updateItems.Add((projectName, entry, rowIndex));
-                }
                 else
-                {
                     insertItems.Add((projectName, entry));
-                }
             }
         }
 
-        _logger.LogInformation("分類完成：新增 {InsertCount} 筆，更新 {UpdateCount} 筆",
-            insertItems.Count, updateItems.Count);
+        return (insertItems, updateItems);
+    }
 
-        // 批次插入空白列（從最後一列往前，避免 index 偏移）
-        var insertsByProject = insertItems
-            .GroupBy(i => i.ProjectName)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        // 計算每個專案的插入位置，從最後往前插入
+    /// <summary>
+    /// 在各專案區段插入空白列，並重新讀取工作表資料
+    /// </summary>
+    private async Task<IList<IList<object>>?> InsertNewRowsAsync(
+        Dictionary<string, List<(string ProjectName, ConsolidatedReleaseEntry Entry)>> insertsByProject,
+        List<SheetProjectSegment> segments,
+        int sheetId)
+    {
         var insertPositions = new List<(int RowIndex, int Count, string ProjectName)>();
+
         foreach (var (projectName, items) in insertsByProject)
         {
             var segment = segments.FirstOrDefault(s => s.ProjectName == projectName);
@@ -133,36 +190,39 @@ public class UpdateGoogleSheetsTask : ITask
                 continue;
             }
 
-            var insertRowIndex = segment.DataStartRowIndex;
-            insertPositions.Add((insertRowIndex, items.Count, projectName));
+            insertPositions.Add((segment.DataStartRowIndex, items.Count, projectName));
         }
 
-        // 從最後一列往前插入以避免 index 偏移
         foreach (var (rowIndex, count, projectName) in insertPositions.OrderByDescending(p => p.RowIndex))
         {
-            await _googleSheetService.InsertRowsAsync(
-                _options.SpreadsheetId, sheetId.Value, rowIndex, count);
+            await _googleSheetService.InsertRowsAsync(_options.SpreadsheetId, sheetId, rowIndex, count);
             _logger.LogInformation("在專案 '{ProjectName}' 的第 {Row} 列插入 {Count} 列空白列",
                 projectName, rowIndex, count);
         }
 
-        // 插入後重新讀取 Sheet 以取得正確的 row index
-        sheetData = await _googleSheetService.GetSheetDataAsync(
+        var refreshed = await _googleSheetService.GetSheetDataAsync(
             _options.SpreadsheetId, $"'{_options.SheetName}'!A:Z");
 
-        if (sheetData == null)
-        {
+        if (refreshed == null)
             _logger.LogWarning("插入空白列後無法重新讀取工作表資料，結束同步");
-            return;
-        }
 
-        // 重新建立索引
-        segments = BuildProjectSegments(sheetData, repoColIndex);
-        existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
+        return refreshed;
+    }
 
-        // 填入新增資料
+    /// <summary>
+    /// 為新增列建立批次更新資料
+    /// </summary>
+    private async Task<(
+        List<(string Range, IList<IList<object>> Values)> BatchUpdates,
+        HashSet<string> AffectedProjects)>
+        BuildInsertBatchUpdatesAsync(
+            Dictionary<string, List<(string ProjectName, ConsolidatedReleaseEntry Entry)>> insertsByProject,
+            List<SheetProjectSegment> segments,
+            int sheetId)
+    {
         var batchUpdates = new List<(string Range, IList<IList<object>> Values)>();
         var affectedProjects = new HashSet<string>();
+        var columnMapping = _options.ColumnMapping;
 
         foreach (var (projectName, items) in insertsByProject)
         {
@@ -178,142 +238,177 @@ public class UpdateGoogleSheetsTask : ITask
                 var row1Based = rowIndex + 1;
                 var uniqueKey = $"{entry.WorkItemId}{projectName}";
 
-                // FeatureColumn - 使用 HYPERLINK
-                var featureDisplayText = $"VSTS{entry.WorkItemId} - {entry.Title}";
-                if (!string.IsNullOrEmpty(entry.WorkItemUrl))
-                {
-                    await _googleSheetService.UpdateCellWithHyperlinkAsync(
-                        _options.SpreadsheetId, sheetId.Value, rowIndex,
-                        ColumnLetterToIndex(columnMapping.FeatureColumn),
-                        featureDisplayText, entry.WorkItemUrl);
-                }
-                else
-                {
-                    batchUpdates.Add((
-                        $"'{_options.SheetName}'!{columnMapping.FeatureColumn}{row1Based}",
-                        new List<IList<object>> { new List<object> { featureDisplayText } }));
-                }
-
-                // TeamColumn
-                batchUpdates.Add((
-                    $"'{_options.SheetName}'!{columnMapping.TeamColumn}{row1Based}",
-                    new List<IList<object>> { new List<object> { entry.TeamDisplayName } }));
-
-                // AuthorsColumn - 依 authorName 排序後換行分隔
-                var authorsValue = string.Join("\n",
-                    entry.Authors.OrderBy(a => a.AuthorName).Select(a => a.AuthorName));
-                batchUpdates.Add((
-                    $"'{_options.SheetName}'!{columnMapping.AuthorsColumn}{row1Based}",
-                    new List<IList<object>> { new List<object> { authorsValue } }));
-
-                // PullRequestUrlsColumn - 依 url 排序後換行分隔
-                var prUrlsValue = string.Join("\n",
-                    entry.PullRequests.OrderBy(p => p.Url).Select(p => p.Url));
-                batchUpdates.Add((
-                    $"'{_options.SheetName}'!{columnMapping.PullRequestUrlsColumn}{row1Based}",
-                    new List<IList<object>> { new List<object> { prUrlsValue } }));
-
-                // UniqueKeyColumn
-                batchUpdates.Add((
-                    $"'{_options.SheetName}'!{columnMapping.UniqueKeyColumn}{row1Based}",
-                    new List<IList<object>> { new List<object> { uniqueKey } }));
-
-                // AutoSyncColumn
-                batchUpdates.Add((
-                    $"'{_options.SheetName}'!{columnMapping.AutoSyncColumn}{row1Based}",
-                    new List<IList<object>> { new List<object> { "TRUE" } }));
+                await AddFeatureCellAsync(batchUpdates, entry, sheetId, rowIndex, row1Based, columnMapping);
+                AddInsertRowCells(batchUpdates, entry, projectName, row1Based, uniqueKey, columnMapping);
             }
         }
 
-        // 更新既有列（僅更新 AuthorsColumn 與 PullRequestUrlsColumn）
-        // 需要重新計算 row index（因為插入了新列）
-        var updatedUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
+        return (batchUpdates, affectedProjects);
+    }
+
+    /// <summary>
+    /// 新增 Feature 欄位資料（含超連結或純文字）
+    /// </summary>
+    private async Task AddFeatureCellAsync(
+        List<(string Range, IList<IList<object>> Values)> batchUpdates,
+        ConsolidatedReleaseEntry entry,
+        int sheetId,
+        int rowIndex,
+        int row1Based,
+        ColumnMappingOptions columnMapping)
+    {
+        var featureDisplayText = $"VSTS{entry.WorkItemId} - {entry.Title}";
+
+        if (!string.IsNullOrEmpty(entry.WorkItemUrl))
+        {
+            await _googleSheetService.UpdateCellWithHyperlinkAsync(
+                _options.SpreadsheetId, sheetId, rowIndex,
+                ColumnLetterToIndex(columnMapping.FeatureColumn),
+                featureDisplayText, entry.WorkItemUrl);
+        }
+        else
+        {
+            batchUpdates.Add((
+                $"'{_options.SheetName}'!{columnMapping.FeatureColumn}{row1Based}",
+                new List<IList<object>> { new List<object> { featureDisplayText } }));
+        }
+    }
+
+    /// <summary>
+    /// 新增插入列的其他欄位資料（Team、Authors、PRUrls、UniqueKey、AutoSync）
+    /// </summary>
+    private void AddInsertRowCells(
+        List<(string Range, IList<IList<object>> Values)> batchUpdates,
+        ConsolidatedReleaseEntry entry,
+        string projectName,
+        int row1Based,
+        string uniqueKey,
+        ColumnMappingOptions columnMapping)
+    {
+        var authorsValue = string.Join("\n",
+            entry.Authors.OrderBy(a => a.AuthorName).Select(a => a.AuthorName));
+        var prUrlsValue = string.Join("\n",
+            entry.PullRequests.OrderBy(p => p.Url).Select(p => p.Url));
+
+        batchUpdates.Add((
+            $"'{_options.SheetName}'!{columnMapping.TeamColumn}{row1Based}",
+            new List<IList<object>> { new List<object> { entry.TeamDisplayName } }));
+        batchUpdates.Add((
+            $"'{_options.SheetName}'!{columnMapping.AuthorsColumn}{row1Based}",
+            new List<IList<object>> { new List<object> { authorsValue } }));
+        batchUpdates.Add((
+            $"'{_options.SheetName}'!{columnMapping.PullRequestUrlsColumn}{row1Based}",
+            new List<IList<object>> { new List<object> { prUrlsValue } }));
+        batchUpdates.Add((
+            $"'{_options.SheetName}'!{columnMapping.UniqueKeyColumn}{row1Based}",
+            new List<IList<object>> { new List<object> { uniqueKey } }));
+        batchUpdates.Add((
+            $"'{_options.SheetName}'!{columnMapping.AutoSyncColumn}{row1Based}",
+            new List<IList<object>> { new List<object> { "TRUE" } }));
+    }
+
+    /// <summary>
+    /// 將更新項目的 Authors 與 PullRequestUrls 加入批次更新清單
+    /// </summary>
+    private void AppendUpdateBatchUpdates(
+        List<(string Range, IList<IList<object>> Values)> batchUpdates,
+        List<(string ProjectName, ConsolidatedReleaseEntry Entry, int RowIndex)> updateItems,
+        Dictionary<string, int> existingUniqueKeys,
+        HashSet<string> affectedProjects)
+    {
+        var columnMapping = _options.ColumnMapping;
 
         foreach (var (projectName, entry, _) in updateItems)
         {
             var uniqueKey = $"{entry.WorkItemId}{projectName}";
-            if (!updatedUniqueKeys.TryGetValue(uniqueKey, out var currentRowIndex)) continue;
+            if (!existingUniqueKeys.TryGetValue(uniqueKey, out var currentRowIndex)) continue;
 
             affectedProjects.Add(projectName);
             var row1Based = currentRowIndex + 1;
 
-            // AuthorsColumn
             var authorsValue = string.Join("\n",
                 entry.Authors.OrderBy(a => a.AuthorName).Select(a => a.AuthorName));
+            var prUrlsValue = string.Join("\n",
+                entry.PullRequests.OrderBy(p => p.Url).Select(p => p.Url));
+
             batchUpdates.Add((
                 $"'{_options.SheetName}'!{columnMapping.AuthorsColumn}{row1Based}",
                 new List<IList<object>> { new List<object> { authorsValue } }));
-
-            // PullRequestUrlsColumn
-            var prUrlsValue = string.Join("\n",
-                entry.PullRequests.OrderBy(p => p.Url).Select(p => p.Url));
             batchUpdates.Add((
                 $"'{_options.SheetName}'!{columnMapping.PullRequestUrlsColumn}{row1Based}",
                 new List<IList<object>> { new List<object> { prUrlsValue } }));
         }
+    }
 
-        // 執行批次更新
-        if (batchUpdates.Count > 0)
-        {
-            await _googleSheetService.BatchUpdateCellsAsync(_options.SpreadsheetId, batchUpdates);
-            _logger.LogInformation("批次更新 {Count} 個儲存格範圍", batchUpdates.Count);
-        }
+    /// <summary>
+    /// 重新讀取工作表，對受影響的專案區段在記憶體中排序後寫回
+    /// </summary>
+    private async Task SortAffectedProjectsAsync(HashSet<string> affectedProjects, int repoColIndex)
+    {
+        if (affectedProjects.Count == 0) return;
 
-        // 排序受影響的專案區段（在記憶體中排序後再寫回）
-        // 重新讀取 Sheet 以取得批次更新後的最新資料
         var sortSheetData = await _googleSheetService.GetSheetDataAsync(
             _options.SpreadsheetId, $"'{_options.SheetName}'!A:Z");
 
-        if (sortSheetData != null)
+        if (sortSheetData == null) return;
+
+        var columnMapping = _options.ColumnMapping;
+        var sortSegments = BuildProjectSegments(sortSheetData, repoColIndex);
+        var teamColIdx = ColumnLetterToIndex(columnMapping.TeamColumn);
+        var authorsColIdx = ColumnLetterToIndex(columnMapping.AuthorsColumn);
+        var featureColIdx = ColumnLetterToIndex(columnMapping.FeatureColumn);
+        var uniqueKeyColIdx = ColumnLetterToIndex(columnMapping.UniqueKeyColumn);
+
+        var sortBatchUpdates = new List<(string Range, IList<IList<object>> Values)>();
+
+        foreach (var projectName in affectedProjects)
         {
-            var sortSegments = BuildProjectSegments(sortSheetData, repoColIndex);
-            var teamColIdx = ColumnLetterToIndex(columnMapping.TeamColumn);
-            var authorsColIdx = ColumnLetterToIndex(columnMapping.AuthorsColumn);
-            var featureColIdx = ColumnLetterToIndex(columnMapping.FeatureColumn);
-            var uniqueKeyColIdx = ColumnLetterToIndex(columnMapping.UniqueKeyColumn);
+            var segment = sortSegments.FirstOrDefault(s => s.ProjectName == projectName);
+            if (segment == null || segment.DataStartRowIndex > segment.DataEndRowIndex) continue;
 
-            var sortBatchUpdates = new List<(string Range, IList<IList<object>> Values)>();
+            var sortedRows = BuildSortedRows(sortSheetData, segment, teamColIdx, authorsColIdx, featureColIdx, uniqueKeyColIdx);
+            var startRow1Based = segment.DataStartRowIndex + 1;
+            var endRow1Based = segment.DataEndRowIndex + 1;
 
-            foreach (var projectName in affectedProjects)
-            {
-                var segment = sortSegments.FirstOrDefault(s => s.ProjectName == projectName);
-                if (segment == null || segment.DataStartRowIndex > segment.DataEndRowIndex) continue;
+            sortBatchUpdates.Add((
+                $"'{_options.SheetName}'!A{startRow1Based}:Z{endRow1Based}",
+                sortedRows));
 
-                var dataRows = sortSheetData
-                    .Skip(segment.DataStartRowIndex)
-                    .Take(segment.DataEndRowIndex - segment.DataStartRowIndex + 1)
-                    .ToList();
-
-                // 只排序 feature 欄位有填寫的列，feature 為空白的列排在最後面
-                var rowsByFeatureFilled = dataRows.ToLookup(r => !string.IsNullOrEmpty(GetCellStringValue(r, featureColIdx)));
-
-                var sortedRows = rowsByFeatureFilled[true]
-                    .OrderBy(r => SortKeyEmptyLast(r, teamColIdx))
-                    .ThenBy(r => SortKeyEmptyLast(r, authorsColIdx))
-                    .ThenBy(r => SortKeyEmptyLast(r, featureColIdx))
-                    .ThenBy(r => SortKeyEmptyLast(r, uniqueKeyColIdx))
-                    .Concat(rowsByFeatureFilled[false])
-                    .Select(PadRowTo26)
-                    .ToList<IList<object>>();
-
-                var startRow1Based = segment.DataStartRowIndex + 1;
-                var endRow1Based = segment.DataEndRowIndex + 1;
-                sortBatchUpdates.Add((
-                    $"'{_options.SheetName}'!A{startRow1Based}:Z{endRow1Based}",
-                    sortedRows));
-
-                _logger.LogInformation("排序專案 '{ProjectName}' 區段（列 {Start}-{End}）",
-                    projectName, segment.DataStartRowIndex, segment.DataEndRowIndex);
-            }
-
-            if (sortBatchUpdates.Count > 0)
-            {
-                await _googleSheetService.BatchUpdateCellsAsync(_options.SpreadsheetId, sortBatchUpdates);
-                _logger.LogInformation("排序完成，更新 {Count} 個專案區段", sortBatchUpdates.Count);
-            }
+            _logger.LogInformation("排序專案 '{ProjectName}' 區段（列 {Start}-{End}）",
+                projectName, segment.DataStartRowIndex, segment.DataEndRowIndex);
         }
 
-        _logger.LogInformation("Google Sheet 同步完成");
+        if (sortBatchUpdates.Count > 0)
+        {
+            await _googleSheetService.BatchUpdateCellsAsync(_options.SpreadsheetId, sortBatchUpdates);
+            _logger.LogInformation("排序完成，更新 {Count} 個專案區段", sortBatchUpdates.Count);
+        }
+    }
+
+    /// <summary>
+    /// 對指定專案區段的資料列在記憶體中排序，feature 有值的排前面，空白的排後面
+    /// </summary>
+    private static List<IList<object>> BuildSortedRows(
+        IList<IList<object>> sheetData,
+        SheetProjectSegment segment,
+        int teamColIdx, int authorsColIdx, int featureColIdx, int uniqueKeyColIdx)
+    {
+        var dataRows = sheetData
+            .Skip(segment.DataStartRowIndex)
+            .Take(segment.DataEndRowIndex - segment.DataStartRowIndex + 1)
+            .ToList();
+
+        var rowsByFeatureFilled = dataRows.ToLookup(r =>
+            !string.IsNullOrEmpty(GetCellStringValue(r, featureColIdx)));
+
+        return rowsByFeatureFilled[true]
+            .OrderBy(r => SortKeyEmptyLast(r, teamColIdx))
+            .ThenBy(r => SortKeyEmptyLast(r, authorsColIdx))
+            .ThenBy(r => SortKeyEmptyLast(r, featureColIdx))
+            .ThenBy(r => SortKeyEmptyLast(r, uniqueKeyColIdx))
+            .Concat(rowsByFeatureFilled[false])
+            .Select(PadRowTo26)
+            .ToList<IList<object>>();
     }
 
     /// <summary>

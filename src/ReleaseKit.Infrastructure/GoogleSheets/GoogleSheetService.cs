@@ -2,6 +2,7 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Domain.Abstractions;
@@ -14,13 +15,27 @@ namespace ReleaseKit.Infrastructure.GoogleSheets;
 public class GoogleSheetService : IGoogleSheetService
 {
     private readonly SheetsService _sheetsService;
+    private readonly ILogger<GoogleSheetService> _logger;
+
+    /// <summary>
+    /// Rate limit 每次等待時間
+    /// </summary>
+    protected virtual TimeSpan RateLimitDelay => TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Rate limit 最大重試次數
+    /// </summary>
+    private const int MaxRateLimitRetries = 3;
 
     /// <summary>
     /// 初始化 <see cref="GoogleSheetService"/> 類別的新執行個體
     /// </summary>
     /// <param name="options">Google Sheet 設定選項</param>
-    public GoogleSheetService(IOptions<GoogleSheetOptions> options)
+    /// <param name="logger">日誌記錄器</param>
+    public GoogleSheetService(IOptions<GoogleSheetOptions> options, ILogger<GoogleSheetService> logger)
     {
+        _logger = logger;
+
         var credential = GoogleCredential
             .FromFile(options.Value.ServiceAccountCredentialPath)
             .CreateScoped(SheetsService.Scope.Spreadsheets);
@@ -35,9 +50,61 @@ public class GoogleSheetService : IGoogleSheetService
     /// <summary>
     /// 供測試使用的建構子，允許注入 SheetsService
     /// </summary>
-    internal GoogleSheetService(SheetsService sheetsService)
+    internal GoogleSheetService(SheetsService sheetsService, ILogger<GoogleSheetService> logger)
     {
         _sheetsService = sheetsService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// 執行 Google Sheets API 呼叫，並在達到請求限制（429）時自動等待重試，最多重試 3 次，每次等待 1 分鐘
+    /// </summary>
+    private async Task<T> ExecuteWithRateLimitAsync<T>(Func<Task<T>> action)
+    {
+        var retryCount = 0;
+        while (true)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (Google.GoogleApiException ex) when ((int)ex.HttpStatusCode == 429)
+            {
+                retryCount++;
+                if (retryCount > MaxRateLimitRetries)
+                    throw;
+                _logger.LogWarning(
+                    "Google Sheets API 達到請求限制，等待 {Delay} 後重試（第 {Retry}/{Max} 次）",
+                    RateLimitDelay, retryCount, MaxRateLimitRetries);
+                await Task.Delay(RateLimitDelay);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 執行無回傳值的 Google Sheets API 呼叫，並在達到請求限制（429）時自動等待重試，最多重試 3 次，每次等待 1 分鐘
+    /// </summary>
+    private async Task ExecuteWithRateLimitAsync(Func<Task> action)
+    {
+        var retryCount = 0;
+        while (true)
+        {
+            try
+            {
+                await action();
+                return;
+            }
+            catch (Google.GoogleApiException ex) when ((int)ex.HttpStatusCode == 429)
+            {
+                retryCount++;
+                if (retryCount > MaxRateLimitRetries)
+                    throw;
+                _logger.LogWarning(
+                    "Google Sheets API 達到請求限制，等待 {Delay} 後重試（第 {Retry}/{Max} 次）",
+                    RateLimitDelay, retryCount, MaxRateLimitRetries);
+                await Task.Delay(RateLimitDelay);
+            }
+        }
     }
 
     /// <summary>
@@ -45,7 +112,8 @@ public class GoogleSheetService : IGoogleSheetService
     /// </summary>
     public async Task<int?> GetSheetIdByNameAsync(string spreadsheetId, string sheetName)
     {
-        var spreadsheet = await _sheetsService.Spreadsheets.Get(spreadsheetId).ExecuteAsync();
+        var spreadsheet = await ExecuteWithRateLimitAsync(
+            () => _sheetsService.Spreadsheets.Get(spreadsheetId).ExecuteAsync());
         var sheet = spreadsheet.Sheets?.FirstOrDefault(
             s => string.Equals(s.Properties?.Title, sheetName, StringComparison.OrdinalIgnoreCase));
 
@@ -58,7 +126,7 @@ public class GoogleSheetService : IGoogleSheetService
     public async Task<IList<IList<object>>?> GetSheetDataAsync(string spreadsheetId, string range)
     {
         var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
-        var response = await request.ExecuteAsync();
+        var response = await ExecuteWithRateLimitAsync(() => request.ExecuteAsync());
         return response.Values;
     }
 
@@ -87,7 +155,8 @@ public class GoogleSheetService : IGoogleSheetService
             Requests = new List<Request> { insertRequest }
         };
 
-        await _sheetsService.Spreadsheets.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync();
+        await ExecuteWithRateLimitAsync(
+            () => _sheetsService.Spreadsheets.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync());
     }
 
     /// <summary>
@@ -103,7 +172,7 @@ public class GoogleSheetService : IGoogleSheetService
 
         var updateRequest = _sheetsService.Spreadsheets.Values.Update(valueRange, spreadsheetId, range);
         updateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
-        await updateRequest.ExecuteAsync();
+        await ExecuteWithRateLimitAsync(() => updateRequest.ExecuteAsync());
     }
 
     /// <summary>
@@ -147,7 +216,8 @@ public class GoogleSheetService : IGoogleSheetService
             Requests = new List<Request> { updateCellsRequest }
         };
 
-        await _sheetsService.Spreadsheets.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync();
+        await ExecuteWithRateLimitAsync(
+            () => _sheetsService.Spreadsheets.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync());
     }
 
     /// <summary>
@@ -180,7 +250,8 @@ public class GoogleSheetService : IGoogleSheetService
             Requests = new List<Request> { sortRequest }
         };
 
-        await _sheetsService.Spreadsheets.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync();
+        await ExecuteWithRateLimitAsync(
+            () => _sheetsService.Spreadsheets.BatchUpdate(batchRequest, spreadsheetId).ExecuteAsync());
     }
 
     /// <summary>
@@ -200,8 +271,9 @@ public class GoogleSheetService : IGoogleSheetService
             ValueInputOption = "USER_ENTERED"
         };
 
-        await _sheetsService.Spreadsheets.Values
-            .BatchUpdate(batchUpdateRequest, spreadsheetId)
-            .ExecuteAsync();
+        await ExecuteWithRateLimitAsync(
+            () => _sheetsService.Spreadsheets.Values
+                .BatchUpdate(batchUpdateRequest, spreadsheetId)
+                .ExecuteAsync());
     }
 }
