@@ -715,14 +715,20 @@ public class ConsolidateReleaseDataTaskTests
 
         SetupPrData(null, gitLabResult);
 
-        // 模擬全部失敗（WorkItems 為空但 TotalWorkItems > 0 的情境不會到此）
-        // 實際情境：TotalWorkItems = 5, OriginalFetchFailedCount = 5
+        // 模擬全部失敗：TotalWorkItems = 5, OriginalFetchFailedCount = 5
+        // WorkItems 仍包含失敗的項目記錄（IsSuccess = false）
+        var failedWorkItem = new UserStoryWorkItemOutput
+        {
+            WorkItemId = 12345,
+            Title = null,
+            IsSuccess = false,
+            ResolutionStatus = UserStoryResolutionStatus.OriginalFetchFailed,
+            PrId = "pr-1",
+            ProjectName = "project"
+        };
         var userStoryResult = new UserStoryFetchResult
         {
-            WorkItems = new List<UserStoryWorkItemOutput>
-            {
-                CreateWorkItem(12345, "pr-1", "MoneyLogistic", "project")
-            },
+            WorkItems = new List<UserStoryWorkItemOutput> { failedWorkItem },
             TotalWorkItems = 5,
             AlreadyUserStoryCount = 0,
             FoundViaRecursionCount = 0,
