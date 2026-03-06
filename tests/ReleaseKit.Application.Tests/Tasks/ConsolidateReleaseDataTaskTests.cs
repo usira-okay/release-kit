@@ -617,4 +617,134 @@ public class ConsolidateReleaseDataTaskTests
         Assert.NotNull(result);
         Assert.Equal("PR Title Fallback", result.Projects["project"][0].Title);
     }
+
+    // ===== T031: Azure DevOps 拉取失敗超過一半時終止作業，不寫入 Redis =====
+
+    /// <summary>
+    /// T031: 測試當 Azure DevOps 拉取失敗數量超過一半時，應終止整合作業且不寫入 Redis
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WhenMoreThanHalfFetchFailed_ShouldNotWriteToRedis()
+    {
+        // Arrange
+        var gitLabResult = CreateFetchResult(
+            CreateProject("group/project",
+                CreatePr("pr-1", "Author1")));
+
+        SetupPrData(null, gitLabResult);
+
+        // 模擬 10 筆中有 6 筆失敗（超過一半）
+        var userStoryResult = new UserStoryFetchResult
+        {
+            WorkItems = new List<UserStoryWorkItemOutput>
+            {
+                CreateWorkItem(12345, "pr-1", "MoneyLogistic", "project")
+            },
+            TotalWorkItems = 10,
+            AlreadyUserStoryCount = 0,
+            FoundViaRecursionCount = 0,
+            NotFoundCount = 0,
+            OriginalFetchFailedCount = 6
+        };
+        SetupUserStoryData(userStoryResult);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert：不應寫入整合結果至 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Never);
+    }
+
+    // ===== T032: Azure DevOps 拉取失敗未超過一半時正常整合 =====
+
+    /// <summary>
+    /// T032: 測試當 Azure DevOps 拉取失敗數量恰好等於一半時，應正常執行整合並寫入 Redis
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WhenExactlyHalfFetchFailed_ShouldProceedNormally()
+    {
+        // Arrange
+        var gitLabResult = CreateFetchResult(
+            CreateProject("group/project",
+                CreatePr("pr-1", "Author1")));
+
+        SetupPrData(null, gitLabResult);
+
+        // 模擬 10 筆中有 5 筆失敗（恰好一半，不超過）
+        var userStoryResult = new UserStoryFetchResult
+        {
+            WorkItems = new List<UserStoryWorkItemOutput>
+            {
+                CreateWorkItem(12345, "pr-1", "MoneyLogistic", "project")
+            },
+            TotalWorkItems = 10,
+            AlreadyUserStoryCount = 0,
+            FoundViaRecursionCount = 0,
+            NotFoundCount = 0,
+            OriginalFetchFailedCount = 5
+        };
+        SetupUserStoryData(userStoryResult);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert：應正常寫入整合結果至 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Once);
+    }
+
+    // ===== T033: Azure DevOps 拉取全部失敗時終止作業 =====
+
+    /// <summary>
+    /// T033: 測試當 Azure DevOps 拉取全部失敗時，應終止整合作業且不寫入 Redis
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WhenAllFetchFailed_ShouldNotWriteToRedis()
+    {
+        // Arrange
+        var gitLabResult = CreateFetchResult(
+            CreateProject("group/project",
+                CreatePr("pr-1", "Author1")));
+
+        SetupPrData(null, gitLabResult);
+
+        // 模擬全部失敗：TotalWorkItems = 5, OriginalFetchFailedCount = 5
+        // WorkItems 仍包含失敗的項目記錄（IsSuccess = false）
+        var failedWorkItem = new UserStoryWorkItemOutput
+        {
+            WorkItemId = 12345,
+            Title = null,
+            IsSuccess = false,
+            ResolutionStatus = UserStoryResolutionStatus.OriginalFetchFailed,
+            PrId = "pr-1",
+            ProjectName = "project"
+        };
+        var userStoryResult = new UserStoryFetchResult
+        {
+            WorkItems = new List<UserStoryWorkItemOutput> { failedWorkItem },
+            TotalWorkItems = 5,
+            AlreadyUserStoryCount = 0,
+            FoundViaRecursionCount = 0,
+            NotFoundCount = 0,
+            OriginalFetchFailedCount = 5
+        };
+        SetupUserStoryData(userStoryResult);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert：不應寫入整合結果至 Redis
+        _redisServiceMock.Verify(
+            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+            Times.Never);
+    }
 }

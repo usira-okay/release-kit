@@ -60,6 +60,17 @@ public class ConsolidateReleaseDataTask : ITask
             return;
         }
 
+        // 2.1 檢查 Azure DevOps 拉取失敗率，超過一半則終止作業
+        if (userStoryResult.TotalWorkItems > 0 &&
+            userStoryResult.OriginalFetchFailedCount > userStoryResult.TotalWorkItems / 2)
+        {
+            _logger.LogError(
+                "Azure DevOps 拉取失敗比例過高（失敗 {FailedCount}/{TotalCount}），終止整合作業，不寫入 Redis",
+                userStoryResult.OriginalFetchFailedCount,
+                userStoryResult.TotalWorkItems);
+            return;
+        }
+
         // 3. 整合資料
         var consolidated = ConsolidateData(prLookup, userStoryResult, _options.Value.TeamMapping);
 
