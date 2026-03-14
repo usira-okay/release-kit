@@ -19,6 +19,7 @@ public class CommandLineParser
         { "get-user-story", TaskType.GetUserStory },
         { "update-googlesheet", TaskType.UpdateGoogleSheets },
         { "consolidate-release-data", TaskType.ConsolidateReleaseData },
+        { "enhance-titles", TaskType.EnhanceTitles },
     };
 
     /// <summary>

@@ -1,5 +1,5 @@
-# 使用 .NET 9 SDK 作為建置映像
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# 使用 .NET 10 SDK 作為建置映像
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # 複製專案檔案並還原套件
@@ -21,8 +21,8 @@ RUN dotnet build "ReleaseKit.Console.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "ReleaseKit.Console.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# 使用 .NET 9 Runtime 作為執行映像
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+# 使用 .NET 10 Runtime 作為執行映像
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 

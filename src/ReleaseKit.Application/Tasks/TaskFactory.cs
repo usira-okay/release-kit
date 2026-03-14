@@ -35,6 +35,7 @@ public class TaskFactory
             TaskType.FilterBitbucketPullRequestsByUser => _serviceProvider.GetRequiredService<FilterBitbucketPullRequestsByUserTask>(),
             TaskType.GetUserStory => _serviceProvider.GetRequiredService<GetUserStoryTask>(),
             TaskType.ConsolidateReleaseData => _serviceProvider.GetRequiredService<ConsolidateReleaseDataTask>(),
+            TaskType.EnhanceTitles => _serviceProvider.GetRequiredService<EnhanceTitlesWithCopilotTask>(),
             _ => throw new ArgumentException($"不支援的任務類型: {taskType}", nameof(taskType))
         };
     }

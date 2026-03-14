@@ -1,6 +1,6 @@
 # Release-Kit
 
-Release-Kit 是一個 .NET 9 Console 應用程式，用於從多個開發平台（GitLab、Bitbucket、Azure DevOps）收集 PR/MR 與 Work Item 資訊，並同步至 Google Sheet 以產出 Release Notes。
+Release-Kit 是一個 .NET 10 Console 應用程式，用於從多個開發平台（GitLab、Bitbucket、Azure DevOps）收集 PR/MR 與 Work Item 資訊，並同步至 Google Sheet 以產出 Release Notes。
 
 ## 功能特色
 
@@ -24,7 +24,7 @@ docker-compose up -d
 
 #### 必要條件
 
-- .NET 9 SDK
+- .NET 10 SDK
 - Redis（可選）
 - Seq（可選）
 
