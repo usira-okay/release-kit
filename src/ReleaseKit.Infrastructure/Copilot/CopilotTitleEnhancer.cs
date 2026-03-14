@@ -102,7 +102,7 @@ public class CopilotTitleEnhancer : ITitleEnhancer
         var response = await session.SendAndWaitAsync(new MessageOptions
         {
             Prompt = prompt
-        });
+        }, timeout: TimeSpan.FromSeconds(_options.Value.TimeoutSeconds));
 
         var responseContent = response?.Data?.Content;
         if (string.IsNullOrWhiteSpace(responseContent))
