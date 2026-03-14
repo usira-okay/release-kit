@@ -27,13 +27,14 @@ public class CopilotTitleEnhancer : ITitleEnhancer
         你是一個 Release Notes 標題選擇助手。
         你的任務是根據提供的候選標題資訊，為每個項目從候選標題中選出一個最適合作為 Release Notes 標題的選項。
 
+        【最重要】你的回應必須只有純 JSON 陣列，禁止包含任何文字說明、解釋、markdown 格式或 code block 標記。
+
         規則：
         1. 你必須從候選標題中選擇一個，不可自行修改或產生新標題
         2. 選擇最能描述該項目實際變更內容的標題
         3. 優先選擇有意義的描述性標題，避免選擇如 "Update README.md"、"Fix typo" 等無意義標題
         4. 當多個候選標題都有意義且描述的是不同功能或變更時，直接使用第一個候選標題（即原始標題）
-        5. 僅回傳 JSON 陣列，不要包含任何額外說明或 markdown 格式
-        6. JSON 陣列中的每個元素為選出的標題字串，順序與輸入一致
+        5. JSON 陣列中的每個元素為選出的標題字串，順序與輸入一致
 
         範例輸入：
         [["Update README.md", "新增登入功能", "feature/VSTS100-add-login"], ["Fix typo", "修正認證錯誤"]]
