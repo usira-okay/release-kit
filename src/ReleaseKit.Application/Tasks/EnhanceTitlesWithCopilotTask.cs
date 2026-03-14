@@ -148,34 +148,30 @@ public class EnhanceTitlesWithCopilotTask : ITask
     }
 
     /// <summary>
-    /// 建構增強標題結果，保留原始專案分組結構
+    /// 建構增強標題結果，保留原始資料結構，僅替換 Title
     /// </summary>
-    private static EnhancedTitleResult BuildEnhancedResult(
+    private static ConsolidatedReleaseResult BuildEnhancedResult(
         ConsolidatedReleaseResult consolidatedResult,
         List<(string ProjectName, int Index, ConsolidatedReleaseEntry Entry)> allEntries,
         IReadOnlyList<string> enhancedTitles)
     {
-        var projectEntries = new Dictionary<string, List<EnhancedTitleEntry>>();
+        var projectEntries = new Dictionary<string, List<ConsolidatedReleaseEntry>>();
 
         // 初始化專案分組（保持原始順序）
         foreach (var projectName in consolidatedResult.Projects.Keys)
         {
-            projectEntries[projectName] = new List<EnhancedTitleEntry>();
+            projectEntries[projectName] = new List<ConsolidatedReleaseEntry>();
         }
 
-        // 將增強標題對應回各專案的 Entry
+        // 將增強標題對應回各專案的 Entry，僅替換 Title
         for (var i = 0; i < allEntries.Count; i++)
         {
             var (projectName, _, entry) = allEntries[i];
             var enhancedTitle = enhancedTitles[i];
 
-            projectEntries[projectName].Add(new EnhancedTitleEntry
-            {
-                EnhancedTitle = enhancedTitle,
-                OriginalEntry = entry
-            });
+            projectEntries[projectName].Add(entry with { Title = enhancedTitle });
         }
 
-        return new EnhancedTitleResult { Projects = projectEntries };
+        return new ConsolidatedReleaseResult { Projects = projectEntries };
     }
 }

@@ -302,19 +302,19 @@ public class EnhanceTitlesWithCopilotTaskTests
             Times.Once);
 
         Assert.NotNull(_capturedRedisJson);
-        var result = _capturedRedisJson.ToTypedObject<EnhancedTitleResult>();
+        var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.Single(result.Projects);
         Assert.True(result.Projects.ContainsKey("project-d"));
 
         var entries = result.Projects["project-d"];
         Assert.Equal(2, entries.Count);
-        Assert.Equal("新增登入功能", entries[0].EnhancedTitle);
-        Assert.Equal("修正認證錯誤", entries[1].EnhancedTitle);
+        Assert.Equal("新增登入功能", entries[0].Title);
+        Assert.Equal("修正認證錯誤", entries[1].Title);
 
         // 驗證原始資料保留
-        Assert.Equal(400, entries[0].OriginalEntry.WorkItemId);
-        Assert.Equal(401, entries[1].OriginalEntry.WorkItemId);
+        Assert.Equal(400, entries[0].WorkItemId);
+        Assert.Equal(401, entries[1].WorkItemId);
     }
 
     // ===== 多專案情境 =====
@@ -343,12 +343,12 @@ public class EnhanceTitlesWithCopilotTaskTests
 
         // Assert
         Assert.NotNull(_capturedRedisJson);
-        var result = _capturedRedisJson.ToTypedObject<EnhancedTitleResult>();
+        var result = _capturedRedisJson.ToTypedObject<ConsolidatedReleaseResult>();
         Assert.NotNull(result);
         Assert.Equal(2, result.Projects.Count);
 
-        Assert.Equal("新增報表功能", result.Projects["project-x"][0].EnhancedTitle);
-        Assert.Equal("修正匯出問題", result.Projects["project-y"][0].EnhancedTitle);
+        Assert.Equal("新增報表功能", result.Projects["project-x"][0].Title);
+        Assert.Equal("修正匯出問題", result.Projects["project-y"][0].Title);
     }
 
     // ===== PR Title 中的空白項應排除 =====

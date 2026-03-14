@@ -86,7 +86,8 @@ public class CopilotTitleEnhancer : ITitleEnhancer
                 Mode = SystemMessageMode.Replace,
                 Content = SystemPrompt
             },
-            InfiniteSessions = new InfiniteSessionConfig { Enabled = false }
+            InfiniteSessions = new InfiniteSessionConfig { Enabled = false },
+            OnPermissionRequest = PermissionHandler.ApproveAll
         });
 
         _logger.LogDebug("Copilot session 已建立，正在發送標題增強請求");
