@@ -5,7 +5,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "dotnet: build",
-            "program": "${workspaceFolder}/src/ReleaseKit.Console/bin/Debug/net9.0/ReleaseKit.Console.dll",
+            "program": "${workspaceFolder}/src/ReleaseKit.Console/bin/Debug/net10.0/ReleaseKit.Console.dll",
             "args": [
                 // "fetch-gitlab-pr"
                 // "fetch-bitbucket-pr"
@@ -16,7 +16,8 @@
                 // "fetch-azure-workitems"
                 // "get-user-story"
                 // "consolidate-release-data"
-                "update-googlesheet"
+                // "update-googlesheet"
+                "enhance-titles"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

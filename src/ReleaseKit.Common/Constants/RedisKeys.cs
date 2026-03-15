@@ -59,5 +59,10 @@ public static class RedisKeys
         /// 整合後的 Release 資料欄位名稱
         /// </summary>
         public const string Consolidated = "Consolidated";
+
+        /// <summary>
+        /// 增強標題後的 Release 資料欄位名稱
+        /// </summary>
+        public const string EnhancedTitles = "EnhancedTitles";
     }
 }

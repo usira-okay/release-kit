@@ -53,5 +53,10 @@ public enum TaskType
     /// <summary>
     /// 整合 Release 資料
     /// </summary>
-    ConsolidateReleaseData
+    ConsolidateReleaseData,
+
+    /// <summary>
+    /// 使用 AI 增強 Release 標題
+    /// </summary>
+    EnhanceTitles
 }

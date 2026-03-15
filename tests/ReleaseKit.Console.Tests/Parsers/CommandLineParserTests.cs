@@ -67,6 +67,7 @@ public class CommandLineParserTests
     [InlineData("filter-gitlab-pr-by-user", TaskType.FilterGitLabPullRequestsByUser)]
     [InlineData("filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser)]
     [InlineData("consolidate-release-data", TaskType.ConsolidateReleaseData)]
+    [InlineData("enhance-titles", TaskType.EnhanceTitles)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -91,6 +92,7 @@ public class CommandLineParserTests
     [InlineData("FILTER-GITLAB-PR-BY-USER", TaskType.FilterGitLabPullRequestsByUser)]
     [InlineData("FiLtEr-BiTbUcKeT-pR-bY-uSeR", TaskType.FilterBitbucketPullRequestsByUser)]
     [InlineData("CONSOLIDATE-RELEASE-DATA", TaskType.ConsolidateReleaseData)]
+    [InlineData("ENHANCE-TITLES", TaskType.EnhanceTitles)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange

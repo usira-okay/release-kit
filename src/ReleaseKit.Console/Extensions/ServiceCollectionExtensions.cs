@@ -8,6 +8,7 @@ using ReleaseKit.Common.Constants;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Infrastructure.Copilot;
 using ReleaseKit.Infrastructure.GoogleSheets;
 using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.Time;
@@ -76,6 +77,9 @@ public static class ServiceCollectionExtensions
 
         // 註冊 ConsolidateReleaseData 配置（使用 AzureDevOps 區段的 TeamMapping）
         services.Configure<ReleaseKit.Application.Common.ConsolidateReleaseDataOptions>(configuration.GetSection("AzureDevOps"));
+
+        // 註冊 Copilot 配置
+        services.Configure<CopilotOptions>(configuration.GetSection("Copilot"));
 
         return services;
     }
@@ -209,6 +213,9 @@ public static class ServiceCollectionExtensions
 
         // 註冊 Google Sheet 服務
         services.AddSingleton<IGoogleSheetService, GoogleSheetService>();
+
+        // 註冊標題增強服務
+        services.AddTransient<ITitleEnhancer, CopilotTitleEnhancer>();
         
         // 註冊 Source Control Repositories
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
@@ -231,6 +238,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<GetUserStoryTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
+        services.AddTransient<EnhanceTitlesWithCopilotTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
