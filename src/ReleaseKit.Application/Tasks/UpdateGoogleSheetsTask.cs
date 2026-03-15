@@ -95,10 +95,27 @@ public class UpdateGoogleSheetsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取整合資料，若無資料則回傳 null
+    /// 從 Redis 讀取整合資料，若無資料則回傳 null。
+    /// 優先使用 enhance-titles 的結果，若無資料則退回 consolidate-release-data 的結果。
     /// </summary>
     private async Task<ConsolidatedReleaseResult?> ReadConsolidatedDataAsync()
     {
+        var enhancedJson = await _redisService.HashGetAsync(
+            RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles);
+
+        if (!string.IsNullOrEmpty(enhancedJson))
+        {
+            var enhancedResult = enhancedJson.ToTypedObject<ConsolidatedReleaseResult>();
+            if (enhancedResult?.Projects != null && enhancedResult.Projects.Count > 0)
+            {
+                _logger.LogInformation("使用 enhance-titles 的整合資料");
+                return enhancedResult;
+            }
+        }
+
+        _logger.LogInformation("enhance-titles 無資料，退回使用 consolidate-release-data 的整合資料");
+
+
         var consolidatedJson = await _redisService.HashGetAsync(
             RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
 
