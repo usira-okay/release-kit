@@ -60,6 +60,12 @@ public class UpdateGoogleSheetsTaskTests
             .ReturnsAsync(result?.ToJson());
     }
 
+    private void SetupRedisEnhancedTitlesData(ConsolidatedReleaseResult? result)
+    {
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles))
+            .ReturnsAsync(result?.ToJson());
+    }
+
     private void SetupSheetId(int? sheetId)
     {
         _googleSheetServiceMock.Setup(x => x.GetSheetIdByNameAsync(
@@ -150,7 +156,72 @@ public class UpdateGoogleSheetsTaskTests
     // ===== T008: 讀取 Redis 整合資料並反序列化 =====
 
     /// <summary>
-    /// T008: 測試讀取 Redis 整合資料並反序列化為 ConsolidatedReleaseResult
+    /// T008a: enhance-titles 有資料時，使用 EnhancedTitles
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_ShouldUseEnhancedTitles_WhenAvailable()
+    {
+        // Arrange
+        var enhanced = CreateConsolidatedResult(
+            ("my-repo", new[] { CreateEntry(12345, title: "Enhanced Title") }));
+        SetupRedisEnhancedTitlesData(enhanced);
+        SetupSheetId(0);
+
+        var sheetData = CreateSheetData(
+            ("my-repo", null),
+            (null, null));
+        SetupSheetData(sheetData);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert: EnhancedTitles 被讀取
+        _redisServiceMock.Verify(
+            x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles),
+            Times.Once);
+        // Assert: Consolidated 不被讀取
+        _redisServiceMock.Verify(
+            x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated),
+            Times.Never);
+    }
+
+    /// <summary>
+    /// T008b: enhance-titles 無資料時，退回使用 Consolidated
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_ShouldFallbackToConsolidated_WhenEnhancedTitlesEmpty()
+    {
+        // Arrange
+        SetupRedisEnhancedTitlesData(null);
+        var consolidated = CreateConsolidatedResult(
+            ("my-repo", new[] { CreateEntry(12345) }));
+        SetupRedisConsolidatedData(consolidated);
+        SetupSheetId(0);
+
+        var sheetData = CreateSheetData(
+            ("my-repo", null),
+            (null, null));
+        SetupSheetData(sheetData);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert: EnhancedTitles 被讀取（但無資料）
+        _redisServiceMock.Verify(
+            x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles),
+            Times.Once);
+        // Assert: 退回讀取 Consolidated
+        _redisServiceMock.Verify(
+            x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// T008c: 測試讀取 Redis 整合資料並反序列化為 ConsolidatedReleaseResult（向後相容）
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_ShouldReadRedisConsolidatedData()
@@ -158,6 +229,7 @@ public class UpdateGoogleSheetsTaskTests
         // Arrange
         var result = CreateConsolidatedResult(
             ("my-repo", new[] { CreateEntry(12345) }));
+        SetupRedisEnhancedTitlesData(null);
         SetupRedisConsolidatedData(result);
         SetupSheetId(0);
 
