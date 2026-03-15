@@ -14,4 +14,10 @@ public class CopilotOptions
     /// SendAndWaitAsync 的逾時時間（秒），預設 600 秒（10 分鐘）
     /// </summary>
     public int TimeoutSeconds { get; init; } = 600;
+
+    /// <summary>
+    /// GitHub Personal Access Token，用於 Copilot SDK 驗證身份。
+    /// 若未設定，SDK 將嘗試使用本機已登入的 GitHub 帳號。
+    /// </summary>
+    public string GitHubToken { get; init; } = string.Empty;
 }

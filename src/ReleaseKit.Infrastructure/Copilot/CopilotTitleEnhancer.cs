@@ -81,10 +81,27 @@ public class CopilotTitleEnhancer : ITitleEnhancer
         var inputJson = titleGroups.ToJson();
         var prompt = $"請從以下候選標題中，為每個項目選出最適合的標題：\n{inputJson}";
 
-        await using var client = new CopilotClient(new CopilotClientOptions
+        var token = _options.Value.GitHubToken;
+        var clientOptions = new CopilotClientOptions { AutoStart = true };
+        if (!string.IsNullOrWhiteSpace(token))
         {
-            AutoStart = true
-        });
+            clientOptions.GitHubToken = token;
+        }
+
+        await using var client = new CopilotClient(clientOptions);
+
+        // 驗證身份驗證狀態
+        var authStatus = await client.GetAuthStatusAsync();
+        if (authStatus is not { IsAuthenticated: true })
+        {
+            _logger.LogError(
+                "Copilot SDK 身份驗證失敗（IsAuthenticated: {IsAuthenticated}，AuthType: {AuthType}），無法增強標題",
+                authStatus?.IsAuthenticated,
+                authStatus?.AuthType ?? "unknown");
+            return GetFallbackTitles(titleGroups);
+        }
+
+        _logger.LogInformation("Copilot SDK 身份驗證成功（登入帳號: {Login}）", authStatus.Login);
 
         await using var session = await client.CreateSessionAsync(new SessionConfig
         {
