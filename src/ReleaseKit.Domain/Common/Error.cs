@@ -149,4 +149,43 @@ public sealed record Error(string Code, string Message)
         public static Error Unauthorized =>
             new("AzureDevOps.Unauthorized", "Azure DevOps API 驗證失敗，請檢查 Personal Access Token");
     }
+
+    /// <summary>
+    /// 風險分析相關錯誤
+    /// </summary>
+    public static class RiskAnalysis
+    {
+        /// <summary>
+        /// 無法取得 PR diff
+        /// </summary>
+        /// <param name="repoName">Repository 名稱</param>
+        /// <param name="prId">Pull Request 識別碼</param>
+        /// <returns>錯誤物件</returns>
+        public static Error DiffFetchFailed(string repoName, string prId) =>
+            new("RiskAnalysis.DiffFetchFailed", $"無法取得 PR diff: {repoName} PR#{prId}");
+
+        /// <summary>
+        /// Repository clone 失敗
+        /// </summary>
+        /// <param name="repoPath">Repository 路徑</param>
+        /// <param name="reason">失敗原因</param>
+        /// <returns>錯誤物件</returns>
+        public static Error CloneFailed(string repoPath, string reason) =>
+            new("RiskAnalysis.CloneFailed", $"Clone 失敗: {repoPath} - {reason}");
+
+        /// <summary>
+        /// AI 風險分析失敗
+        /// </summary>
+        /// <param name="phase">分析階段</param>
+        /// <param name="reason">失敗原因</param>
+        /// <returns>錯誤物件</returns>
+        public static Error AnalysisFailed(string phase, string reason) =>
+            new("RiskAnalysis.AnalysisFailed", $"風險分析失敗 ({phase}): {reason}");
+
+        /// <summary>
+        /// Redis 中沒有已取得的 PR 資料
+        /// </summary>
+        public static Error NoPullRequestData =>
+            new("RiskAnalysis.NoPullRequestData", "Redis 中沒有已取得的 PR 資料");
+    }
 }

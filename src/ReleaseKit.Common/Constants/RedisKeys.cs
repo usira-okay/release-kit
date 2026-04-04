@@ -64,5 +64,17 @@ public static class RedisKeys
         /// 增強標題後的 Release 資料欄位名稱
         /// </summary>
         public const string EnhancedTitles = "EnhancedTitles";
+
+        /// <summary>風險分析 — PR Diff 資料</summary>
+        public const string RiskDiffs = "RiskAnalysis:Diffs";
+
+        /// <summary>風險分析 — Phase 2 初篩結果</summary>
+        public const string RiskScreenResults = "RiskAnalysis:ScreenResults";
+
+        /// <summary>風險分析 — Phase 3 深度分析結果</summary>
+        public const string RiskDeepResults = "RiskAnalysis:DeepResults";
+
+        /// <summary>風險分析 — Phase 4 跨服務分析結果</summary>
+        public const string RiskCrossServiceResults = "RiskAnalysis:CrossServiceResults";
     }
 }
