@@ -1,8 +1,6 @@
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Common.RiskAnalysis;
-using ReleaseKit.Common.Constants;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders.Models;
 using ReleaseKit.Infrastructure.SourceControl.Bitbucket;
@@ -34,7 +32,7 @@ public class BitbucketDiffProvider : IDiffProvider
     /// <param name="bitbucketRepository">Bitbucket Repository</param>
     /// <param name="logger">日誌記錄器</param>
     public BitbucketDiffProvider(
-        [FromKeyedServices(HttpClientNames.Bitbucket)] IBitbucketRepository bitbucketRepository,
+        IBitbucketRepository bitbucketRepository,
         ILogger<BitbucketDiffProvider> logger)
     {
         _bitbucketRepository = bitbucketRepository;

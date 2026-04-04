@@ -203,7 +203,7 @@ public class AnalyzeReleaseRiskTask : ITask
         MergeRequestOutput pr,
         string platformName)
     {
-        await semaphore.WaitAsync();
+        await semaphore.WaitAsync(CancellationToken.None);
         try
         {
             var diffResult = await diffProvider.GetDiffAsync(projectPath, pr.PrId);

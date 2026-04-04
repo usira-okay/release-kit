@@ -1,7 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Common.RiskAnalysis;
-using ReleaseKit.Common.Constants;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Infrastructure.SourceControl.GitLab;
 
@@ -21,7 +19,7 @@ public class GitLabDiffProvider : IDiffProvider
     /// <param name="gitLabRepository">GitLab Repository</param>
     /// <param name="logger">日誌記錄器</param>
     public GitLabDiffProvider(
-        [FromKeyedServices(HttpClientNames.GitLab)] IGitLabRepository gitLabRepository,
+        IGitLabRepository gitLabRepository,
         ILogger<GitLabDiffProvider> logger)
     {
         _gitLabRepository = gitLabRepository;
