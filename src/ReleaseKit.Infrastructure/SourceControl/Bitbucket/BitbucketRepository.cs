@@ -6,6 +6,7 @@ using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders.Models;
 using ReleaseKit.Infrastructure.SourceControl.Bitbucket.Models;
 
 namespace ReleaseKit.Infrastructure.SourceControl.Bitbucket;
@@ -13,7 +14,7 @@ namespace ReleaseKit.Infrastructure.SourceControl.Bitbucket;
 /// <summary>
 /// Bitbucket Repository 實作
 /// </summary>
-public class BitbucketRepository : ISourceControlRepository
+public class BitbucketRepository : IBitbucketRepository
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<BitbucketRepository> _logger;
@@ -316,5 +317,54 @@ public class BitbucketRepository : ISourceControlRepository
                 RateLimitMaxRetries);
             await Task.Delay(_rateLimitDelay, cancellationToken);
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<BitbucketRiskDiffStatResponse>> GetPullRequestDiffStatAsync(
+        string projectPath, string prId)
+    {
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
+        var url = $"/2.0/repositories/{projectPath}/pullrequests/{prId}/diffstat";
+        _logger.LogDebug("取得 Bitbucket diffstat: {Url}", url);
+
+        var response = await SendWithRateLimitRetryAsync(httpClient, url, CancellationToken.None);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Bitbucket diffstat 取得失敗: HTTP {StatusCode} URL={Url}",
+                (int)response.StatusCode, url);
+            return Result<BitbucketRiskDiffStatResponse>.Failure(
+                response.StatusCode == HttpStatusCode.Unauthorized
+                    ? Error.SourceControl.Unauthorized
+                    : Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
+        }
+
+        var content = await response.Content.ReadAsStringAsync();
+        var parsed = content.ToTypedObject<BitbucketRiskDiffStatResponse>();
+
+        return Result<BitbucketRiskDiffStatResponse>.Success(parsed ?? new BitbucketRiskDiffStatResponse());
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<string>> GetPullRequestRawDiffAsync(string projectPath, string prId)
+    {
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
+        var url = $"/2.0/repositories/{projectPath}/pullrequests/{prId}/diff";
+        _logger.LogDebug("取得 Bitbucket raw diff: {Url}", url);
+
+        var response = await SendWithRateLimitRetryAsync(httpClient, url, CancellationToken.None);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Bitbucket raw diff 取得失敗: HTTP {StatusCode} URL={Url}",
+                (int)response.StatusCode, url);
+            return Result<string>.Failure(
+                response.StatusCode == HttpStatusCode.Unauthorized
+                    ? Error.SourceControl.Unauthorized
+                    : Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
+        }
+
+        var content = await response.Content.ReadAsStringAsync();
+        return Result<string>.Success(content);
     }
 }

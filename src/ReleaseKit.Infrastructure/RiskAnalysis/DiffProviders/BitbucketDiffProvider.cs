@@ -1,11 +1,11 @@
-using System.Net;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Common.RiskAnalysis;
 using ReleaseKit.Common.Constants;
-using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders.Models;
+using ReleaseKit.Infrastructure.SourceControl.Bitbucket;
 
 namespace ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 
@@ -18,7 +18,7 @@ namespace ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 /// </remarks>
 public class BitbucketDiffProvider : IDiffProvider
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IBitbucketRepository _bitbucketRepository;
     private readonly ILogger<BitbucketDiffProvider> _logger;
 
     /// <summary>
@@ -31,27 +31,25 @@ public class BitbucketDiffProvider : IDiffProvider
     /// <summary>
     /// 建構子
     /// </summary>
-    /// <param name="httpClientFactory">HttpClient 工廠</param>
+    /// <param name="bitbucketRepository">Bitbucket Repository</param>
     /// <param name="logger">日誌記錄器</param>
     public BitbucketDiffProvider(
-        IHttpClientFactory httpClientFactory,
+        [FromKeyedServices(HttpClientNames.Bitbucket)] IBitbucketRepository bitbucketRepository,
         ILogger<BitbucketDiffProvider> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _bitbucketRepository = bitbucketRepository;
         _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task<Result<PullRequestDiff>> GetDiffAsync(string projectPath, string prId)
     {
-        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
-
         // 步驟一：取得 diffstat（檔案層級統計資料）
-        var diffStatResult = await FetchDiffStatAsync(httpClient, projectPath, prId);
+        var diffStatResult = await _bitbucketRepository.GetPullRequestDiffStatAsync(projectPath, prId);
         if (diffStatResult.IsFailure)
             return Result<PullRequestDiff>.Failure(diffStatResult.Error!);
 
-        var diffStatEntries = diffStatResult.Value!;
+        var diffStatEntries = diffStatResult.Value!.Values;
 
         // 若無任何檔案變更，直接回傳空結果
         if (diffStatEntries.Count == 0)
@@ -66,7 +64,7 @@ public class BitbucketDiffProvider : IDiffProvider
         }
 
         // 步驟二：取得 raw diff 內容
-        var rawDiffResult = await FetchRawDiffAsync(httpClient, projectPath, prId);
+        var rawDiffResult = await _bitbucketRepository.GetPullRequestRawDiffAsync(projectPath, prId);
         if (rawDiffResult.IsFailure)
             return Result<PullRequestDiff>.Failure(rawDiffResult.Error!);
 
@@ -83,54 +81,6 @@ public class BitbucketDiffProvider : IDiffProvider
             Platform = "Bitbucket",
             Files = files
         });
-    }
-
-    /// <summary>
-    /// 從 Bitbucket DiffStat API 取得檔案層級變更統計
-    /// </summary>
-    private async Task<Result<List<BitbucketRiskDiffStatEntry>>> FetchDiffStatAsync(
-        HttpClient httpClient, string projectPath, string prId)
-    {
-        var url = $"/2.0/repositories/{projectPath}/pullrequests/{prId}/diffstat";
-        _logger.LogDebug("取得 Bitbucket diffstat: {Url}", url);
-
-        var response = await httpClient.GetAsync(url);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return Result<List<BitbucketRiskDiffStatEntry>>.Failure(
-                response.StatusCode == HttpStatusCode.Unauthorized
-                    ? Error.SourceControl.Unauthorized
-                    : Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
-        }
-
-        var content = await response.Content.ReadAsStringAsync();
-        var parsed = content.ToTypedObject<BitbucketRiskDiffStatResponse>();
-
-        return Result<List<BitbucketRiskDiffStatEntry>>.Success(parsed?.Values ?? []);
-    }
-
-    /// <summary>
-    /// 從 Bitbucket Diff API 取得 raw unified diff 文字
-    /// </summary>
-    private async Task<Result<string>> FetchRawDiffAsync(
-        HttpClient httpClient, string projectPath, string prId)
-    {
-        var url = $"/2.0/repositories/{projectPath}/pullrequests/{prId}/diff";
-        _logger.LogDebug("取得 Bitbucket raw diff: {Url}", url);
-
-        var response = await httpClient.GetAsync(url);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return Result<string>.Failure(
-                response.StatusCode == HttpStatusCode.Unauthorized
-                    ? Error.SourceControl.Unauthorized
-                    : Error.SourceControl.ApiError($"HTTP {(int)response.StatusCode}"));
-        }
-
-        var content = await response.Content.ReadAsStringAsync();
-        return Result<string>.Success(content);
     }
 
     /// <summary>

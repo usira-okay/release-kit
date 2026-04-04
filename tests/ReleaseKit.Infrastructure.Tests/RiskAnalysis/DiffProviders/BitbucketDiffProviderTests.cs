@@ -1,11 +1,10 @@
-using System.Net;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
-using FluentAssertions;
-using ReleaseKit.Common.Extensions;
+using ReleaseKit.Domain.Common;
 using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders.Models;
+using ReleaseKit.Infrastructure.SourceControl.Bitbucket;
 
 namespace ReleaseKit.Infrastructure.Tests.RiskAnalysis.DiffProviders;
 
@@ -14,69 +13,36 @@ namespace ReleaseKit.Infrastructure.Tests.RiskAnalysis.DiffProviders;
 /// </summary>
 public class BitbucketDiffProviderTests
 {
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
-    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock = new();
+    private readonly Mock<IBitbucketRepository> _bitbucketRepositoryMock = new();
     private readonly Mock<ILogger<BitbucketDiffProvider>> _loggerMock = new();
 
     private const string ProjectPath = "my-workspace/my-repo";
     private const string PrId = "42";
-    private static readonly Uri BaseAddress = new("https://api.bitbucket.org/");
 
     private BitbucketDiffProvider CreateSut()
     {
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
-        {
-            BaseAddress = BaseAddress
-        };
-        _httpClientFactoryMock.Setup(x => x.CreateClient("Bitbucket")).Returns(httpClient);
-        return new BitbucketDiffProvider(_httpClientFactoryMock.Object, _loggerMock.Object);
+        return new BitbucketDiffProvider(_bitbucketRepositoryMock.Object, _loggerMock.Object);
     }
 
-    private void SetupHttpResponses(
-        BitbucketRiskDiffStatResponse diffStatResponse,
-        string rawDiff)
+    private void SetupDiffStatSuccess(BitbucketRiskDiffStatResponse response)
     {
-        _httpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .Returns((HttpRequestMessage request, CancellationToken _) =>
-            {
-                if (request.RequestUri!.PathAndQuery.Contains("/diffstat"))
-                {
-                    return Task.FromResult(new HttpResponseMessage
-                    {
-                        StatusCode = HttpStatusCode.OK,
-                        Content = new StringContent(diffStatResponse.ToJson())
-                    });
-                }
-
-                if (request.RequestUri.PathAndQuery.Contains("/diff"))
-                {
-                    return Task.FromResult(new HttpResponseMessage
-                    {
-                        StatusCode = HttpStatusCode.OK,
-                        Content = new StringContent(rawDiff)
-                    });
-                }
-
-                return Task.FromResult(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.NotFound
-                });
-            });
+        _bitbucketRepositoryMock
+            .Setup(r => r.GetPullRequestDiffStatAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<BitbucketRiskDiffStatResponse>.Success(response));
     }
 
-    private void SetupHttpError(HttpStatusCode statusCode)
+    private void SetupRawDiffSuccess(string rawDiff)
     {
-        _httpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = statusCode
-            });
+        _bitbucketRepositoryMock
+            .Setup(r => r.GetPullRequestRawDiffAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<string>.Success(rawDiff));
+    }
+
+    private void SetupDiffStatFailure(Error error)
+    {
+        _bitbucketRepositoryMock
+            .Setup(r => r.GetPullRequestDiffStatAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<BitbucketRiskDiffStatResponse>.Failure(error));
     }
 
     [Fact]
@@ -143,7 +109,8 @@ public class BitbucketDiffProviderTests
             +}
             """;
 
-        SetupHttpResponses(diffStatResponse, rawDiff);
+        SetupDiffStatSuccess(diffStatResponse);
+        SetupRawDiffSuccess(rawDiff);
         var sut = CreateSut();
 
         // Act
@@ -175,7 +142,7 @@ public class BitbucketDiffProviderTests
     public async Task GetDiffAsync_WithUnauthorized_ShouldReturnError()
     {
         // Arrange
-        SetupHttpError(HttpStatusCode.Unauthorized);
+        SetupDiffStatFailure(Error.SourceControl.Unauthorized);
         var sut = CreateSut();
 
         // Act
@@ -190,7 +157,7 @@ public class BitbucketDiffProviderTests
     public async Task GetDiffAsync_WithApiError_ShouldReturnError()
     {
         // Arrange
-        SetupHttpError(HttpStatusCode.InternalServerError);
+        SetupDiffStatFailure(Error.SourceControl.ApiError("HTTP 500"));
         var sut = CreateSut();
 
         // Act
@@ -205,12 +172,8 @@ public class BitbucketDiffProviderTests
     public async Task GetDiffAsync_WithEmptyDiffstat_ShouldReturnEmptyFileList()
     {
         // Arrange
-        var diffStatResponse = new BitbucketRiskDiffStatResponse
-        {
-            Values = []
-        };
-
-        SetupHttpResponses(diffStatResponse, string.Empty);
+        var diffStatResponse = new BitbucketRiskDiffStatResponse { Values = [] };
+        SetupDiffStatSuccess(diffStatResponse);
         var sut = CreateSut();
 
         // Act
@@ -275,7 +238,8 @@ public class BitbucketDiffProviderTests
             -public class Obsolete { }
             """;
 
-        SetupHttpResponses(diffStatResponse, rawDiff);
+        SetupDiffStatSuccess(diffStatResponse);
+        SetupRawDiffSuccess(rawDiff);
         var sut = CreateSut();
 
         // Act
@@ -305,42 +269,25 @@ public class BitbucketDiffProviderTests
     public async Task GetDiffAsync_WhenDiffEndpointFails_ShouldReturnError()
     {
         // Arrange
-        _httpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .Returns((HttpRequestMessage request, CancellationToken _) =>
-            {
-                if (request.RequestUri!.PathAndQuery.Contains("/diffstat"))
+        var diffStatResponse = new BitbucketRiskDiffStatResponse
+        {
+            Values =
+            [
+                new BitbucketRiskDiffStatEntry
                 {
-                    var diffStatResponse = new BitbucketRiskDiffStatResponse
-                    {
-                        Values =
-                        [
-                            new BitbucketRiskDiffStatEntry
-                            {
-                                Type = "diffstat",
-                                Status = "modified",
-                                LinesAdded = 1,
-                                LinesRemoved = 0,
-                                Old = new BitbucketRiskFileRef { Path = "src/File.cs" },
-                                New = new BitbucketRiskFileRef { Path = "src/File.cs" }
-                            }
-                        ]
-                    };
-
-                    return Task.FromResult(new HttpResponseMessage
-                    {
-                        StatusCode = HttpStatusCode.OK,
-                        Content = new StringContent(diffStatResponse.ToJson())
-                    });
+                    Type = "diffstat",
+                    Status = "modified",
+                    LinesAdded = 1,
+                    LinesRemoved = 0,
+                    Old = new BitbucketRiskFileRef { Path = "src/File.cs" },
+                    New = new BitbucketRiskFileRef { Path = "src/File.cs" }
                 }
-
-                return Task.FromResult(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.InternalServerError
-                });
-            });
+            ]
+        };
+        SetupDiffStatSuccess(diffStatResponse);
+        _bitbucketRepositoryMock
+            .Setup(r => r.GetPullRequestRawDiffAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<string>.Failure(Error.SourceControl.ApiError("HTTP 500")));
 
         var sut = CreateSut();
 

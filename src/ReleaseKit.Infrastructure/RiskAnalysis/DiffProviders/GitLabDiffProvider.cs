@@ -1,10 +1,9 @@
-using System.Net;
-using System.Web;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Common.RiskAnalysis;
 using ReleaseKit.Common.Constants;
-using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Common;
+using ReleaseKit.Infrastructure.SourceControl.GitLab;
 
 namespace ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 
@@ -13,49 +12,33 @@ namespace ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 /// </summary>
 public class GitLabDiffProvider : IDiffProvider
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IGitLabRepository _gitLabRepository;
     private readonly ILogger<GitLabDiffProvider> _logger;
 
     /// <summary>
     /// 初始化 <see cref="GitLabDiffProvider"/> 實例
     /// </summary>
-    /// <param name="httpClientFactory">HTTP 客戶端工廠</param>
+    /// <param name="gitLabRepository">GitLab Repository</param>
     /// <param name="logger">日誌記錄器</param>
     public GitLabDiffProvider(
-        IHttpClientFactory httpClientFactory,
+        [FromKeyedServices(HttpClientNames.GitLab)] IGitLabRepository gitLabRepository,
         ILogger<GitLabDiffProvider> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _gitLabRepository = gitLabRepository;
         _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task<Result<PullRequestDiff>> GetDiffAsync(string projectPath, string prId)
     {
-        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
-        var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
+        var changesResult = await _gitLabRepository.GetMergeRequestChangesAsync(projectPath, prId);
 
-        var url = $"/api/v4/projects/{encodedProjectPath}/merge_requests/{prId}/changes";
-        _logger.LogInformation("正在取得 GitLab MR diff: {ProjectPath} MR!{PrId}", projectPath, prId);
-
-        var response = await httpClient.GetAsync(url);
-
-        if (!response.IsSuccessStatusCode)
+        if (changesResult.IsFailure)
         {
-            _logger.LogWarning("GitLab MR diff 取得失敗: HTTP {StatusCode}", (int)response.StatusCode);
-            return Result<PullRequestDiff>.Failure(
-                response.StatusCode == HttpStatusCode.Unauthorized
-                    ? Error.SourceControl.Unauthorized
-                    : Error.RiskAnalysis.DiffFetchFailed(projectPath, prId));
+            return Result<PullRequestDiff>.Failure(changesResult.Error!);
         }
 
-        var content = await response.Content.ReadAsStringAsync();
-        var changesResponse = content.ToTypedObject<GitLabMrChangesResponse>();
-
-        if (changesResponse == null)
-        {
-            return Result<PullRequestDiff>.Failure(Error.SourceControl.InvalidResponse);
-        }
+        var changesResponse = changesResult.Value!;
 
         var files = changesResponse.Changes.Select(change => new FileDiff
         {

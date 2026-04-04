@@ -226,7 +226,11 @@ public static class ServiceCollectionExtensions
         // 註冊 Source Control Repositories
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
             ReleaseKit.Infrastructure.SourceControl.GitLab.GitLabRepository>(HttpClientNames.GitLab);
+        services.AddKeyedTransient<ReleaseKit.Infrastructure.SourceControl.GitLab.IGitLabRepository, 
+            ReleaseKit.Infrastructure.SourceControl.GitLab.GitLabRepository>(HttpClientNames.GitLab);
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
+            ReleaseKit.Infrastructure.SourceControl.Bitbucket.BitbucketRepository>(HttpClientNames.Bitbucket);
+        services.AddKeyedTransient<ReleaseKit.Infrastructure.SourceControl.Bitbucket.IBitbucketRepository,
             ReleaseKit.Infrastructure.SourceControl.Bitbucket.BitbucketRepository>(HttpClientNames.Bitbucket);
         
         // 註冊 Azure DevOps Repository

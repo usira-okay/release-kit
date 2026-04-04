@@ -6,6 +6,7 @@ using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Common;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 using ReleaseKit.Infrastructure.SourceControl.GitLab.Models;
 
 namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
@@ -13,7 +14,7 @@ namespace ReleaseKit.Infrastructure.SourceControl.GitLab;
 /// <summary>
 /// GitLab Repository 實作
 /// </summary>
-public class GitLabRepository : ISourceControlRepository
+public class GitLabRepository : IGitLabRepository
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitLabRepository> _logger;
@@ -274,5 +275,38 @@ public class GitLabRepository : ISourceControlRepository
             .ToList();
 
         return Result<IReadOnlyList<MergeRequest>>.Success(mergeRequests);
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<GitLabMrChangesResponse>> GetMergeRequestChangesAsync(
+        string projectPath, string prId)
+    {
+        var httpClient = _httpClientFactory.CreateClient(HttpClientNames.GitLab);
+        var encodedProjectPath = HttpUtility.UrlEncode(projectPath);
+
+        var url = $"/api/v4/projects/{encodedProjectPath}/merge_requests/{prId}/changes";
+        _logger.LogInformation("正在取得 GitLab MR diff: {ProjectPath} MR!{PrId}", projectPath, prId);
+
+        var response = await httpClient.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("GitLab MR diff 取得失敗: HTTP {StatusCode}", (int)response.StatusCode);
+            return Result<GitLabMrChangesResponse>.Failure(
+                response.StatusCode == HttpStatusCode.Unauthorized
+                    ? Error.SourceControl.Unauthorized
+                    : Error.RiskAnalysis.DiffFetchFailed(projectPath, prId));
+        }
+
+        var content = await response.Content.ReadAsStringAsync();
+        var changesResponse = content.ToTypedObject<GitLabMrChangesResponse>();
+
+        if (changesResponse == null)
+        {
+            return Result<GitLabMrChangesResponse>.Failure(Error.SourceControl.InvalidResponse);
+        }
+
+        _logger.LogInformation("GitLab MR diff 取得完成: {FileCount} 個檔案變更", changesResponse.Changes.Count);
+        return Result<GitLabMrChangesResponse>.Success(changesResponse);
     }
 }

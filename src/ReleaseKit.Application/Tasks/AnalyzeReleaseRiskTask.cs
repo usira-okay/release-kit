@@ -140,62 +140,86 @@ public class AnalyzeReleaseRiskTask : ITask
     /// </summary>
     private async Task<List<PullRequestDiff>> CollectDiffsAsync()
     {
-        var allDiffs = new List<PullRequestDiff>();
+        using var semaphore = new SemaphoreSlim(5, 5);
+        var diffTasks = new List<Task<PullRequestDiff?>>();
 
-        // 處理 GitLab PR
+        // 收集 GitLab 平台的 diff 任務
         var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests);
         if (!string.IsNullOrEmpty(gitLabJson))
         {
             var gitLabResult = gitLabJson.ToTypedObject<FetchResult>();
             if (gitLabResult != null)
             {
-                foreach (var project in gitLabResult.Results.Where(r => r.Error == null))
-                {
-                    foreach (var pr in project.PullRequests)
-                    {
-                        var diffResult = await _gitLabDiffProvider.GetDiffAsync(project.ProjectPath, pr.PrId);
-                        if (diffResult.IsSuccess)
-                        {
-                            allDiffs.Add(diffResult.Value! with { PullRequest = pr });
-                        }
-                        else
-                        {
-                            _logger.LogWarning("GitLab diff 取得失敗: {Project} PR#{PrId} - {Error}",
-                                project.ProjectPath, pr.PrId, diffResult.Error?.Message);
-                        }
-                    }
-                }
+                diffTasks.AddRange(
+                    CreateDiffTasks(gitLabResult, _gitLabDiffProvider, semaphore, "GitLab"));
             }
         }
 
-        // 處理 Bitbucket PR
+        // 收集 Bitbucket 平台的 diff 任務
         var bitbucketJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests);
         if (!string.IsNullOrEmpty(bitbucketJson))
         {
             var bitbucketResult = bitbucketJson.ToTypedObject<FetchResult>();
             if (bitbucketResult != null)
             {
-                foreach (var project in bitbucketResult.Results.Where(r => r.Error == null))
-                {
-                    foreach (var pr in project.PullRequests)
-                    {
-                        var diffResult = await _bitbucketDiffProvider.GetDiffAsync(project.ProjectPath, pr.PrId);
-                        if (diffResult.IsSuccess)
-                        {
-                            allDiffs.Add(diffResult.Value! with { PullRequest = pr });
-                        }
-                        else
-                        {
-                            _logger.LogWarning("Bitbucket diff 取得失敗: {Project} PR#{PrId} - {Error}",
-                                project.ProjectPath, pr.PrId, diffResult.Error?.Message);
-                        }
-                    }
-                }
+                diffTasks.AddRange(
+                    CreateDiffTasks(bitbucketResult, _bitbucketDiffProvider, semaphore, "Bitbucket"));
             }
         }
 
+        var results = await Task.WhenAll(diffTasks);
+        var allDiffs = results.OfType<PullRequestDiff>().ToList();
+
         _logger.LogInformation("共取得 {Count} 個 PR diff", allDiffs.Count);
         return allDiffs;
+    }
+
+    /// <summary>
+    /// 為指定平台的所有 PR 建立並行的 diff 擷取任務清單（共用 Semaphore，最多 5 個同時執行）
+    /// </summary>
+    private IEnumerable<Task<PullRequestDiff?>> CreateDiffTasks(
+        FetchResult fetchResult,
+        IDiffProvider diffProvider,
+        SemaphoreSlim semaphore,
+        string platformName)
+    {
+        foreach (var project in fetchResult.Results.Where(r => r.Error == null))
+        {
+            foreach (var pr in project.PullRequests)
+            {
+                yield return FetchDiffWithSemaphoreAsync(
+                    diffProvider, semaphore, project.ProjectPath, pr, platformName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 使用 Semaphore 控制並行上限，擷取單一 PR 的 diff
+    /// </summary>
+    private async Task<PullRequestDiff?> FetchDiffWithSemaphoreAsync(
+        IDiffProvider diffProvider,
+        SemaphoreSlim semaphore,
+        string projectPath,
+        MergeRequestOutput pr,
+        string platformName)
+    {
+        await semaphore.WaitAsync();
+        try
+        {
+            var diffResult = await diffProvider.GetDiffAsync(projectPath, pr.PrId);
+            if (diffResult.IsSuccess)
+            {
+                return diffResult.Value! with { PullRequest = pr };
+            }
+
+            _logger.LogWarning("{Platform} diff 取得失敗: {Project} PR#{PrId} - {Error}",
+                platformName, projectPath, pr.PrId, diffResult.Error?.Message);
+            return null;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
     }
 
     /// <summary>

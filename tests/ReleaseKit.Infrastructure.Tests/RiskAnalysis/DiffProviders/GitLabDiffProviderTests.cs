@@ -1,10 +1,9 @@
-using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
-using ReleaseKit.Common.Extensions;
+using ReleaseKit.Domain.Common;
 using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
+using ReleaseKit.Infrastructure.SourceControl.GitLab;
 
 namespace ReleaseKit.Infrastructure.Tests.RiskAnalysis.DiffProviders;
 
@@ -13,14 +12,12 @@ namespace ReleaseKit.Infrastructure.Tests.RiskAnalysis.DiffProviders;
 /// </summary>
 public class GitLabDiffProviderTests
 {
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
-    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<IGitLabRepository> _gitLabRepositoryMock;
     private readonly Mock<ILogger<GitLabDiffProvider>> _loggerMock;
 
     public GitLabDiffProviderTests()
     {
-        _httpClientFactoryMock = new Mock<IHttpClientFactory>();
-        _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        _gitLabRepositoryMock = new Mock<IGitLabRepository>();
         _loggerMock = new Mock<ILogger<GitLabDiffProvider>>();
     }
 
@@ -50,7 +47,9 @@ public class GitLabDiffProviderTests
                 }
             }
         };
-        SetupHttpResponse(changesResponse);
+        _gitLabRepositoryMock
+            .Setup(r => r.GetMergeRequestChangesAsync("my-group/my-project", "42"))
+            .ReturnsAsync(Result<GitLabMrChangesResponse>.Success(changesResponse));
         var sut = CreateSut();
 
         // Act
@@ -75,7 +74,9 @@ public class GitLabDiffProviderTests
     public async Task GetDiffAsync_WithUnauthorized_ShouldReturnUnauthorizedError()
     {
         // Arrange
-        SetupHttpResponse(new GitLabMrChangesResponse(), HttpStatusCode.Unauthorized);
+        _gitLabRepositoryMock
+            .Setup(r => r.GetMergeRequestChangesAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<GitLabMrChangesResponse>.Failure(Error.SourceControl.Unauthorized));
         var sut = CreateSut();
 
         // Act
@@ -90,7 +91,10 @@ public class GitLabDiffProviderTests
     public async Task GetDiffAsync_WithApiError_ShouldReturnDiffFetchFailedError()
     {
         // Arrange
-        SetupHttpResponse(new GitLabMrChangesResponse(), HttpStatusCode.InternalServerError);
+        _gitLabRepositoryMock
+            .Setup(r => r.GetMergeRequestChangesAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<GitLabMrChangesResponse>.Failure(
+                Error.RiskAnalysis.DiffFetchFailed("my-group/my-project", "42")));
         var sut = CreateSut();
 
         // Act
@@ -109,7 +113,9 @@ public class GitLabDiffProviderTests
         {
             Changes = new List<GitLabMrChangeItem>()
         };
-        SetupHttpResponse(changesResponse);
+        _gitLabRepositoryMock
+            .Setup(r => r.GetMergeRequestChangesAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<GitLabMrChangesResponse>.Success(changesResponse));
         var sut = CreateSut();
 
         // Act
@@ -146,7 +152,9 @@ public class GitLabDiffProviderTests
                 }
             }
         };
-        SetupHttpResponse(changesResponse);
+        _gitLabRepositoryMock
+            .Setup(r => r.GetMergeRequestChangesAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Result<GitLabMrChangesResponse>.Success(changesResponse));
         var sut = CreateSut();
 
         // Act
@@ -182,28 +190,6 @@ public class GitLabDiffProviderTests
 
     private GitLabDiffProvider CreateSut()
     {
-        return new GitLabDiffProvider(_httpClientFactoryMock.Object, _loggerMock.Object);
-    }
-
-    private void SetupHttpResponse<T>(T responseBody, HttpStatusCode statusCode = HttpStatusCode.OK)
-    {
-        var json = responseBody.ToJson();
-        _httpMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new StringContent(json)
-            });
-
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object)
-        {
-            BaseAddress = new Uri("https://gitlab.example.com/")
-        };
-        _httpClientFactoryMock.Setup(x => x.CreateClient("GitLab")).Returns(httpClient);
+        return new GitLabDiffProvider(_gitLabRepositoryMock.Object, _loggerMock.Object);
     }
 }
