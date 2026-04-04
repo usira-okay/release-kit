@@ -8,9 +8,12 @@ using ReleaseKit.Common.Constants;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
+using ReleaseKit.Application.Common.RiskAnalysis;
 using ReleaseKit.Infrastructure.Copilot;
 using ReleaseKit.Infrastructure.GoogleSheets;
 using ReleaseKit.Infrastructure.Redis;
+using ReleaseKit.Infrastructure.RiskAnalysis;
+using ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 using ReleaseKit.Infrastructure.Time;
 using StackExchange.Redis;
 
@@ -80,6 +83,9 @@ public static class ServiceCollectionExtensions
 
         // 註冊 Copilot 配置
         services.Configure<CopilotOptions>(configuration.GetSection("Copilot"));
+
+        // 註冊 RiskAnalysis 配置
+        services.Configure<RiskAnalysisOptions>(configuration.GetSection("RiskAnalysis"));
 
         return services;
     }
@@ -227,6 +233,20 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ReleaseKit.Domain.Abstractions.IAzureDevOpsRepository, 
             ReleaseKit.Infrastructure.AzureDevOps.AzureDevOpsRepository>();
         
+        // 註冊 RiskAnalysis DiffProvider（Keyed DI）
+        services.AddKeyedTransient<IDiffProvider, GitLabDiffProvider>("GitLab");
+        services.AddKeyedTransient<IDiffProvider, BitbucketDiffProvider>("Bitbucket");
+
+        // 註冊 RiskAnalysis 基礎設施服務
+        services.AddTransient<IRepositoryCloner, RepositoryCloner>();
+        services.AddTransient<IProcessRunner, ProcessRunner>();
+
+        // 註冊 RiskAnalysis 領域服務
+        services.AddTransient<IRiskAnalyzer, CopilotRiskAnalyzer>();
+
+        // 註冊 RiskAnalysis 應用服務
+        services.AddTransient<RiskReportGenerator>();
+
         // 註冊任務
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();
@@ -239,6 +259,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetUserStoryTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
         services.AddTransient<EnhanceTitlesWithCopilotTask>();
+        services.AddTransient<AnalyzeReleaseRiskTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();

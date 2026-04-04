@@ -20,6 +20,7 @@ public class CommandLineParser
         { "update-googlesheet", TaskType.UpdateGoogleSheets },
         { "consolidate-release-data", TaskType.ConsolidateReleaseData },
         { "enhance-titles", TaskType.EnhanceTitles },
+        { "release-risk", TaskType.AnalyzeReleaseRisk },
     };
 
     /// <summary>

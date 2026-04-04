@@ -36,6 +36,7 @@ public class TaskFactory
             TaskType.GetUserStory => _serviceProvider.GetRequiredService<GetUserStoryTask>(),
             TaskType.ConsolidateReleaseData => _serviceProvider.GetRequiredService<ConsolidateReleaseDataTask>(),
             TaskType.EnhanceTitles => _serviceProvider.GetRequiredService<EnhanceTitlesWithCopilotTask>(),
+            TaskType.AnalyzeReleaseRisk => _serviceProvider.GetRequiredService<AnalyzeReleaseRiskTask>(),
             _ => throw new ArgumentException($"不支援的任務類型: {taskType}", nameof(taskType))
         };
     }
