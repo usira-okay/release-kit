@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Common.RiskAnalysis;
 using ReleaseKit.Domain.Common;
@@ -11,6 +12,20 @@ public class RepositoryCloner : IRepositoryCloner
 {
     private readonly IProcessRunner _processRunner;
     private readonly ILogger<RepositoryCloner> _logger;
+
+    /// <summary>
+    /// 允許作為 git branch 名稱的字元集合（英數字、/、-、_、.）
+    /// </summary>
+    private static readonly Regex SafeBranchNameRegex = new(
+        @"^[a-zA-Z0-9/_.\-]+$",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// 用於隱藏 clone URL 中的認證資訊（user:password@host）
+    /// </summary>
+    private static readonly Regex CredentialsInUrlRegex = new(
+        @"(?<=https?://)([^@]+)@",
+        RegexOptions.Compiled);
 
     /// <summary>
     /// 初始化 RepositoryCloner
@@ -34,7 +49,7 @@ public class RepositoryCloner : IRepositoryCloner
             if (pullResult.ExitCode != 0)
             {
                 return Result<string>.Failure(
-                    Error.RiskAnalysis.CloneFailed(cloneUrl, pullResult.StandardError));
+                    Error.RiskAnalysis.CloneFailed(MaskCredentials(cloneUrl), pullResult.StandardError));
             }
 
             return Result<string>.Success(targetPath);
@@ -46,13 +61,13 @@ public class RepositoryCloner : IRepositoryCloner
             Directory.CreateDirectory(parentDir);
         }
 
-        _logger.LogInformation("正在 clone repository: {CloneUrl} → {TargetPath}", cloneUrl, targetPath);
+        _logger.LogInformation("正在 clone repository: {CloneUrl} → {TargetPath}", MaskCredentials(cloneUrl), targetPath);
 
         var cloneResult = await _processRunner.RunAsync("git", $"clone {cloneUrl} {targetPath}");
         if (cloneResult.ExitCode != 0)
         {
             return Result<string>.Failure(
-                Error.RiskAnalysis.CloneFailed(cloneUrl, cloneResult.StandardError));
+                Error.RiskAnalysis.CloneFailed(MaskCredentials(cloneUrl), cloneResult.StandardError));
         }
 
         return Result<string>.Success(targetPath);
@@ -73,6 +88,12 @@ public class RepositoryCloner : IRepositoryCloner
     /// <inheritdoc />
     public async Task<Result<string>> CheckoutAsync(string localPath, string branch)
     {
+        if (!SafeBranchNameRegex.IsMatch(branch))
+        {
+            return Result<string>.Failure(
+                Error.RiskAnalysis.CloneFailed(localPath, $"分支名稱包含不允許的字元: {branch}"));
+        }
+
         _logger.LogInformation("正在切換分支: {Branch} at {LocalPath}", branch, localPath);
 
         var result = await _processRunner.RunAsync("git", $"checkout {branch}", localPath);
@@ -84,4 +105,10 @@ public class RepositoryCloner : IRepositoryCloner
 
         return Result<string>.Success(localPath);
     }
+
+    /// <summary>
+    /// 隱藏 URL 中的認證資訊，用於安全日誌記錄
+    /// </summary>
+    private static string MaskCredentials(string url) =>
+        CredentialsInUrlRegex.Replace(url, "***@");
 }

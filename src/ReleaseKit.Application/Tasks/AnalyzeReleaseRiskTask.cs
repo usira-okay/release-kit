@@ -379,6 +379,7 @@ public class AnalyzeReleaseRiskTask : ITask
             {
                 _logger.LogWarning("切換分支失敗: {Project} branch={Branch} - {Error}",
                     projectPath, targetBranch, checkoutResult.Error?.Message);
+                await _repositoryCloner.CleanupAsync(cloneResult.Value!);
                 return;
             }
         }
