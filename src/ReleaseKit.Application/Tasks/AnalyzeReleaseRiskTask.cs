@@ -335,22 +335,10 @@ public class AnalyzeReleaseRiskTask : ITask
 
         foreach (var project in _gitLabOptions.Value.Projects)
         {
-            var apiUrl = _gitLabOptions.Value.ApiUrl;
-            var host = new Uri(apiUrl).Host;
+            var host = new Uri(_gitLabOptions.Value.ApiUrl).Host;
             var token = _gitLabOptions.Value.AccessToken;
             var cloneUrl = $"https://oauth2:{token}@{host}/{project.ProjectPath}.git";
-            var targetPath = Path.Combine(basePath, project.ProjectPath.Replace("/", "_"));
-
-            var result = await _repositoryCloner.CloneAsync(cloneUrl, targetPath);
-            if (result.IsSuccess)
-            {
-                clonedPaths[project.ProjectPath] = result.Value!;
-            }
-            else
-            {
-                _logger.LogWarning("Clone 失敗: {Project} - {Error}",
-                    project.ProjectPath, result.Error?.Message);
-            }
+            await CloneAndCheckoutAsync(project.ProjectPath, cloneUrl, project.TargetBranch, basePath, clonedPaths);
         }
 
         foreach (var project in _bitbucketOptions.Value.Projects)
@@ -358,22 +346,44 @@ public class AnalyzeReleaseRiskTask : ITask
             var email = Uri.EscapeDataString(_bitbucketOptions.Value.Email);
             var token = Uri.EscapeDataString(_bitbucketOptions.Value.AccessToken);
             var cloneUrl = $"https://{email}:{token}@bitbucket.org/{project.ProjectPath}.git";
-            var targetPath = Path.Combine(basePath, project.ProjectPath.Replace("/", "_"));
-
-            var result = await _repositoryCloner.CloneAsync(cloneUrl, targetPath);
-            if (result.IsSuccess)
-            {
-                clonedPaths[project.ProjectPath] = result.Value!;
-            }
-            else
-            {
-                _logger.LogWarning("Clone 失敗: {Project} - {Error}",
-                    project.ProjectPath, result.Error?.Message);
-            }
+            await CloneAndCheckoutAsync(project.ProjectPath, cloneUrl, project.TargetBranch, basePath, clonedPaths);
         }
 
         _logger.LogInformation("Clone 完成，共 {Count} 個 repository", clonedPaths.Count);
         return clonedPaths;
+    }
+
+    /// <summary>
+    /// Clone 指定 Repository 並切換至目標分支，成功後將路徑加入 clonedPaths
+    /// </summary>
+    private async Task CloneAndCheckoutAsync(
+        string projectPath,
+        string cloneUrl,
+        string targetBranch,
+        string basePath,
+        Dictionary<string, string> clonedPaths)
+    {
+        var targetLocalPath = Path.Combine(basePath, projectPath.Replace("/", "_"));
+
+        var cloneResult = await _repositoryCloner.CloneAsync(cloneUrl, targetLocalPath);
+        if (!cloneResult.IsSuccess)
+        {
+            _logger.LogWarning("Clone 失敗: {Project} - {Error}", projectPath, cloneResult.Error?.Message);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(targetBranch))
+        {
+            var checkoutResult = await _repositoryCloner.CheckoutAsync(cloneResult.Value!, targetBranch);
+            if (!checkoutResult.IsSuccess)
+            {
+                _logger.LogWarning("切換分支失敗: {Project} branch={Branch} - {Error}",
+                    projectPath, targetBranch, checkoutResult.Error?.Message);
+                return;
+            }
+        }
+
+        clonedPaths[projectPath] = cloneResult.Value!;
     }
 
     /// <summary>

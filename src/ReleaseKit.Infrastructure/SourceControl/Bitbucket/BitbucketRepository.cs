@@ -14,7 +14,7 @@ namespace ReleaseKit.Infrastructure.SourceControl.Bitbucket;
 /// <summary>
 /// Bitbucket Repository 實作
 /// </summary>
-public class BitbucketRepository : IBitbucketRepository
+public class BitbucketRepository : ISourceControlRepository
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<BitbucketRepository> _logger;
@@ -319,8 +319,13 @@ public class BitbucketRepository : IBitbucketRepository
         }
     }
 
-    /// <inheritdoc />
-    public async Task<Result<BitbucketRiskDiffStatResponse>> GetPullRequestDiffStatAsync(
+    /// <summary>
+    /// 取得指定 PR 的檔案層級變更統計
+    /// </summary>
+    /// <param name="projectPath">專案路徑（workspace/repo_slug 格式）</param>
+    /// <param name="prId">PR 識別碼</param>
+    /// <returns>成功時回傳 diffstat 回應；失敗時回傳包含錯誤資訊的 Result</returns>
+    public virtual async Task<Result<BitbucketRiskDiffStatResponse>> GetPullRequestDiffStatAsync(
         string projectPath, string prId)
     {
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
@@ -345,8 +350,13 @@ public class BitbucketRepository : IBitbucketRepository
         return Result<BitbucketRiskDiffStatResponse>.Success(parsed ?? new BitbucketRiskDiffStatResponse());
     }
 
-    /// <inheritdoc />
-    public async Task<Result<string>> GetPullRequestRawDiffAsync(string projectPath, string prId)
+    /// <summary>
+    /// 取得指定 PR 的 raw unified diff 文字
+    /// </summary>
+    /// <param name="projectPath">專案路徑（workspace/repo_slug 格式）</param>
+    /// <param name="prId">PR 識別碼</param>
+    /// <returns>成功時回傳 unified diff 文字；失敗時回傳包含錯誤資訊的 Result</returns>
+    public virtual async Task<Result<string>> GetPullRequestRawDiffAsync(string projectPath, string prId)
     {
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.Bitbucket);
         var url = $"/2.0/repositories/{projectPath}/pullrequests/{prId}/diff";

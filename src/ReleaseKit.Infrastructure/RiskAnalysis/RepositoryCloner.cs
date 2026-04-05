@@ -69,4 +69,19 @@ public class RepositoryCloner : IRepositoryCloner
 
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public async Task<Result<string>> CheckoutAsync(string localPath, string branch)
+    {
+        _logger.LogInformation("正在切換分支: {Branch} at {LocalPath}", branch, localPath);
+
+        var result = await _processRunner.RunAsync("git", $"checkout {branch}", localPath);
+        if (result.ExitCode != 0)
+        {
+            return Result<string>.Failure(
+                Error.RiskAnalysis.CloneFailed(localPath, result.StandardError));
+        }
+
+        return Result<string>.Success(localPath);
+    }
 }

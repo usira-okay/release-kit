@@ -16,7 +16,7 @@ namespace ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 /// </remarks>
 public class BitbucketDiffProvider : IDiffProvider
 {
-    private readonly IBitbucketRepository _bitbucketRepository;
+    private readonly BitbucketRepository _bitbucketRepository;
     private readonly ILogger<BitbucketDiffProvider> _logger;
 
     /// <summary>
@@ -32,7 +32,7 @@ public class BitbucketDiffProvider : IDiffProvider
     /// <param name="bitbucketRepository">Bitbucket Repository</param>
     /// <param name="logger">日誌記錄器</param>
     public BitbucketDiffProvider(
-        IBitbucketRepository bitbucketRepository,
+        BitbucketRepository bitbucketRepository,
         ILogger<BitbucketDiffProvider> logger)
     {
         _bitbucketRepository = bitbucketRepository;

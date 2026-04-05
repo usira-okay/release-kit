@@ -10,7 +10,7 @@ namespace ReleaseKit.Infrastructure.RiskAnalysis.DiffProviders;
 /// </summary>
 public class GitLabDiffProvider : IDiffProvider
 {
-    private readonly IGitLabRepository _gitLabRepository;
+    private readonly GitLabRepository _gitLabRepository;
     private readonly ILogger<GitLabDiffProvider> _logger;
 
     /// <summary>
@@ -19,7 +19,7 @@ public class GitLabDiffProvider : IDiffProvider
     /// <param name="gitLabRepository">GitLab Repository</param>
     /// <param name="logger">日誌記錄器</param>
     public GitLabDiffProvider(
-        IGitLabRepository gitLabRepository,
+        GitLabRepository gitLabRepository,
         ILogger<GitLabDiffProvider> logger)
     {
         _gitLabRepository = gitLabRepository;

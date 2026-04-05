@@ -13,11 +13,19 @@ namespace ReleaseKit.Infrastructure.Tests.RiskAnalysis.DiffProviders;
 /// </summary>
 public class BitbucketDiffProviderTests
 {
-    private readonly Mock<IBitbucketRepository> _bitbucketRepositoryMock = new();
+    private readonly Mock<BitbucketRepository> _bitbucketRepositoryMock;
     private readonly Mock<ILogger<BitbucketDiffProvider>> _loggerMock = new();
 
     private const string ProjectPath = "my-workspace/my-repo";
     private const string PrId = "42";
+
+    public BitbucketDiffProviderTests()
+    {
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        var repoLoggerMock = new Mock<ILogger<BitbucketRepository>>();
+        _bitbucketRepositoryMock = new Mock<BitbucketRepository>(
+            httpClientFactoryMock.Object, repoLoggerMock.Object);
+    }
 
     private BitbucketDiffProvider CreateSut()
     {

@@ -12,12 +12,14 @@ namespace ReleaseKit.Infrastructure.Tests.RiskAnalysis.DiffProviders;
 /// </summary>
 public class GitLabDiffProviderTests
 {
-    private readonly Mock<IGitLabRepository> _gitLabRepositoryMock;
+    private readonly Mock<GitLabRepository> _gitLabRepositoryMock;
     private readonly Mock<ILogger<GitLabDiffProvider>> _loggerMock;
 
     public GitLabDiffProviderTests()
     {
-        _gitLabRepositoryMock = new Mock<IGitLabRepository>();
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        var repoLoggerMock = new Mock<ILogger<GitLabRepository>>();
+        _gitLabRepositoryMock = new Mock<GitLabRepository>(httpClientFactoryMock.Object, repoLoggerMock.Object);
         _loggerMock = new Mock<ILogger<GitLabDiffProvider>>();
     }
 

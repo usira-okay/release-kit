@@ -187,4 +187,57 @@ public class RepositoryClonerTests : IDisposable
         // Assert
         await act.Should().NotThrowAsync();
     }
+
+    [Fact]
+    public async Task CheckoutAsync_WhenBranchExists_ShouldReturnSuccess()
+    {
+        // Arrange
+        var localPath = "/tmp/repo";
+        var branch = "main";
+
+        _processRunnerMock
+            .Setup(x => x.RunAsync("git", $"checkout {branch}", localPath))
+            .ReturnsAsync(new ProcessRunResult
+            {
+                ExitCode = 0,
+                StandardOutput = $"Switched to branch '{branch}'\n",
+                StandardError = string.Empty
+            });
+
+        // Act
+        var result = await _sut.CheckoutAsync(localPath, branch);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(localPath);
+        _processRunnerMock.Verify(
+            x => x.RunAsync("git", $"checkout {branch}", localPath),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_WhenBranchNotFound_ShouldReturnFailure()
+    {
+        // Arrange
+        var localPath = "/tmp/repo";
+        var branch = "non-existent-branch";
+        var errorMessage = "error: pathspec 'non-existent-branch' did not match any file(s)";
+
+        _processRunnerMock
+            .Setup(x => x.RunAsync("git", $"checkout {branch}", localPath))
+            .ReturnsAsync(new ProcessRunResult
+            {
+                ExitCode = 1,
+                StandardOutput = string.Empty,
+                StandardError = errorMessage
+            });
+
+        // Act
+        var result = await _sut.CheckoutAsync(localPath, branch);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("RiskAnalysis.CloneFailed");
+        result.Error.Message.Should().Contain(errorMessage);
+    }
 }

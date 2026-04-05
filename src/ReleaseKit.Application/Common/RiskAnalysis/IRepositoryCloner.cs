@@ -16,6 +16,14 @@ public interface IRepositoryCloner
     Task<Result<string>> CloneAsync(string cloneUrl, string targetPath);
 
     /// <summary>
+    /// 切換至指定分支
+    /// </summary>
+    /// <param name="localPath">本地 Repository 路徑</param>
+    /// <param name="branch">目標分支名稱</param>
+    /// <returns>切換結果</returns>
+    Task<Result<string>> CheckoutAsync(string localPath, string branch);
+
+    /// <summary>
     /// 清理已 clone 的 Repository 目錄
     /// </summary>
     /// <param name="localPath">本地路徑</param>
