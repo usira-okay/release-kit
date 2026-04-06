@@ -61,4 +61,19 @@ public interface IRedisService
     /// <param name="hashKey">Hash 鍵值</param>
     /// <param name="field">Hash 欄位名稱</param>
     Task<bool> HashExistsAsync(string hashKey, string field);
+
+    /// <summary>
+    /// 取得 Hash 所有欄位名稱
+    /// </summary>
+    /// <param name="hashKey">Hash 鍵值</param>
+    /// <returns>所有欄位名稱清單</returns>
+    Task<IReadOnlyList<string>> HashFieldsAsync(string hashKey);
+
+    /// <summary>
+    /// 取得 Hash 中符合前綴的所有欄位值
+    /// </summary>
+    /// <param name="hashKey">Hash 鍵值</param>
+    /// <param name="fieldPrefix">欄位名稱前綴</param>
+    /// <returns>符合前綴的欄位名稱與值字典</returns>
+    Task<IReadOnlyDictionary<string, string>> HashGetByPrefixAsync(string hashKey, string fieldPrefix);
 }
