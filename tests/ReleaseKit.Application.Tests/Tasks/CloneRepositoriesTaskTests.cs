@@ -199,9 +199,9 @@ public class CloneRepositoriesTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenTargetDirectoryExists_ShouldDeleteBeforeClone()
+    public async Task ExecuteAsync_ShouldDeleteEntireCloneBasePathBeforeClone()
     {
-        // Arrange — 使用真實暫存目錄模擬已存在的 Clone 目標
+        // Arrange — 使用真實暫存目錄模擬已存在的 CloneBasePath
         var tempBase = Path.Combine(Path.GetTempPath(), $"clone-test-{Guid.NewGuid():N}");
         var localRiskOptions = new RiskAnalysisOptions
         {
@@ -209,24 +209,18 @@ public class CloneRepositoriesTaskTests
             ReportOutputPath = "/reports"
         };
 
-        // 僅保留一個 GitLab 專案
-        _bitbucketOptions.Projects.Clear();
+        // 建立 CloneBasePath 並放入殘留檔案（模擬上次 Clone 遺留）
+        var staleDir = Path.Combine(tempBase, "stale-project");
+        Directory.CreateDirectory(staleDir);
+        File.WriteAllText(Path.Combine(staleDir, "old.txt"), "stale");
 
-        var projectPath = _gitLabOptions.Projects[0].ProjectPath;
-        var targetDir = Path.Combine(tempBase, projectPath);
-
-        // 建立目標目錄並放入假檔案
-        Directory.CreateDirectory(targetDir);
-        File.WriteAllText(Path.Combine(targetDir, "dummy.txt"), "existing");
-
-        // Clone mock 驗證目標目錄在呼叫時已不存在
-        var directoryExistedDuringClone = false;
+        // Clone mock 驗證 CloneBasePath 已被清空
+        var staleExistedDuringClone = false;
         _gitServiceMock.Setup(x => x.CloneRepositoryAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string _, string path, CancellationToken _) =>
             {
-                directoryExistedDuringClone = Directory.Exists(path) &&
-                    File.Exists(Path.Combine(path, "dummy.txt"));
+                staleExistedDuringClone = Directory.Exists(staleDir);
                 return Result<string>.Success(path);
             });
 
@@ -241,8 +235,8 @@ public class CloneRepositoriesTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert — Clone 被呼叫時，舊目錄應已被刪除
-        Assert.False(directoryExistedDuringClone, "舊目錄應在 Clone 前被刪除");
+        // Assert — 殘留目錄應在 Clone 前被整個清除
+        Assert.False(staleExistedDuringClone, "CloneBasePath 下的殘留目錄應在 Clone 前被清除");
 
         // 清理
         if (Directory.Exists(tempBase))

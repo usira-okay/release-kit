@@ -56,6 +56,13 @@ public class CloneRepositoriesTask : ITask
     {
         _logger.LogInformation("開始 Clone 所有 Repository");
 
+        // 清除整個 CloneBasePath，確保乾淨的 Clone 環境
+        if (Directory.Exists(_riskAnalysisOptions.CloneBasePath))
+        {
+            _logger.LogInformation("刪除現有 CloneBasePath：{CloneBasePath}", _riskAnalysisOptions.CloneBasePath);
+            Directory.Delete(_riskAnalysisOptions.CloneBasePath, recursive: true);
+        }
+
         var clonePaths = new Dictionary<string, string>();
         var semaphore = new SemaphoreSlim(_riskAnalysisOptions.MaxConcurrentClones);
 
