@@ -64,6 +64,34 @@ public class TaskFactoryTests
         // 註冊 GoogleSheetOptions
         services.AddSingleton(Options.Create(new GoogleSheetOptions()));
         
+        // 註冊 IGitService mock
+        var mockGitService = new Mock<IGitService>();
+        services.AddSingleton(mockGitService.Object);
+
+        // 註冊 IRiskAnalyzer mock
+        var mockRiskAnalyzer = new Mock<IRiskAnalyzer>();
+        services.AddSingleton(mockRiskAnalyzer.Object);
+
+        // 註冊 INow mock
+        var mockNow = new Mock<INow>();
+        mockNow.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
+        services.AddSingleton(mockNow.Object);
+
+        // 註冊 RiskAnalysisOptions
+        services.AddSingleton(Options.Create(new RiskAnalysisOptions
+        {
+            CloneBasePath = "/test/clone",
+            ReportOutputPath = "/test/reports"
+        }));
+
+        // 註冊風險分析任務的 Logger mocks
+        services.AddSingleton(new Mock<ILogger<CloneRepositoriesTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<ExtractPrDiffsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<AnalyzeProjectRiskTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<AnalyzeCrossProjectRiskTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<GenerateRiskReportTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<AnalyzeRiskTask>>().Object);
+
         // 註冊 Tasks
         services.AddTransient<FetchGitLabPullRequestsTask>();
         services.AddTransient<FetchBitbucketPullRequestsTask>();
@@ -74,6 +102,14 @@ public class TaskFactoryTests
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
+
+        // 註冊風險分析任務
+        services.AddTransient<CloneRepositoriesTask>();
+        services.AddTransient<ExtractPrDiffsTask>();
+        services.AddTransient<AnalyzeProjectRiskTask>();
+        services.AddTransient<AnalyzeCrossProjectRiskTask>();
+        services.AddTransient<GenerateRiskReportTask>();
+        services.AddTransient<AnalyzeRiskTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -184,6 +220,72 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<ConsolidateReleaseDataTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithCloneRepositories_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.CloneRepositories);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<CloneRepositoriesTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithExtractPrDiffs_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.ExtractPrDiffs);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<ExtractPrDiffsTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithAnalyzeProjectRisk_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.AnalyzeProjectRisk);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<AnalyzeProjectRiskTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithAnalyzeCrossProjectRisk_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.AnalyzeCrossProjectRisk);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<AnalyzeCrossProjectRiskTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithGenerateRiskReport_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.GenerateRiskReport);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<GenerateRiskReportTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithAnalyzeRisk_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.AnalyzeRisk);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<AnalyzeRiskTask>(task);
     }
 
     [Fact]
