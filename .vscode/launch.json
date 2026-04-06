@@ -17,7 +17,14 @@
                 // "get-user-story"
                 // "consolidate-release-data"
                 // "update-googlesheet"
-                "enhance-titles"
+                // "enhance-titles"
+                "clone-repos"
+                // "extract-pr-diffs"
+                // "analyze-project-risk"
+                // "analyze-cross-project-risk"
+                // "generate-risk-report"
+                // "analyze-risk"
+
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,
