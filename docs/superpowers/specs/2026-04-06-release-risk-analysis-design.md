@@ -26,26 +26,33 @@
 
 ### 2.1 Multi-Pass Map-Reduce 分析流程
 
+> **動態多層分析**：中間報告不限於固定兩層。AI Agent 可自行判斷是否需要繼續深入分析，
+> 產生更多層的中間報告。上限硬編碼為 **10 層**。當 AI 判斷不需要更多分析、
+> 或達到 10 層上限時，進入最終報告產出階段。
+
 ```
-Pass 0: 資料準備
+Pass 0: 資料準備（固定）
 ├─ 從 Redis 取得已篩選的 PR 資訊（GitLab + Bitbucket）
 ├─ 完整 Clone 所有相關 repo（git clone + git fetch --all）
 └─ 擷取每個 PR 的 diff → 存入 Redis
 
-Pass 1: Per-Project Analysis（Map 階段）
+Pass 1: Per-Project Analysis（固定，Map 階段）
 ├─ 對每個專案的 PR diffs 平行派發 AI Sub-Agent
 ├─ AI 識別：變更類型、影響範圍、對外暴露的介面變動
 ├─ 大型 diff 拆分為多個 Sub-Agent 呼叫，確保全覆蓋
 └─ 中間報告 1-1, 1-2, ..., 1-N → 存入 Redis
 
-Pass 2: Cross-Project Risk Analysis（Reduce 階段）
-├─ 彙集所有 Pass 1 報告
-├─ 依風險類別分組，派發 AI Sub-Agent 交叉比對
-├─ AI 判斷：哪個專案的變更可能影響哪些其他專案、風險等級
-└─ 中間報告 2-1, 2-2, ..., 2-M → 存入 Redis
+Pass 2~9: 動態深度分析（AI 決定是否繼續）
+├─ 每一層接收前一層的中間報告作為輸入
+├─ AI Agent 決定分析策略（如：按風險類別分組、按影響範圍分組、交叉比對等）
+├─ AI Agent 在每層分析完後回報：是否需要更深入的分析
+├─ 若 AI 判斷已充分 → 進入 Final Report
+├─ 若 AI 判斷需繼續 → 進入下一層
+├─ 硬上限：第 10 層（Pass 10）強制結束，進入 Final Report
+└─ 每層中間報告 {pass}-1, {pass}-2, ... → 存入 Redis
 
-Pass 3: Final Report Generation
-├─ 彙整所有 Pass 2 報告
+Final Report Generation（固定）
+├─ 彙整最後一層的所有中間報告
 ├─ AI 產生最終風險摘要 + 風險等級分類
 └─ 最終 Markdown 報告 → 存入 Redis + 輸出檔案
 ```
@@ -62,11 +69,12 @@ RiskAnalysisHash:
   ├─ Intermediate:1-3-b   → Pass 1 第三個專案（大型 diff 第二批）
   ├─ Intermediate:1-3     → Pass 1 第三個專案彙整報告
   ├─ ...
-  ├─ Intermediate:2-1     → Pass 2 API 契約風險交叉分析
-  ├─ Intermediate:2-2     → Pass 2 DB Schema 風險交叉分析
-  ├─ Intermediate:2-3     → Pass 2 DB 資料異動風險交叉分析
-  ├─ Intermediate:2-4     → Pass 2 事件/訊息格式變更風險交叉分析
-  ├─ Intermediate:2-5     → Pass 2 設定檔變更風險交叉分析
+  ├─ Intermediate:2-1     → Pass 2（AI 決定的第一層深度分析）
+  ├─ Intermediate:2-2     → Pass 2（AI 決定的第一層深度分析）
+  ├─ ...
+  ├─ Intermediate:3-1     → Pass 3（AI 決定的第二層深度分析，若需要）
+  ├─ ...                  → （最多至 Pass 10，由 AI 動態決定層數）
+  ├─ PassMetadata:{n}     → 每層的 metadata（分析策略、是否需要下一層）
   └─ Final                → 最終整合報告（Markdown）
 ```
 
@@ -251,16 +259,37 @@ public interface IRiskAnalyzer
         IReadOnlyList<PrDiffContext> diffs,
         CancellationToken cancellationToken = default);
 
-    /// <summary>交叉比對多專案風險（Pass 2）</summary>
-    Task<RiskAnalysisReport> AnalyzeCrossProjectRiskAsync(
-        RiskCategory category,
-        IReadOnlyList<RiskAnalysisReport> projectReports,
+    /// <summary>動態深度分析：接收前一層報告，產出下一層分析（Pass 2~10）</summary>
+    /// <returns>分析結果，包含 ContinueAnalysis 旗標指示是否需要更多層分析</returns>
+    Task<DynamicAnalysisResult> AnalyzeDeepAsync(
+        int currentPass,
+        IReadOnlyList<RiskAnalysisReport> previousPassReports,
         CancellationToken cancellationToken = default);
 
-    /// <summary>產生最終整合報告 Markdown（Pass 3）</summary>
+    /// <summary>產生最終整合報告 Markdown</summary>
     Task<string> GenerateFinalReportAsync(
-        IReadOnlyList<RiskAnalysisReport> crossProjectReports,
+        IReadOnlyList<RiskAnalysisReport> lastPassReports,
         CancellationToken cancellationToken = default);
+}
+```
+
+#### DynamicAnalysisResult
+
+```csharp
+/// <summary>動態分析結果，包含是否需要繼續分析的決策</summary>
+public sealed record DynamicAnalysisResult
+{
+    /// <summary>本層分析產生的報告</summary>
+    public required IReadOnlyList<RiskAnalysisReport> Reports { get; init; }
+
+    /// <summary>AI 判斷是否需要繼續更深層分析</summary>
+    public required bool ContinueAnalysis { get; init; }
+
+    /// <summary>繼續分析的理由（繁體中文，供 log 與追蹤）</summary>
+    public string? ContinueReason { get; init; }
+
+    /// <summary>本層使用的分析策略描述</summary>
+    public required string AnalysisStrategy { get; init; }
 }
 ```
 
@@ -364,8 +393,8 @@ ExtractPrDiffsTask 從 Redis 讀取的 `MergeRequestOutput` 包含 `SourceBranch
 - **備選方式**：若 branch 已被刪除（常見於 merge 後），改用 merge commit 的 `git show {mergeCommitSha}` 取得 diff
 - **處理流程**：先嘗試 branch diff → 失敗時 fallback 到 commit diff
 | `AnalyzeProjectRiskTask` | `analyze-project-risk` | Pass 1：平行 AI 分析每個專案 |
-| `AnalyzeCrossProjectRiskTask` | `analyze-cross-project-risk` | Pass 2：按風險類別交叉分析 |
-| `GenerateRiskReportTask` | `generate-risk-report` | Pass 3：產出最終 Markdown 報告 |
+| `AnalyzeCrossProjectRiskTask` | `analyze-cross-project-risk` | Pass 2~10：動態深度分析（AI 決定層數，上限 10 層） |
+| `GenerateRiskReportTask` | `generate-risk-report` | Final：產出最終 Markdown 報告 |
 | `AnalyzeRiskTask` | `analyze-risk` | Orchestrator：一鍵串聯以上所有 Task |
 
 #### AnalyzeRiskTask（Orchestrator）
@@ -374,6 +403,9 @@ ExtractPrDiffsTask 從 Redis 讀取的 `MergeRequestOutput` 包含 `SourceBranch
 /// <summary>風險分析 Orchestrator，串聯所有子 Task</summary>
 public sealed class AnalyzeRiskTask : ITask
 {
+    /// <summary>動態分析層數上限</summary>
+    private const int MaxAnalysisPasses = 10;
+
     public async Task ExecuteAsync()
     {
         // Step 0-1: Clone repositories
@@ -382,13 +414,13 @@ public sealed class AnalyzeRiskTask : ITask
         // Step 0-2: Extract PR diffs
         await _extractPrDiffsTask.ExecuteAsync();
 
-        // Step 1: Per-project AI analysis
+        // Step 1: Per-project AI analysis（固定）
         await _analyzeProjectRiskTask.ExecuteAsync();
 
-        // Step 2: Cross-project risk analysis
+        // Step 2~10: 動態深度分析（AI 決定是否繼續）
         await _analyzeCrossProjectRiskTask.ExecuteAsync();
 
-        // Step 3: Generate final report
+        // Final: Generate report
         await _generateRiskReportTask.ExecuteAsync();
     }
 }
@@ -427,6 +459,44 @@ private async Task<RiskAnalysisReport> AnalyzeLargeProjectAsync(
     //    - 每個中間報告存入 Redis
     // 3. 驗證：已分析檔案集合 == 原始 diff 檔案集合
     // 4. 彙整所有子報告為完整專案報告 1-{n}
+}
+```
+
+#### AnalyzeCrossProjectRiskTask（Pass 2~10 動態深度分析）
+
+```csharp
+/// <summary>Pass 2~10：動態深度分析，AI 決定是否繼續</summary>
+public sealed class AnalyzeCrossProjectRiskTask : ITask
+{
+    /// <summary>動態分析層數上限</summary>
+    private const int MaxAnalysisPasses = 10;
+
+    public async Task ExecuteAsync()
+    {
+        // 1. 從 Redis 讀取 Pass 1 所有中間報告
+        var previousReports = await LoadPassReportsAsync(pass: 1);
+        
+        // 2. 迴圈：Pass 2 ~ MaxAnalysisPasses
+        for (var currentPass = 2; currentPass <= MaxAnalysisPasses; currentPass++)
+        {
+            // 3. 呼叫 IRiskAnalyzer.AnalyzeDeepAsync()
+            //    AI 決定：分析策略、產出報告、是否需要繼續
+            var result = await _riskAnalyzer.AnalyzeDeepAsync(
+                currentPass, previousReports);
+
+            // 4. 將本層報告存入 Redis（Intermediate:{pass}-{n}）
+            await StorePassReportsAsync(currentPass, result.Reports);
+
+            // 5. 儲存本層 metadata（分析策略、繼續原因）
+            await StorePassMetadataAsync(currentPass, result);
+
+            // 6. AI 判斷不需要繼續 → 結束迴圈
+            if (!result.ContinueAnalysis) break;
+
+            // 7. 下一輪使用本層報告作為輸入
+            previousReports = result.Reports;
+        }
+    }
 }
 ```
 
@@ -516,39 +586,40 @@ public sealed class CopilotRiskAnalyzer : IRiskAnalyzer
 }
 ```
 
-#### Pass 2 System Prompt
+#### Pass 2~10 Dynamic Analysis System Prompt
+
+> Pass 2 起為動態深度分析。每次呼叫時，AI 同時決定分析策略與是否需要繼續。
 
 ```
-你是一位資深軟體架構師。以下是多個微服務專案的個別風險分析報告。
-請交叉比對這些報告，找出「改 A 壞 B」的跨專案風險。
+你是一位資深軟體架構師，專精於微服務架構風險分析。
 
-當前分析的風險類別：{category}
+當前是第 {currentPass} 層分析（上限 10 層）。
+以下是前一層的分析報告。請根據報告內容，決定最適合的分析策略並執行。
 
-特別關注：
+可能的分析策略（不限於此）：
+- 按風險類別分組交叉比對
+- 按專案間依賴關係深入追蹤
+- 針對特定高風險項目進行更細緻分析
+- 驗證前一層識別的跨專案風險是否完整
+
+特別關注「改 A 壞 B」場景：
 - 專案 A 修改了 API endpoint/模型 → 專案 B 呼叫了該 API
 - 專案 A 修改了 DB Schema → 專案 B 也存取同一張 Table
 - 專案 A 異動了 DB 資料（Lookup table、狀態碼、設定值）→ 專案 B 的程式邏輯依賴這些資料
 - 專案 A 修改了 Event 格式 → 專案 B 消費該 Event
 - 設定檔鍵值改名 → 其他專案依賴同一鍵值
 
-對每個跨專案風險，回報 JSON 格式：
+回報 JSON 格式：
 {
-  "riskItems": [
-    {
-      "category": "{category}",
-      "level": "High|Medium|Low",
-      "sourceProject": "造成變更的專案",
-      "affectedProject": "受影響的專案",
-      "changeSummary": "變更摘要（繁體中文）",
-      "impactDescription": "跨專案影響描述（繁體中文）",
-      "suggestedValidationSteps": ["測試步驟1", "測試步驟2"]
-    }
-  ],
-  "summary": "此風險類別的交叉分析摘要（繁體中文）"
+  "analysisStrategy": "本層使用的分析策略描述",
+  "continueAnalysis": true|false,
+  "continueReason": "繼續分析的理由（若 continueAnalysis 為 true）",
+  "riskItems": [...],
+  "summary": "本層分析摘要（繁體中文）"
 }
 ```
 
-#### Pass 3 System Prompt
+#### Final Report System Prompt
 
 ```
 將以下風險分析結果彙整成一份完整的 Release 風險評估報告（Markdown 格式，繁體中文）。
@@ -577,6 +648,7 @@ public sealed class CopilotRiskAnalyzer : IRiskAnalyzer
     "CloneBasePath": "/tmp/release-kit-repos",
     "MaxConcurrentClones": 5,
     "MaxTokensPerAiCall": 100000,
+    "MaxAnalysisPasses": 10,
     "ReportOutputPath": "./reports"
   }
 }
@@ -597,6 +669,9 @@ public sealed class RiskAnalysisOptions
     /// <summary>每次 AI 呼叫的最大 Token 數</summary>
     public int MaxTokensPerAiCall { get; init; } = 100000;
 
+    /// <summary>動態分析最大層數（硬上限 10）</summary>
+    public int MaxAnalysisPasses { get; init; } = 10;
+
     /// <summary>報告輸出路徑</summary>
     public required string ReportOutputPath { get; init; }
 }
@@ -613,8 +688,8 @@ public sealed class RiskAnalysisOptions
 | `clone-repos` | `CloneRepositories` | 完整 Clone 所有組態中的 repo |
 | `extract-pr-diffs` | `ExtractPrDiffs` | 擷取 PR diff 並存入 Redis |
 | `analyze-project-risk` | `AnalyzeProjectRisk` | Pass 1：Per-Project AI 分析 |
-| `analyze-cross-project-risk` | `AnalyzeCrossProjectRisk` | Pass 2：跨專案風險交叉分析 |
-| `generate-risk-report` | `GenerateRiskReport` | Pass 3：產出最終報告 |
+| `analyze-cross-project-risk` | `AnalyzeCrossProjectRisk` | Pass 2~10：動態深度分析（AI 決定層數） |
+| `generate-risk-report` | `GenerateRiskReport` | Final：產出最終報告 |
 | `analyze-risk` | `AnalyzeRisk` | Orchestrator：一鍵執行全部 |
 
 ### 使用方式
