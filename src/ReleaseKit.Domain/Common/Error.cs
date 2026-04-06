@@ -149,4 +149,43 @@ public sealed record Error(string Code, string Message)
         public static Error Unauthorized =>
             new("AzureDevOps.Unauthorized", "Azure DevOps API 驗證失敗，請檢查 Personal Access Token");
     }
+
+    /// <summary>
+    /// 風險分析相關錯誤
+    /// </summary>
+    public static class RiskAnalysis
+    {
+        /// <summary>
+        /// Repository Clone 失敗
+        /// </summary>
+        /// <param name="repoUrl">Repository URL</param>
+        /// <returns>錯誤物件</returns>
+        public static Error CloneFailed(string repoUrl) =>
+            new("RiskAnalysis.CloneFailed", $"Clone 失敗：{repoUrl}");
+
+        /// <summary>
+        /// Diff 擷取失敗
+        /// </summary>
+        /// <param name="project">專案名稱</param>
+        /// <returns>錯誤物件</returns>
+        public static Error DiffExtractionFailed(string project) =>
+            new("RiskAnalysis.DiffExtractionFailed", $"Diff 擷取失敗：{project}");
+
+        /// <summary>
+        /// AI 分析失敗
+        /// </summary>
+        /// <param name="reason">失敗原因</param>
+        /// <returns>錯誤物件</returns>
+        public static Error AiAnalysisFailed(string reason) =>
+            new("RiskAnalysis.AiAnalysisFailed", $"AI 分析失敗：{reason}");
+
+        /// <summary>
+        /// Git 命令執行失敗
+        /// </summary>
+        /// <param name="command">Git 命令</param>
+        /// <param name="error">錯誤訊息</param>
+        /// <returns>錯誤物件</returns>
+        public static Error GitCommandFailed(string command, string error) =>
+            new("RiskAnalysis.GitCommandFailed", $"Git 命令失敗：{command}，錯誤：{error}");
+    }
 }

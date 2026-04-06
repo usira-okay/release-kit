@@ -113,6 +113,29 @@ public class RedisService : IRedisService
         return result;
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> HashFieldsAsync(string hashKey)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var hashEntries = await _database.HashGetAllAsync(fullKey);
+        var fields = hashEntries.Select(e => e.Name.ToString()).ToList().AsReadOnly();
+        _logger.LogInformation("Redis HKEYS: {Key}, Count: {Count}", fullKey, fields.Count);
+        return fields;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<string, string>> HashGetByPrefixAsync(string hashKey, string fieldPrefix)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var hashEntries = await _database.HashGetAllAsync(fullKey);
+        var result = hashEntries
+            .Where(e => e.Name.ToString().StartsWith(fieldPrefix, StringComparison.Ordinal))
+            .ToDictionary(e => e.Name.ToString(), e => e.Value.ToString())
+            .AsReadOnly();
+        _logger.LogInformation("Redis HGETBYPREFIX: {Key} Prefix: {Prefix}, Count: {Count}", fullKey, fieldPrefix, result.Count);
+        return result;
+    }
+
     /// <summary>
     /// 取得完整的快取鍵值（加上 Instance Name）
     /// </summary>
