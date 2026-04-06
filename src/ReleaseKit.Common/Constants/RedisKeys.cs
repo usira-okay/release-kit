@@ -26,6 +26,11 @@ public static class RedisKeys
     public const string ReleaseDataHash = "ReleaseData";
 
     /// <summary>
+    /// 風險分析資料的 Redis Hash 鍵值
+    /// </summary>
+    public const string RiskAnalysisHash = "RiskAnalysis";
+
+    /// <summary>
     /// Redis Hash 欄位名稱常數
     /// </summary>
     public static class Fields
@@ -64,5 +69,20 @@ public static class RedisKeys
         /// 增強標題後的 Release 資料欄位名稱
         /// </summary>
         public const string EnhancedTitles = "EnhancedTitles";
+
+        /// <summary>
+        /// Clone 路徑對照資料欄位名稱
+        /// </summary>
+        public const string ClonePaths = "ClonePaths";
+
+        /// <summary>
+        /// PR Diff 資料欄位名稱
+        /// </summary>
+        public const string PrDiffs = "PrDiffs";
+
+        /// <summary>
+        /// 最終風險分析報告欄位名稱
+        /// </summary>
+        public const string FinalReport = "FinalReport";
     }
 }
