@@ -122,14 +122,17 @@ public class CloneRepositoriesTask : ITask
     }
 
     /// <summary>
-    /// 建構 GitLab Clone URL（移除 /api/v4 後附加專案路徑）
+    /// 建構 GitLab Clone URL（移除 /api/v4 後，使用 oauth2:{PAT} 內嵌認證）
     /// </summary>
     /// <param name="projectPath">專案路徑</param>
-    /// <returns>GitLab Clone URL</returns>
+    /// <returns>包含 PAT 認證的 GitLab Clone URL</returns>
     internal string BuildGitLabCloneUrl(string projectPath)
     {
         var baseUrl = _gitLabOptions.ApiUrl.Replace("/api/v4", string.Empty);
-        return $"{baseUrl}/{projectPath}.git";
+        var uri = new Uri(baseUrl);
+        var encodedToken = Uri.EscapeDataString(_gitLabOptions.AccessToken);
+        var basePath = uri.AbsolutePath.TrimEnd('/');
+        return $"{uri.Scheme}://oauth2:{encodedToken}@{uri.Host}{basePath}/{projectPath}.git";
     }
 
     /// <summary>

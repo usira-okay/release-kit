@@ -117,8 +117,8 @@ public class CloneRepositoriesTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert — 移除 /api/v4 後組合 URL
-        Assert.Equal("https://gitlab.example.com/group/project-a.git", capturedUrl);
+        // Assert — 移除 /api/v4 後，使用 oauth2:{PAT} 內嵌認證
+        Assert.Equal("https://oauth2:gl-token@gitlab.example.com/group/project-a.git", capturedUrl);
     }
 
     [Fact]
@@ -196,6 +196,59 @@ public class CloneRepositoriesTaskTests
         var paths = _capturedRedisJson.ToTypedObject<Dictionary<string, string>>();
         Assert.NotNull(paths);
         Assert.Single(paths);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenTargetDirectoryExists_ShouldDeleteBeforeClone()
+    {
+        // Arrange — 使用真實暫存目錄模擬已存在的 Clone 目標
+        var tempBase = Path.Combine(Path.GetTempPath(), $"clone-test-{Guid.NewGuid():N}");
+        var localRiskOptions = new RiskAnalysisOptions
+        {
+            CloneBasePath = tempBase,
+            ReportOutputPath = "/reports"
+        };
+
+        // 僅保留一個 GitLab 專案
+        _bitbucketOptions.Projects.Clear();
+
+        var projectPath = _gitLabOptions.Projects[0].ProjectPath;
+        var targetDir = Path.Combine(tempBase, projectPath);
+
+        // 建立目標目錄並放入假檔案
+        Directory.CreateDirectory(targetDir);
+        File.WriteAllText(Path.Combine(targetDir, "dummy.txt"), "existing");
+
+        // Clone mock 驗證目標目錄在呼叫時已不存在
+        var directoryExistedDuringClone = false;
+        _gitServiceMock.Setup(x => x.CloneRepositoryAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string _, string path, CancellationToken _) =>
+            {
+                directoryExistedDuringClone = Directory.Exists(path) &&
+                    File.Exists(Path.Combine(path, "dummy.txt"));
+                return Result<string>.Success(path);
+            });
+
+        var task = new CloneRepositoriesTask(
+            _redisServiceMock.Object,
+            _gitServiceMock.Object,
+            Options.Create(_gitLabOptions),
+            Options.Create(_bitbucketOptions),
+            Options.Create(localRiskOptions),
+            _loggerMock.Object);
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — Clone 被呼叫時，舊目錄應已被刪除
+        Assert.False(directoryExistedDuringClone, "舊目錄應在 Clone 前被刪除");
+
+        // 清理
+        if (Directory.Exists(tempBase))
+        {
+            Directory.Delete(tempBase, recursive: true);
+        }
     }
 
     [Fact]
