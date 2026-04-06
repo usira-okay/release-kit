@@ -58,5 +58,35 @@ public enum TaskType
     /// <summary>
     /// 使用 AI 增強 Release 標題
     /// </summary>
-    EnhanceTitles
+    EnhanceTitles,
+
+    /// <summary>
+    /// Clone 所有相關 repository
+    /// </summary>
+    CloneRepositories,
+
+    /// <summary>
+    /// 擷取 PR Diff 資訊
+    /// </summary>
+    ExtractPrDiffs,
+
+    /// <summary>
+    /// Per-Project AI 風險分析
+    /// </summary>
+    AnalyzeProjectRisk,
+
+    /// <summary>
+    /// 動態深度跨專案風險分析
+    /// </summary>
+    AnalyzeCrossProjectRisk,
+
+    /// <summary>
+    /// 產生最終風險報告
+    /// </summary>
+    GenerateRiskReport,
+
+    /// <summary>
+    /// 風險分析 Orchestrator（一鍵執行全部）
+    /// </summary>
+    AnalyzeRisk
 }
