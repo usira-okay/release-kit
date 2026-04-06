@@ -81,6 +81,9 @@ public static class ServiceCollectionExtensions
         // 註冊 Copilot 配置
         services.Configure<CopilotOptions>(configuration.GetSection("Copilot"));
 
+        // 註冊風險分析配置
+        services.Configure<RiskAnalysisOptions>(configuration.GetSection("RiskAnalysis"));
+
         return services;
     }
 
@@ -239,6 +242,18 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetUserStoryTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
         services.AddTransient<EnhanceTitlesWithCopilotTask>();
+        
+        // 註冊風險分析服務
+        services.AddTransient<IGitService, ReleaseKit.Infrastructure.Git.GitService>();
+        services.AddTransient<IRiskAnalyzer, ReleaseKit.Infrastructure.Copilot.CopilotRiskAnalyzer>();
+
+        // 註冊風險分析任務
+        services.AddTransient<CloneRepositoriesTask>();
+        services.AddTransient<ExtractPrDiffsTask>();
+        services.AddTransient<AnalyzeProjectRiskTask>();
+        services.AddTransient<AnalyzeCrossProjectRiskTask>();
+        services.AddTransient<GenerateRiskReportTask>();
+        services.AddTransient<AnalyzeRiskTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
