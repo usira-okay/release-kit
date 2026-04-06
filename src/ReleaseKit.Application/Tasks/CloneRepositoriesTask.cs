@@ -106,7 +106,9 @@ public class CloneRepositoriesTask : ITask
     {
         await semaphore.WaitAsync();
 
-        var targetPath = Path.Combine(_riskAnalysisOptions.CloneBasePath, projectPath);
+        // 統一使用正斜線，避免 Windows 上 Path.Combine 產生反斜線導致 git 路徑問題
+        var targetPath = Path.Combine(_riskAnalysisOptions.CloneBasePath, projectPath)
+            .Replace('\\', '/');
 
         _logger.LogInformation("正在 Clone {ProjectPath} 至 {TargetPath}", projectPath, targetPath);
 
@@ -143,14 +145,15 @@ public class CloneRepositoriesTask : ITask
     }
 
     /// <summary>
-    /// 建構 Bitbucket Clone URL（內嵌認證資訊）
+    /// 建構 Bitbucket Clone URL（使用 x-token-auth 內嵌認證）。
+    /// Bitbucket 支援以 x-token-auth:{access_token} 進行 git 認證，
+    /// 無需提供 username 或 email。
     /// </summary>
     /// <param name="projectPath">專案路徑</param>
     /// <returns>Bitbucket Clone URL</returns>
     internal string BuildBitbucketCloneUrl(string projectPath)
     {
-        var encodedEmail = Uri.EscapeDataString(_bitbucketOptions.Email);
         var encodedToken = Uri.EscapeDataString(_bitbucketOptions.AccessToken);
-        return $"https://{encodedEmail}:{encodedToken}@bitbucket.org/{projectPath}.git";
+        return $"https://x-token-auth:{encodedToken}@bitbucket.org/{projectPath}.git";
     }
 }

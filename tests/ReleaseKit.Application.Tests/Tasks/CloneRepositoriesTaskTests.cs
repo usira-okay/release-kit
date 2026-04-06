@@ -143,8 +143,8 @@ public class CloneRepositoriesTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert — 內嵌 email:token（URL Encoded）
-        Assert.Equal("https://test%40example.com:test-token@bitbucket.org/team/repo-b.git", capturedUrl);
+        // Assert — 使用 x-token-auth:{token} 認證
+        Assert.Equal("https://x-token-auth:test-token@bitbucket.org/team/repo-b.git", capturedUrl);
     }
 
     [Fact]
