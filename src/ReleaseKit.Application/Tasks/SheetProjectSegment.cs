@@ -32,7 +32,7 @@ internal class SheetProjectSegment
     public bool MatchesProject(string projectName)
     {
         return ProjectName
-            .Split(',')
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Any(n => n.Trim() == projectName);
     }
 }

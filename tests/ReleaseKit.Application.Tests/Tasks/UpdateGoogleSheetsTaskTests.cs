@@ -308,7 +308,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T009: 測試 RepositoryNameColumn 含逗號分隔名稱時，MatchesProject 可正確匹配
+    /// T009a: 測試 RepositoryNameColumn 含逗號分隔名稱時，MatchesProject 可正確匹配
     /// </summary>
     [Fact]
     public void BuildProjectSegments_CommaSeparatedRepoName_MatchesProject()
@@ -334,7 +334,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T009: 測試 RepositoryNameColumn 含逗號分隔名稱且有空格時，MatchesProject 可正確匹配
+    /// T009b: 測試 RepositoryNameColumn 含逗號分隔名稱且有空格時，MatchesProject 可正確匹配
     /// </summary>
     [Fact]
     public void BuildProjectSegments_CommaSeparatedWithSpaces_MatchesProject()
@@ -355,7 +355,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T009: 測試端對端：逗號分隔 RepositoryNameColumn 應能正確匹配 Redis 中的專案並觸發 InsertRows
+    /// T009c: 測試端對端：逗號分隔 RepositoryNameColumn 應能正確匹配 Redis 中的專案並觸發 InsertRows
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_CommaSeparatedRepoName_ShouldMatchRedisProject()
