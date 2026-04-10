@@ -6,7 +6,7 @@ namespace ReleaseKit.Application.Tasks;
 internal class SheetProjectSegment
 {
     /// <summary>
-    /// 專案名稱
+    /// 專案名稱（可能包含逗號分隔的多個名稱）
     /// </summary>
     public string ProjectName { get; init; } = string.Empty;
 
@@ -24,4 +24,15 @@ internal class SheetProjectSegment
     /// 資料結束列的 0-based row index
     /// </summary>
     public int DataEndRowIndex { get; init; }
+
+    /// <summary>
+    /// 判斷此區段是否與指定的專案名稱匹配。
+    /// 將 ProjectName 以 ',' 拆開後逐一比對。
+    /// </summary>
+    public bool MatchesProject(string projectName)
+    {
+        return ProjectName
+            .Split(',')
+            .Any(n => n.Trim() == projectName);
+    }
 }

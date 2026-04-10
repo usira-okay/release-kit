@@ -203,7 +203,7 @@ public class UpdateGoogleSheetsTask : ITask
 
         foreach (var (projectName, items) in insertsByProject)
         {
-            var segment = segments.FirstOrDefault(s => s.ProjectName == projectName);
+            var segment = segments.FirstOrDefault(s => s.MatchesProject(projectName));
             if (segment == null)
             {
                 _logger.LogWarning("在 Sheet 中找不到專案 '{ProjectName}' 的區段，跳過新增", projectName);
@@ -245,7 +245,7 @@ public class UpdateGoogleSheetsTask : ITask
 
         foreach (var (projectName, items) in insertsByProject)
         {
-            var segment = segments.FirstOrDefault(s => s.ProjectName == projectName);
+            var segment = segments.FirstOrDefault(s => s.MatchesProject(projectName));
             if (segment == null) continue;
 
             affectedProjects.Add(projectName);
@@ -392,7 +392,7 @@ public class UpdateGoogleSheetsTask : ITask
 
         foreach (var projectName in affectedProjects)
         {
-            var segment = sortSegments.FirstOrDefault(s => s.ProjectName == projectName);
+            var segment = sortSegments.FirstOrDefault(s => s.MatchesProject(projectName));
             if (segment == null || segment.DataStartRowIndex > segment.DataEndRowIndex) continue;
 
             var sortedRows = BuildSortedRows(sortSheetData, segment, teamColIdx, authorsColIdx, featureColIdx, uniqueKeyColIdx, teamSortOrder);
