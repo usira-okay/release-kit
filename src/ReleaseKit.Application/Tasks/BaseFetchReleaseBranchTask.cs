@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Domain.Helpers;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -93,30 +92,18 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
 
             if (result.IsSuccess && result.Value != null && result.Value.Count > 0)
             {
-                // 過濾出符合 release/yyyyMMdd 格式的分支並依日期降冪排序
-                var validBranches = ReleaseBranchHelper.SortReleaseBranchesDescending(result.Value);
+                // 成功且有分支：取最新分支（字母排序最大的）
+                var latestBranch = result.Value.OrderByDescending(b => b).First();
+                _logger.LogInformation("專案 {ProjectPath} 最新 Release Branch: {Branch}", project.ProjectPath, latestBranch);
 
-                if (validBranches.Count > 0)
+                // 加入對應分支名稱的分組
+                if (!branchGroups.ContainsKey(latestBranch))
                 {
-                    var latestBranch = validBranches[0];
-                    _logger.LogInformation("專案 {ProjectPath} 最新 Release Branch: {Branch}", project.ProjectPath, latestBranch);
-
-                    // 加入對應分支名稱的分組
-                    if (!branchGroups.ContainsKey(latestBranch))
-                    {
-                        branchGroups[latestBranch] = new List<string>();
-                    }
-                    branchGroups[latestBranch].Add(project.ProjectPath);
-
-                    successCount++;
+                    branchGroups[latestBranch] = new List<string>();
                 }
-                else
-                {
-                    // 有分支但無符合 release/yyyyMMdd 格式的分支
-                    _logger.LogWarning("專案 {ProjectPath} 無符合 release/yyyyMMdd 格式的 Release Branch", project.ProjectPath);
-                    notFoundProjects.Add(project.ProjectPath);
-                    failureCount++;
-                }
+                branchGroups[latestBranch].Add(project.ProjectPath);
+
+                successCount++;
             }
             else
             {
@@ -142,7 +129,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
                     return (0, "");
                 
                 // release/yyyyMMdd 格式的 branch 排前面（優先度 2），並依日期降冪排序
-                if (ReleaseBranchHelper.IsReleaseBranch(kvp.Key))
+                if (kvp.Key.StartsWith("release/", StringComparison.OrdinalIgnoreCase) && kvp.Key.Length == 16 && kvp.Key.Substring(8).All(char.IsDigit))
                     return (2, kvp.Key);
                 
                 // 其他 branch（優先度 1），隨便排

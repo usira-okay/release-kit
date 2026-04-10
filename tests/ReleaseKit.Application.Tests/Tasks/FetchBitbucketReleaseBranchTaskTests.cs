@@ -633,25 +633,24 @@ public class FetchBitbucketReleaseBranchTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證：標準 release/yyyyMMdd 降冪排序在前，非標準格式歸入 NotFound
+        // Assert - 驗證排序：標準 release/yyyyMMdd 在前面且降冪排序，非標準的在中間，NotFound 最後
         Assert.NotNull(savedJson);
         var indexOf20260210 = savedJson.IndexOf("release/20260210", StringComparison.Ordinal);
         var indexOf20260115 = savedJson.IndexOf("release/20260115", StringComparison.Ordinal);
+        var indexOfV2 = savedJson.IndexOf("release/v2.0", StringComparison.Ordinal);
+        var indexOfHotfix = savedJson.IndexOf("release/hotfix", StringComparison.Ordinal);
         var indexOfNotFound = savedJson.IndexOf("NotFound", StringComparison.Ordinal);
 
         // 標準格式的 branch 應該在最前面且降冪排序
         Assert.True(indexOf20260210 < indexOf20260115, "release/20260210 應該在 release/20260115 之前");
-
-        // 非標準格式（release/v2.0、release/hotfix）不應出現為獨立分組
-        Assert.Equal(-1, savedJson.IndexOf("release/v2.0", StringComparison.Ordinal));
-        Assert.Equal(-1, savedJson.IndexOf("release/hotfix", StringComparison.Ordinal));
-
-        // NotFound 應包含非標準格式的專案與無分支的專案
-        Assert.True(indexOfNotFound > 0, "應有 NotFound 分組");
-        Assert.True(indexOf20260115 < indexOfNotFound, "標準格式應該在 NotFound 之前");
-        Assert.Contains("workspace/project-custom1", savedJson);
-        Assert.Contains("workspace/project-custom2", savedJson);
-        Assert.Contains("workspace/project-none", savedJson);
+        
+        // 標準格式應該在非標準格式之前
+        Assert.True(indexOf20260115 < indexOfV2, "標準格式應該在非標準格式之前");
+        Assert.True(indexOf20260115 < indexOfHotfix, "標準格式應該在非標準格式之前");
+        
+        // NotFound 應該在最後
+        Assert.True(indexOfV2 < indexOfNotFound, "非標準 branch 應該在 NotFound 之前");
+        Assert.True(indexOfHotfix < indexOfNotFound, "非標準 branch 應該在 NotFound 之前");
     }
 
     [Fact]
