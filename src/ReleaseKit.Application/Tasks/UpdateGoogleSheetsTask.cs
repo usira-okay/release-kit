@@ -61,7 +61,7 @@ public class UpdateGoogleSheetsTask : ITask
         var segments = BuildProjectSegments(sheetData, repoColIndex);
         var existingUniqueKeys = BuildUniqueKeyMap(sheetData, uniqueKeyColIndex);
 
-        var (insertItems, updateItems) = ClassifyItems(consolidatedResult.Projects, existingUniqueKeys);
+        var (insertItems, updateItems) = ClassifyItems(consolidatedResult.Projects, existingUniqueKeys, segments);
         _logger.LogInformation("分類完成：新增 {InsertCount} 筆，更新 {UpdateCount} 筆",
             insertItems.Count, updateItems.Count);
 
@@ -81,7 +81,7 @@ public class UpdateGoogleSheetsTask : ITask
         var (batchUpdates, affectedProjects) =
             BuildInsertBatchUpdates(insertsByProject, segments);
 
-        AppendUpdateBatchUpdates(batchUpdates, updateItems, existingUniqueKeys, affectedProjects);
+        AppendUpdateBatchUpdates(batchUpdates, updateItems, existingUniqueKeys, affectedProjects, segments);
 
         if (batchUpdates.Count > 0)
         {
@@ -171,16 +171,20 @@ public class UpdateGoogleSheetsTask : ITask
         List<(string ProjectName, ConsolidatedReleaseEntry Entry, int RowIndex)> UpdateItems)
         ClassifyItems(
             Dictionary<string, List<ConsolidatedReleaseEntry>> projects,
-            Dictionary<string, int> existingUniqueKeys)
+            Dictionary<string, int> existingUniqueKeys,
+            List<SheetProjectSegment> segments)
     {
         var insertItems = new List<(string ProjectName, ConsolidatedReleaseEntry Entry)>();
         var updateItems = new List<(string ProjectName, ConsolidatedReleaseEntry Entry, int RowIndex)>();
 
         foreach (var (projectName, entries) in projects)
         {
+            var segment = segments.FirstOrDefault(s => s.MatchesProject(projectName));
+            var sheetProjectName = segment?.ProjectName ?? projectName;
+
             foreach (var entry in entries)
             {
-                var uniqueKey = $"{entry.WorkItemId}{projectName}";
+                var uniqueKey = $"{entry.WorkItemId}{sheetProjectName}";
                 if (existingUniqueKeys.TryGetValue(uniqueKey, out var rowIndex))
                     updateItems.Add((projectName, entry, rowIndex));
                 else
@@ -255,7 +259,7 @@ public class UpdateGoogleSheetsTask : ITask
                 var entry = items[i].Entry;
                 var rowIndex = segment.DataStartRowIndex + i;
                 var row1Based = rowIndex + 1;
-                var uniqueKey = $"{entry.WorkItemId}{projectName}";
+                var uniqueKey = $"{entry.WorkItemId}{segment.ProjectName}";
 
                 AddFeatureCell(batchUpdates, entry, row1Based, columnMapping);
                 AddInsertRowCells(batchUpdates, entry, projectName, row1Based, uniqueKey, columnMapping);
@@ -339,13 +343,16 @@ public class UpdateGoogleSheetsTask : ITask
         List<(string Range, IList<IList<object>> Values)> batchUpdates,
         List<(string ProjectName, ConsolidatedReleaseEntry Entry, int RowIndex)> updateItems,
         Dictionary<string, int> existingUniqueKeys,
-        HashSet<string> affectedProjects)
+        HashSet<string> affectedProjects,
+        List<SheetProjectSegment> segments)
     {
         var columnMapping = _options.ColumnMapping;
 
         foreach (var (projectName, entry, _) in updateItems)
         {
-            var uniqueKey = $"{entry.WorkItemId}{projectName}";
+            var segment = segments.FirstOrDefault(s => s.MatchesProject(projectName));
+            var sheetProjectName = segment?.ProjectName ?? projectName;
+            var uniqueKey = $"{entry.WorkItemId}{sheetProjectName}";
             if (!existingUniqueKeys.TryGetValue(uniqueKey, out var currentRowIndex)) continue;
 
             affectedProjects.Add(projectName);
