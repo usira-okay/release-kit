@@ -307,6 +307,82 @@ public class UpdateGoogleSheetsTaskTests
         Assert.Equal(4, segments[1].DataEndRowIndex);
     }
 
+    /// <summary>
+    /// T009a: 測試 RepositoryNameColumn 含逗號分隔名稱時，MatchesProject 可正確匹配
+    /// </summary>
+    [Fact]
+    public void BuildProjectSegments_CommaSeparatedRepoName_MatchesProject()
+    {
+        // Arrange - Sheet 的 RepositoryNameColumn 為 "repoA,repoB"
+        var sheetData = CreateSheetData(
+            ("repoA,repoB", null),      // row 0: header（逗號分隔）
+            (null, "100repoA"),          // row 1: data
+            (null, "200repoB")           // row 2: data
+        );
+
+        // Act
+        var segments = UpdateGoogleSheetsTask.BuildProjectSegments(sheetData, 25);
+
+        // Assert - 原始 ProjectName 保留逗號分隔值
+        Assert.Single(segments);
+        Assert.Equal("repoA,repoB", segments[0].ProjectName);
+
+        // MatchesProject 可匹配逗號分隔的任一名稱
+        Assert.True(segments[0].MatchesProject("repoA"));
+        Assert.True(segments[0].MatchesProject("repoB"));
+        Assert.False(segments[0].MatchesProject("repoC"));
+    }
+
+    /// <summary>
+    /// T009b: 測試 RepositoryNameColumn 含逗號分隔名稱且有空格時，MatchesProject 可正確匹配
+    /// </summary>
+    [Fact]
+    public void BuildProjectSegments_CommaSeparatedWithSpaces_MatchesProject()
+    {
+        // Arrange - Sheet 的 RepositoryNameColumn 為 "repoA, repoB"（逗號後有空格）
+        var sheetData = CreateSheetData(
+            ("repoA, repoB", null),     // row 0: header
+            (null, "100repoA")          // row 1: data
+        );
+
+        // Act
+        var segments = UpdateGoogleSheetsTask.BuildProjectSegments(sheetData, 25);
+
+        // Assert
+        Assert.Single(segments);
+        Assert.True(segments[0].MatchesProject("repoA"));
+        Assert.True(segments[0].MatchesProject("repoB"));
+    }
+
+    /// <summary>
+    /// T009c: 測試端對端：逗號分隔 RepositoryNameColumn 應能正確匹配 Redis 中的專案並觸發 InsertRows
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_CommaSeparatedRepoName_ShouldMatchRedisProject()
+    {
+        // Arrange - Redis 中有 "repoA" 專案的資料
+        var result = CreateConsolidatedResult(
+            ("repoA", new[] { CreateEntry(100) }));
+        SetupRedisConsolidatedData(result);
+        SetupSheetId(0);
+
+        // Sheet 的 RepositoryNameColumn 為 "repoA,repoB"
+        var sheetData = CreateSheetData(
+            ("repoA,repoB", null)    // row 0: header（逗號分隔）
+        );
+        SetupSheetData(sheetData);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - InsertRows 被呼叫，代表 "repoA" 成功匹配 "repoA,repoB" 區段
+        _googleSheetServiceMock.Verify(
+            x => x.InsertRowsAsync(_defaultOptions.SpreadsheetId, 0, 1, 1),
+            Times.Once);
+    }
+
     // ===== T010: UniqueKey Insert/Update 分類 =====
 
     /// <summary>
