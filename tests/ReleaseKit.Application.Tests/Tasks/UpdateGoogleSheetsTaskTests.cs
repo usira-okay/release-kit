@@ -260,8 +260,8 @@ public class UpdateGoogleSheetsTaskTests
         // Arrange
         var sheetData = CreateSheetData(
             ("my-repo", null),    // row 0: header
-            (null, "123my-repo"), // row 1: data
-            (null, "456my-repo")  // row 2: data
+            (null, "VSTS123my-repo"), // row 1: data
+            (null, "VSTS456my-repo")  // row 2: data
         );
 
         // Act
@@ -284,10 +284,10 @@ public class UpdateGoogleSheetsTaskTests
         // Arrange
         var sheetData = CreateSheetData(
             ("project-a", null),      // row 0: header A
-            (null, "100project-a"),    // row 1: data A
-            (null, "200project-a"),    // row 2: data A
+            (null, "VSTS100project-a"),    // row 1: data A
+            (null, "VSTS200project-a"),    // row 2: data A
             ("project-b", null),      // row 3: header B
-            (null, "300project-b")    // row 4: data B
+            (null, "VSTS300project-b")    // row 4: data B
         );
 
         // Act
@@ -403,7 +403,7 @@ public class UpdateGoogleSheetsTaskTests
 
         var sheetData = CreateSheetData(
             ("my-repo", null),          // row 0: header
-            (null, "200my-repo")        // row 1: existing entry with key 200my-repo
+            (null, "VSTS200my-repo")        // row 1: existing entry with key VSTS200my-repo
         );
         SetupSheetData(sheetData);
 
@@ -596,7 +596,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T012: 測試 UniqueKeyColumn 格式為 {workItemId}{projectName}
+    /// T012: 測試 UniqueKeyColumn 格式為 VSTS{workItemId}{projectName}
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_NewRow_UniqueKeyShouldBeCorrectFormat()
@@ -622,7 +622,7 @@ public class UpdateGoogleSheetsTaskTests
                 It.Is<IList<(string Range, IList<IList<object>> Values)>>(updates =>
                     updates.Any(u =>
                         u.Range.Contains("Y") &&
-                        u.Values[0][0].ToString() == "12345my-repo"))),
+                        u.Values[0][0].ToString() == "VSTS12345my-repo"))),
             Times.Once);
     }
 
@@ -710,7 +710,7 @@ public class UpdateGoogleSheetsTaskTests
 
         var sheetData = CreateSheetData(
             ("my-repo", null),          // row 0: header
-            (null, "200my-repo")        // row 1: existing data
+            (null, "VSTS200my-repo")        // row 1: existing data
         );
         SetupSheetData(sheetData);
 
@@ -760,7 +760,7 @@ public class UpdateGoogleSheetsTaskTests
 
         var sheetData = CreateSheetData(
             ("my-repo", null),
-            (null, "200my-repo")
+            (null, "VSTS200my-repo")
         );
         SetupSheetData(sheetData);
 
@@ -831,9 +831,9 @@ public class UpdateGoogleSheetsTaskTests
         var result = CreateConsolidatedResult(
             ("test-repo", new[]
             {
-                CreateEntry(100),  // UniqueKey = "100test-repo"
-                CreateEntry(200),  // UniqueKey = "200test-repo"
-                CreateEntry(300),  // UniqueKey = "300test-repo"
+                CreateEntry(100),  // UniqueKey = "VSTS100test-repo"
+                CreateEntry(200),  // UniqueKey = "VSTS200test-repo"
+                CreateEntry(300),  // UniqueKey = "VSTS300test-repo"
             }));
         SetupRedisConsolidatedData(result);
         SetupSheetId(0);
@@ -851,19 +851,19 @@ public class UpdateGoogleSheetsTaskTests
         var row1 = new List<object>(new object[26]);
         row1[1] = "Feature Z";        // B 欄 = FeatureColumn
         row1[3] = "Team Z";           // D 欄 = TeamColumn
-        row1[24] = "100test-repo";    // Y 欄 = UniqueKeyColumn
+        row1[24] = "VSTS100test-repo";    // Y 欄 = UniqueKeyColumn
         sheetData.Add(row1);
 
         var row2 = new List<object>(new object[26]);
         row2[1] = string.Empty;       // B 欄 = FeatureColumn（空白）→ 排到最後
         row2[3] = "Team A";           // D 欄 = TeamColumn
-        row2[24] = "200test-repo";    // Y 欄 = UniqueKeyColumn
+        row2[24] = "VSTS200test-repo";    // Y 欄 = UniqueKeyColumn
         sheetData.Add(row2);
 
         var row3 = new List<object>(new object[26]);
         row3[1] = "Feature A";        // B 欄 = FeatureColumn
         row3[3] = "Team A";           // D 欄 = TeamColumn
-        row3[24] = "300test-repo";    // Y 欄 = UniqueKeyColumn
+        row3[24] = "VSTS300test-repo";    // Y 欄 = UniqueKeyColumn
         sheetData.Add(row3);
 
         SetupSheetData(sheetData);
@@ -918,8 +918,8 @@ public class UpdateGoogleSheetsTaskTests
         var result = CreateConsolidatedResult(
             ("test-repo", new[]
             {
-                CreateEntry(100),  // UniqueKey = "100test-repo"
-                CreateEntry(200),  // UniqueKey = "200test-repo"
+                CreateEntry(100),  // UniqueKey = "VSTS100test-repo"
+                CreateEntry(200),  // UniqueKey = "VSTS200test-repo"
             }));
         SetupRedisConsolidatedData(result);
         SetupSheetId(0);
@@ -931,12 +931,12 @@ public class UpdateGoogleSheetsTaskTests
         var row1 = new List<object>(new object[26]);
         row1[1] = "=HYPERLINK(\"https://dev.azure.com/1\",\"VSTS100 - Feature B\")"; // B 欄 = FeatureColumn
         row1[3] = "Team B";        // D 欄 = TeamColumn
-        row1[24] = "100test-repo"; // Y 欄 = UniqueKeyColumn
+        row1[24] = "VSTS100test-repo"; // Y 欄 = UniqueKeyColumn
         // row2: Team A, Feature 為 HYPERLINK 公式（排序後應排在 row1 之前）
         var row2 = new List<object>(new object[26]);
         row2[1] = "=HYPERLINK(\"https://dev.azure.com/2\",\"VSTS200 - Feature A\")"; // B 欄 = FeatureColumn
         row2[3] = "Team A";        // D 欄 = TeamColumn
-        row2[24] = "200test-repo"; // Y 欄 = UniqueKeyColumn
+        row2[24] = "VSTS200test-repo"; // Y 欄 = UniqueKeyColumn
 
         var sheetData = new List<IList<object>> { headerRow, row1, row2 };
 
@@ -998,7 +998,7 @@ public class UpdateGoogleSheetsTaskTests
 
         var sheetData = CreateSheetData(
             ("project-a", null),        // row 0: header
-            (null, "200project-a")      // row 1: existing
+            (null, "VSTS200project-a")      // row 1: existing
         );
         SetupSheetData(sheetData);
 
@@ -1299,9 +1299,9 @@ public class UpdateGoogleSheetsTaskTests
         var result = CreateConsolidatedResult(
             ("test-repo", new[]
             {
-                CreateEntry(100),  // UniqueKey = "100test-repo"
-                CreateEntry(200),  // UniqueKey = "200test-repo"
-                CreateEntry(300),  // UniqueKey = "300test-repo"
+                CreateEntry(100),  // UniqueKey = "VSTS100test-repo"
+                CreateEntry(200),  // UniqueKey = "VSTS200test-repo"
+                CreateEntry(300),  // UniqueKey = "VSTS300test-repo"
             }));
         SetupRedisConsolidatedData(result);
         SetupSheetId(0);
@@ -1316,21 +1316,21 @@ public class UpdateGoogleSheetsTaskTests
         var row1 = new List<object>(new object[26]);
         row1[1] = "Feature A";       // B 欄 = FeatureColumn
         row1[3] = "Team A";          // D 欄 = TeamColumn
-        row1[24] = "100test-repo";   // Y 欄 = UniqueKeyColumn
+        row1[24] = "VSTS100test-repo";   // Y 欄 = UniqueKeyColumn
         sheetData.Add(row1);
 
         // row2: Team B, Feature 有填寫（Sort=1，應排在第一位）
         var row2 = new List<object>(new object[26]);
         row2[1] = "Feature B";       // B 欄 = FeatureColumn
         row2[3] = "Team B";          // D 欄 = TeamColumn
-        row2[24] = "200test-repo";   // Y 欄 = UniqueKeyColumn
+        row2[24] = "VSTS200test-repo";   // Y 欄 = UniqueKeyColumn
         sheetData.Add(row2);
 
         // row3: Team C, Feature 有填寫（未在 TeamSortRules，以 int.MaxValue 排在最後）
         var row3 = new List<object>(new object[26]);
         row3[1] = "Feature C";       // B 欄 = FeatureColumn
         row3[3] = "Team C";          // D 欄 = TeamColumn
-        row3[24] = "300test-repo";   // Y 欄 = UniqueKeyColumn
+        row3[24] = "VSTS300test-repo";   // Y 欄 = UniqueKeyColumn
         sheetData.Add(row3);
 
         SetupSheetData(sheetData);
@@ -1384,21 +1384,21 @@ public class UpdateGoogleSheetsTaskTests
         row1[1] = "Feature X";       // B 欄 = FeatureColumn
         row1[3] = "Team Z";          // D 欄 = TeamColumn（未設定 sort）
         row1[4] = "Bob";             // E 欄 = AuthorsColumn
-        row1[24] = "100test-repo";
+        row1[24] = "VSTS100test-repo";
         sheetData.Add(row1);
 
         var row2 = new List<object>(new object[26]);
         row2[1] = "Feature Y";       // B 欄 = FeatureColumn
         row2[3] = "Team A";          // D 欄 = TeamColumn（未設定 sort）
         row2[4] = "Alice";           // E 欄 = AuthorsColumn
-        row2[24] = "200test-repo";
+        row2[24] = "VSTS200test-repo";
         sheetData.Add(row2);
 
         var row3 = new List<object>(new object[26]);
         row3[1] = "Feature Z";       // B 欄 = FeatureColumn
         row3[3] = "Team M";          // D 欄 = TeamColumn（未設定 sort）
         row3[4] = "Charlie";         // E 欄 = AuthorsColumn
-        row3[24] = "300test-repo";
+        row3[24] = "VSTS300test-repo";
         sheetData.Add(row3);
 
         SetupSheetData(sheetData);
