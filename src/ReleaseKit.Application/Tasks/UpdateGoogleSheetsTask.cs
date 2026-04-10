@@ -180,7 +180,7 @@ public class UpdateGoogleSheetsTask : ITask
         {
             foreach (var entry in entries)
             {
-                var uniqueKey = $"VSTS{entry.WorkItemId}{projectName}";
+                var uniqueKey = $"{entry.WorkItemId}{projectName}";
                 if (existingUniqueKeys.TryGetValue(uniqueKey, out var rowIndex))
                     updateItems.Add((projectName, entry, rowIndex));
                 else
@@ -255,7 +255,7 @@ public class UpdateGoogleSheetsTask : ITask
                 var entry = items[i].Entry;
                 var rowIndex = segment.DataStartRowIndex + i;
                 var row1Based = rowIndex + 1;
-                var uniqueKey = $"VSTS{entry.WorkItemId}{projectName}";
+                var uniqueKey = $"{entry.WorkItemId}{projectName}";
 
                 AddFeatureCell(batchUpdates, entry, row1Based, columnMapping);
                 AddInsertRowCells(batchUpdates, entry, projectName, row1Based, uniqueKey, columnMapping);
@@ -345,7 +345,7 @@ public class UpdateGoogleSheetsTask : ITask
 
         foreach (var (projectName, entry, _) in updateItems)
         {
-            var uniqueKey = $"VSTS{entry.WorkItemId}{projectName}";
+            var uniqueKey = $"{entry.WorkItemId}{projectName}";
             if (!existingUniqueKeys.TryGetValue(uniqueKey, out var currentRowIndex)) continue;
 
             affectedProjects.Add(projectName);
