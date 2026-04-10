@@ -596,7 +596,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T012: 測試 UniqueKeyColumn 格式為 {workItemId}{projectName}，projectName 取自 Google Sheet RepositoryNameColumn
+    /// T012: 測試 UniqueKeyColumn 格式為 {workItemId}{projectName}， projectName 取自 Google Sheet RepositoryNameColumn
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_NewRow_UniqueKeyShouldBeCorrectFormat()
@@ -627,7 +627,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T012b: 測試逗號分隔 RepositoryNameColumn 時，UniqueKey 使用 Sheet 的 ProjectName 而非 Redis 的 ProjectName
+    /// T012b: 測試逗號分隔 RepositoryNameColumn 時， UniqueKey 使用 Sheet 的 ProjectName 而非 Redis 的 ProjectName
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_NewRow_CommaSeparatedRepoName_UniqueKeyShouldUseSheetProjectName()
