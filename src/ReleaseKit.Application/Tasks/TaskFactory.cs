@@ -37,9 +37,6 @@ public class TaskFactory
             TaskType.ConsolidateReleaseData => _serviceProvider.GetRequiredService<ConsolidateReleaseDataTask>(),
             TaskType.EnhanceTitles => _serviceProvider.GetRequiredService<EnhanceTitlesWithCopilotTask>(),
             TaskType.CloneRepositories => _serviceProvider.GetRequiredService<CloneRepositoriesTask>(),
-            TaskType.ExtractPrDiffs => _serviceProvider.GetRequiredService<ExtractPrDiffsTask>(),
-            TaskType.AnalyzeProjectRisk => _serviceProvider.GetRequiredService<AnalyzeProjectRiskTask>(),
-            TaskType.AnalyzeCrossProjectRisk => _serviceProvider.GetRequiredService<AnalyzeCrossProjectRiskTask>(),
             TaskType.GenerateRiskReport => _serviceProvider.GetRequiredService<GenerateRiskReportTask>(),
             TaskType.AnalyzeRisk => _serviceProvider.GetRequiredService<AnalyzeRiskTask>(),
             _ => throw new ArgumentException($"不支援的任務類型: {taskType}", nameof(taskType))

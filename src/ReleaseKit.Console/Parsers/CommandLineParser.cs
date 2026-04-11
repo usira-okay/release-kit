@@ -21,9 +21,6 @@ public class CommandLineParser
         { "consolidate-release-data", TaskType.ConsolidateReleaseData },
         { "enhance-titles", TaskType.EnhanceTitles },
         { "clone-repos", TaskType.CloneRepositories },
-        { "extract-pr-diffs", TaskType.ExtractPrDiffs },
-        { "analyze-project-risk", TaskType.AnalyzeProjectRisk },
-        { "analyze-cross-project-risk", TaskType.AnalyzeCrossProjectRisk },
         { "generate-risk-report", TaskType.GenerateRiskReport },
         { "analyze-risk", TaskType.AnalyzeRisk },
     };

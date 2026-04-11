@@ -1,57 +1,78 @@
 namespace ReleaseKit.Domain.Tests.Entities;
 
+using Xunit;
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
 /// <summary>
-/// RiskAnalysisReport 聚合根單元測試
+/// RiskAnalysisReport 實體測試
 /// </summary>
 public class RiskAnalysisReportTests
 {
     [Fact]
-    public void RiskAnalysisReport_ShouldBeCreatedWithRequiredProperties()
+    public void 建構_應正確設定所有屬性()
     {
+        // Arrange & Act
         var report = new RiskAnalysisReport
         {
-            PassKey = new AnalysisPassKey { Pass = 1, Sequence = 1 },
-            RiskItems = new List<RiskItem>(),
-            Summary = "無風險項目",
+            Sequence = 1,
+            ProjectName = "my-service",
+            RiskItems = new List<RiskItem>
+            {
+                new()
+                {
+                    Category = RiskCategory.ApiContract,
+                    Level = RiskLevel.High,
+                    ChangeSummary = "API 變更",
+                    AffectedFiles = new List<string> { "Controller.cs" },
+                    PotentiallyAffectedServices = new List<string> { "Frontend" },
+                    ImpactDescription = "影響前端",
+                    SuggestedValidationSteps = new List<string> { "測試 API" }
+                }
+            },
+            Summary = "測試摘要",
             AnalyzedAt = DateTimeOffset.UtcNow
         };
 
-        Assert.NotNull(report.PassKey);
-        Assert.Empty(report.RiskItems);
-        Assert.Null(report.ProjectName);
-        Assert.Null(report.Category);
+        // Assert
+        Assert.Equal(1, report.Sequence);
+        Assert.Equal("my-service", report.ProjectName);
+        Assert.Single(report.RiskItems);
+        Assert.Equal("測試摘要", report.Summary);
     }
 
     [Fact]
-    public void RiskAnalysisReport_Pass1_ShouldHaveProjectName()
+    public void AnalysisLog為可選屬性_預設為null()
     {
+        // Arrange & Act
         var report = new RiskAnalysisReport
         {
-            PassKey = new AnalysisPassKey { Pass = 1, Sequence = 1 },
-            ProjectName = "ServiceA",
+            Sequence = 1,
+            ProjectName = "svc",
             RiskItems = new List<RiskItem>(),
-            Summary = "ServiceA 分析完成",
+            Summary = "空報告",
             AnalyzedAt = DateTimeOffset.UtcNow
         };
 
-        Assert.Equal("ServiceA", report.ProjectName);
+        // Assert
+        Assert.Null(report.AnalysisLog);
     }
 
     [Fact]
-    public void RiskAnalysisReport_Pass2_ShouldHaveCategory()
+    public void AnalysisLog可設定值()
     {
+        // Arrange & Act
         var report = new RiskAnalysisReport
         {
-            PassKey = new AnalysisPassKey { Pass = 2, Sequence = 1 },
-            Category = RiskCategory.ApiContract,
+            Sequence = 1,
+            ProjectName = "svc",
             RiskItems = new List<RiskItem>(),
-            Summary = "API 契約風險分析",
-            AnalyzedAt = DateTimeOffset.UtcNow
+            Summary = "摘要",
+            AnalyzedAt = DateTimeOffset.UtcNow,
+            AnalysisLog = "執行了 git diff 指令"
         };
 
-        Assert.Equal(RiskCategory.ApiContract, report.Category);
+        // Assert
+        Assert.Equal("執行了 git diff 指令", report.AnalysisLog);
     }
 }

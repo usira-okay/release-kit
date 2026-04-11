@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using GitHub.Copilot.SDK;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Common.Configuration;
@@ -10,88 +12,63 @@ using ReleaseKit.Domain.ValueObjects;
 namespace ReleaseKit.Infrastructure.Copilot;
 
 /// <summary>
-/// 使用 GitHub Copilot SDK 實作的風險分析服務
+/// 使用 GitHub Copilot SDK 實作的風險分析服務（Agentic 模式）
 /// </summary>
 /// <remarks>
-/// 透過 Copilot SDK 建立 session，將 PR diff 資訊送出，
-/// 由 AI 模型分析後識別跨服務風險項目。
+/// 建立 Copilot session 並註冊 run_command 工具，
+/// 讓 AI 自主決定要執行什麼 shell 指令來探索 repo 並分析風險。
 /// </remarks>
 public class CopilotRiskAnalyzer : IRiskAnalyzer
 {
     private readonly IOptions<CopilotOptions> _copilotOptions;
     private readonly IOptions<RiskAnalysisOptions> _riskOptions;
+    private readonly IShellCommandExecutor _shellExecutor;
     private readonly INow _now;
     private readonly ILogger<CopilotRiskAnalyzer> _logger;
 
     /// <summary>
-    /// Pass 1 系統提示詞：單一專案風險分析
+    /// Agentic 分析系統提示詞
     /// </summary>
-    internal const string Pass1SystemPrompt = """
+    internal const string AgenticSystemPrompt = """
         你是一位資深軟體架構師，專精於微服務架構風險分析。
-        分析以下專案的 PR 變更，識別所有可能影響其他服務的風險。
 
-        風險類別：
-        1. API 契約變更（Controller endpoint、Request/Response 模型）
-        2. DB Schema 變更（Migration、SQL、Entity 欄位）
-        3. DB 資料異動（重點分析）（Seed data、Lookup table、預設值、Stored Procedure）
-        4. 事件/訊息格式變更（Event class）
-        5. 設定檔變更（appsettings、環境變數）
+        ## 你的任務
+        分析指定專案的 commit 變更，識別所有可能影響其他服務的風險。
 
-        【最重要】你的回應必須只有純 JSON，禁止包含任何文字說明、解釋、markdown 格式或 code block 標記。
+        ## 可用工具
+        你可以使用 `run_command` 工具在 repo 目錄中執行任意 shell 指令。
+        - 建議先用 `git log`、`git diff`、`git show` 了解變更範圍
+        - 可用 `grep`、`cat`、`find` 等深入檢查特定檔案
+        - 每次指令輸出最多 {maxOutputChars} 字元，請自行用 | head、| tail、| grep 控制輸出量
 
-        JSON response format:
+        ## 風險類別
+        1. API 契約變更 (ApiContract) — Controller endpoint、Request/Response 模型
+        2. DB Schema 變更 (DatabaseSchema) — Migration、SQL、Entity 欄位
+        3. DB 資料異動 (DatabaseData)【重點分析】— Seed data、Lookup table、預設值、Stored Procedure
+        4. 事件/訊息格式變更 (EventFormat) — Event class
+        5. 設定檔變更 (Configuration) — appsettings、環境變數
+
+        ## 【最重要】分析重點
+        - 「改 A 壞 B」情境：資料異動可能導致其他服務的 switch/case、LINQ 查詢、硬編碼值失效
+        - Lookup table 新增/修改值 → 消費端可能沒有對應處理
+        - Stored Procedure 參數變更 → 呼叫端可能傳錯參數
+
+        ## 輸出格式
+        你的最終回應必須是純 JSON（禁止 markdown code block），格式如下：
         {
           "riskItems": [
             {
               "category": "ApiContract|DatabaseSchema|DatabaseData|EventFormat|Configuration",
               "level": "High|Medium|Low",
               "changeSummary": "變更摘要（繁體中文）",
-              "affectedFiles": ["affected/file/path.cs"],
-              "potentiallyAffectedServices": ["ServiceName"],
-              "sourceProject": "來源專案",
-              "affectedProject": "受影響專案",
-              "impactDescription": "影響描述（繁體中文）",
-              "suggestedValidationSteps": ["驗證步驟"]
+              "affectedFiles": ["file1.cs", "file2.cs"],
+              "potentiallyAffectedServices": ["ServiceA", "ServiceB"],
+              "impactDescription": "影響說明（繁體中文）",
+              "suggestedValidationSteps": ["驗證步驟1", "驗證步驟2"]
             }
           ],
-          "summary": "整體分析摘要（繁體中文）"
-        }
-        """;
-
-    /// <summary>
-    /// Pass 2~10 動態分析系統提示詞
-    /// </summary>
-    /// <remarks>
-    /// 包含 {currentPass} 佔位符，使用時需替換為實際層數。
-    /// </remarks>
-    internal const string DynamicAnalysisSystemPrompt = """
-        你是一位資深軟體架構師，專精於微服務架構風險分析。
-        當前是第 {currentPass} 層分析（上限 10 層）。
-
-        根據前一層分析結果，進行更深入的跨專案影響分析。
-        請決定是否需要繼續更深層分析，並說明理由。
-
-        【最重要】你的回應必須只有純 JSON，禁止包含任何文字說明、解釋、markdown 格式或 code block 標記。
-
-        JSON response format:
-        {
-          "analysisStrategy": "本層使用的分析策略描述",
-          "continueAnalysis": true|false,
-          "continueReason": "繼續分析的理由（若 continueAnalysis 為 false 可省略）",
-          "riskItems": [
-            {
-              "category": "ApiContract|DatabaseSchema|DatabaseData|EventFormat|Configuration",
-              "level": "High|Medium|Low",
-              "changeSummary": "變更摘要（繁體中文）",
-              "affectedFiles": ["affected/file/path.cs"],
-              "potentiallyAffectedServices": ["ServiceName"],
-              "sourceProject": "來源專案",
-              "affectedProject": "受影響專案",
-              "impactDescription": "影響描述（繁體中文）",
-              "suggestedValidationSteps": ["驗證步驟"]
-            }
-          ],
-          "summary": "本層分析摘要（繁體中文）"
+          "summary": "整體分析摘要（繁體中文）",
+          "analysisLog": "你執行了哪些指令、為什麼執行這些指令的簡要說明（繁體中文）"
         }
         """;
 
@@ -115,263 +92,120 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
     /// <summary>
     /// 初始化 <see cref="CopilotRiskAnalyzer"/> 類別的新執行個體
     /// </summary>
-    /// <param name="copilotOptions">Copilot 組態選項</param>
-    /// <param name="riskOptions">風險分析組態選項</param>
-    /// <param name="now">時間服務</param>
-    /// <param name="logger">日誌記錄器</param>
     public CopilotRiskAnalyzer(
         IOptions<CopilotOptions> copilotOptions,
         IOptions<RiskAnalysisOptions> riskOptions,
+        IShellCommandExecutor shellExecutor,
         INow now,
         ILogger<CopilotRiskAnalyzer> logger)
     {
         _copilotOptions = copilotOptions;
         _riskOptions = riskOptions;
+        _shellExecutor = shellExecutor;
         _now = now;
         _logger = logger;
     }
 
     /// <summary>
-    /// 分析單一專案的 PR 變更風險（Pass 1）
+    /// 分析單一專案的變更風險（Agentic 模式）
     /// </summary>
-    /// <param name="projectName">專案名稱</param>
-    /// <param name="diffs">PR diff 上下文清單</param>
-    /// <param name="cancellationToken">取消權杖</param>
-    /// <returns>風險分析報告</returns>
     public async Task<RiskAnalysisReport> AnalyzeProjectRiskAsync(
-        string projectName,
-        IReadOnlyList<PrDiffContext> diffs,
+        ProjectAnalysisContext context,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("開始分析專案 {ProjectName} 的風險，共 {Count} 個 PR diff", projectName, diffs.Count);
+        _logger.LogInformation("開始 agentic 分析專案 {ProjectName}，共 {Count} 個 commit",
+            context.ProjectName, context.CommitShas.Count);
 
-        var systemPrompt = Pass1SystemPrompt.Replace("{projectName}", projectName);
-        var userPrompt = BuildPass1UserPrompt(projectName, diffs);
+        var systemPrompt = AgenticSystemPrompt
+            .Replace("{maxOutputChars}", _riskOptions.Value.MaxOutputCharacters.ToString());
+
+        var userPrompt = BuildUserPrompt(context);
+        var timeout = TimeSpan.FromSeconds(_riskOptions.Value.CommandTimeoutSeconds);
 
         // 例外處理：外部 AI 呼叫需要明確的錯誤恢復邏輯
         try
         {
-            var responseContent = await SendCopilotRequestAsync(systemPrompt, userPrompt, cancellationToken);
+            var responseContent = await SendAgenticRequestAsync(
+                systemPrompt, userPrompt, context.RepoPath, timeout, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(responseContent))
             {
-                _logger.LogWarning("Copilot 回傳空白回應，專案: {ProjectName}", projectName);
-                return CreateEmptyReport(projectName);
+                _logger.LogWarning("Copilot 回傳空白回應，專案: {ProjectName}", context.ProjectName);
+                return CreateEmptyReport(context.ProjectName);
             }
 
-            var report = ParseProjectRiskResponse(responseContent, projectName, _now.UtcNow, 1);
+            var report = ParseProjectRiskResponse(responseContent, context.ProjectName, _now.UtcNow);
             if (report is null)
             {
-                _logger.LogWarning("無法解析 Copilot 回應，專案: {ProjectName}", projectName);
-                return CreateEmptyReport(projectName);
+                _logger.LogWarning("無法解析 Copilot 回應，專案: {ProjectName}", context.ProjectName);
+                return CreateEmptyReport(context.ProjectName);
             }
 
-            _logger.LogInformation("專案 {ProjectName} 風險分析完成，識別到 {Count} 項風險",
-                projectName, report.RiskItems.Count);
+            _logger.LogInformation("專案 {ProjectName} agentic 分析完成，識別到 {Count} 項風險",
+                context.ProjectName, report.RiskItems.Count);
             return report;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Copilot 風險分析失敗，專案: {ProjectName}", projectName);
-            return CreateEmptyReport(projectName);
-        }
-    }
-
-    /// <summary>
-    /// 動態深度分析：接收前一層報告，產出下一層分析（Pass 2~10）
-    /// </summary>
-    /// <param name="currentPass">當前分析層數</param>
-    /// <param name="previousPassReports">前一層的分析報告</param>
-    /// <param name="cancellationToken">取消權杖</param>
-    /// <returns>動態分析結果</returns>
-    public async Task<DynamicAnalysisResult> AnalyzeDeepAsync(
-        int currentPass,
-        IReadOnlyList<RiskAnalysisReport> previousPassReports,
-        CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("開始第 {Pass} 層深度分析，前一層報告數: {Count}",
-            currentPass, previousPassReports.Count);
-
-        var systemPrompt = DynamicAnalysisSystemPrompt.Replace("{currentPass}", currentPass.ToString());
-        var userPrompt = BuildDynamicAnalysisUserPrompt(previousPassReports);
-
-        // 例外處理：外部 AI 呼叫需要明確的錯誤恢復邏輯
-        try
-        {
-            var responseContent = await SendCopilotRequestAsync(systemPrompt, userPrompt, cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(responseContent))
-            {
-                _logger.LogWarning("Copilot 回傳空白回應，第 {Pass} 層分析", currentPass);
-                return CreateEmptyDynamicResult();
-            }
-
-            var result = ParseDynamicAnalysisResponse(responseContent, _now.UtcNow, currentPass);
-            if (result is null)
-            {
-                _logger.LogWarning("無法解析 Copilot 回應，第 {Pass} 層分析", currentPass);
-                return CreateEmptyDynamicResult();
-            }
-
-            _logger.LogInformation("第 {Pass} 層深度分析完成，ContinueAnalysis: {Continue}",
-                currentPass, result.ContinueAnalysis);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Copilot 深度分析失敗，第 {Pass} 層", currentPass);
-            return CreateEmptyDynamicResult();
+            _logger.LogError(ex, "Copilot agentic 分析失敗，專案: {ProjectName}", context.ProjectName);
+            return CreateEmptyReport(context.ProjectName);
         }
     }
 
     /// <summary>
     /// 產生最終整合報告 Markdown
     /// </summary>
-    /// <param name="lastPassReports">最後一層的分析報告</param>
-    /// <param name="cancellationToken">取消權杖</param>
-    /// <returns>Markdown 格式的最終報告</returns>
     public async Task<string> GenerateFinalReportAsync(
-        IReadOnlyList<RiskAnalysisReport> lastPassReports,
+        IReadOnlyList<RiskAnalysisReport> reports,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("開始產生最終風險評估報告，報告數: {Count}", lastPassReports.Count);
+        _logger.LogInformation("開始產生最終風險報告，共 {Count} 份中間報告", reports.Count);
 
-        var userPrompt = BuildFinalReportUserPrompt(lastPassReports);
+        var userPrompt = BuildFinalReportUserPrompt(reports);
 
         // 例外處理：外部 AI 呼叫需要明確的錯誤恢復邏輯
         try
         {
-            var responseContent = await SendCopilotRequestAsync(FinalReportSystemPrompt, userPrompt, cancellationToken);
+            var responseContent = await SendSimpleRequestAsync(
+                FinalReportSystemPrompt, userPrompt, cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(responseContent))
-            {
-                _logger.LogWarning("Copilot 回傳空白回應，無法產生最終報告");
-                return "## 報告產生失敗\n\nCopilot 回傳空白回應，請重新嘗試。";
-            }
-
-            _logger.LogInformation("最終風險評估報告產生完成");
-            return responseContent;
+            return responseContent ?? "# 風險報告產生失敗\n\n無法從 AI 取得分析結果。";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Copilot 最終報告產生失敗");
-            return $"## 報告產生失敗\n\n錯誤訊息：{ex.Message}";
+            _logger.LogError(ex, "最終報告產生失敗");
+            return "# 風險報告產生失敗\n\n產生過程發生錯誤。";
         }
     }
 
     /// <summary>
-    /// 解析 Pass 1 專案風險分析回應
+    /// 解析 Copilot 回應為 RiskAnalysisReport
     /// </summary>
-    /// <param name="content">AI 回應內容</param>
-    /// <param name="projectName">專案名稱</param>
-    /// <param name="analyzedAt">分析時間</param>
-    /// <param name="sequence">序號</param>
-    /// <returns>風險分析報告，解析失敗時回傳 null</returns>
     internal static RiskAnalysisReport? ParseProjectRiskResponse(
         string content,
         string projectName,
-        DateTimeOffset analyzedAt,
-        int sequence)
+        DateTimeOffset analyzedAt)
     {
         if (string.IsNullOrWhiteSpace(content))
-        {
             return null;
-        }
 
         var cleaned = CleanMarkdownWrapper(content);
 
-        var parsed = ParseJsonSafe<ProjectRiskResponseDto>(cleaned);
-        if (parsed is null)
-        {
-            return null;
-        }
-
-        return new RiskAnalysisReport
-        {
-            PassKey = new AnalysisPassKey { Pass = 1, Sequence = sequence },
-            ProjectName = projectName,
-            RiskItems = parsed.RiskItems ?? [],
-            Summary = parsed.Summary ?? string.Empty,
-            AnalyzedAt = analyzedAt
-        };
-    }
-
-    /// <summary>
-    /// 解析 Pass 2~10 動態分析回應
-    /// </summary>
-    /// <param name="content">AI 回應內容</param>
-    /// <param name="analyzedAt">分析時間</param>
-    /// <param name="currentPass">當前分析層數</param>
-    /// <returns>動態分析結果，解析失敗時回傳 null</returns>
-    internal static DynamicAnalysisResult? ParseDynamicAnalysisResponse(
-        string content,
-        DateTimeOffset analyzedAt,
-        int currentPass)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            return null;
-        }
-
-        var cleaned = CleanMarkdownWrapper(content);
-
-        var parsed = ParseJsonSafe<DynamicAnalysisResponseDto>(cleaned);
-        if (parsed is null)
-        {
-            return null;
-        }
-
-        var report = new RiskAnalysisReport
-        {
-            PassKey = new AnalysisPassKey { Pass = currentPass, Sequence = 1 },
-            RiskItems = parsed.RiskItems ?? [],
-            Summary = parsed.Summary ?? string.Empty,
-            AnalyzedAt = analyzedAt
-        };
-
-        return new DynamicAnalysisResult
-        {
-            Reports = [report],
-            ContinueAnalysis = parsed.ContinueAnalysis,
-            ContinueReason = parsed.ContinueReason,
-            AnalysisStrategy = parsed.AnalysisStrategy ?? string.Empty
-        };
-    }
-
-    /// <summary>
-    /// 清除 AI 回應中的 markdown 代碼區塊包裝
-    /// </summary>
-    /// <param name="content">原始回應內容</param>
-    /// <returns>清理後的純 JSON 字串</returns>
-    internal static string CleanMarkdownWrapper(string content)
-    {
-        var cleaned = content.Trim();
-
-        if (cleaned.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
-        {
-            cleaned = cleaned["```json".Length..];
-        }
-        else if (cleaned.StartsWith("```"))
-        {
-            cleaned = cleaned["```".Length..];
-        }
-
-        if (cleaned.EndsWith("```"))
-        {
-            cleaned = cleaned[..^"```".Length];
-        }
-
-        return cleaned.Trim();
-    }
-
-    /// <summary>
-    /// 安全解析 JSON，失敗時回傳 null
-    /// </summary>
-    private static T? ParseJsonSafe<T>(string json) where T : class
-    {
         try
         {
-            return json.ToTypedObject<T>();
+            var dto = cleaned.ToTypedObject<ProjectRiskResponseDto>();
+            if (dto is null)
+                return null;
+
+            return new RiskAnalysisReport
+            {
+                Sequence = 0,
+                ProjectName = projectName,
+                RiskItems = dto.RiskItems ?? [],
+                Summary = dto.Summary ?? string.Empty,
+                AnalysisLog = dto.AnalysisLog,
+                AnalyzedAt = analyzedAt
+            };
         }
         catch
         {
@@ -380,9 +214,122 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
     }
 
     /// <summary>
-    /// 發送 Copilot SDK 請求
+    /// 建構 agentic 分析使用者提示詞
     /// </summary>
-    private async Task<string?> SendCopilotRequestAsync(
+    internal static string BuildUserPrompt(ProjectAnalysisContext context)
+    {
+        var shas = string.Join("\n", context.CommitShas.Select(s => $"  - {s}"));
+        return $"""
+            請分析專案 "{context.ProjectName}" 的以下 commit 變更：
+
+            Repo 路徑: {context.RepoPath}
+            Commit SHAs:
+            {shas}
+
+            請使用 run_command 工具探索 repo，分析這些 commit 的變更風險。
+            工作目錄請使用: {context.RepoPath}
+            """;
+    }
+
+    /// <summary>
+    /// 清除 Markdown 代碼區塊包裝
+    /// </summary>
+    internal static string CleanMarkdownWrapper(string content)
+    {
+        var trimmed = content.Trim();
+        if (trimmed.StartsWith("```"))
+        {
+            var firstNewline = trimmed.IndexOf('\n');
+            if (firstNewline >= 0)
+                trimmed = trimmed[(firstNewline + 1)..];
+
+            if (trimmed.EndsWith("```"))
+                trimmed = trimmed[..^3];
+
+            return trimmed.Trim();
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>
+    /// 發送 agentic Copilot 請求（含 run_command 工具）
+    /// </summary>
+    private async Task<string?> SendAgenticRequestAsync(
+        string systemPrompt,
+        string userPrompt,
+        string repoPath,
+        TimeSpan commandTimeout,
+        CancellationToken cancellationToken)
+    {
+        var model = _copilotOptions.Value.Model;
+        var token = _copilotOptions.Value.GitHubToken;
+
+        var clientOptions = new CopilotClientOptions { AutoStart = true };
+        if (!string.IsNullOrWhiteSpace(token))
+            clientOptions.GitHubToken = token;
+
+        await using var client = new CopilotClient(clientOptions);
+
+        var authStatus = await client.GetAuthStatusAsync();
+        if (authStatus is not { IsAuthenticated: true })
+        {
+            _logger.LogError("Copilot SDK 身份驗證失敗");
+            return null;
+        }
+
+        var maxOutputChars = _riskOptions.Value.MaxOutputCharacters;
+        var runCommandTool = AIFunctionFactory.Create(
+            async ([Description("要執行的 shell 指令")] string command,
+                   [Description("工作目錄路徑")] string workingDirectory) =>
+            {
+                _logger.LogDebug("run_command: {Command} in {Dir}", command, workingDirectory);
+                var result = await _shellExecutor.ExecuteAsync(
+                    command, workingDirectory, commandTimeout, cancellationToken);
+
+                var output = result.StandardOutput;
+                if (output.Length > maxOutputChars)
+                    output = output[..maxOutputChars] +
+                             $"\n\n[輸出已截斷，共 {output.Length} 字元，僅顯示前 {maxOutputChars} 字元]";
+
+                if (result.TimedOut)
+                    return $"[指令超時] stderr: {result.StandardError}";
+
+                if (result.ExitCode != 0)
+                    return $"[exit code: {result.ExitCode}]\nstdout:\n{output}\nstderr:\n{result.StandardError}";
+
+                return output;
+            },
+            name: "run_command",
+            description: "在指定的 repo 目錄中執行 shell 指令，回傳 stdout 與 stderr");
+
+        await using var session = await client.CreateSessionAsync(new SessionConfig
+        {
+            Model = model,
+            SystemMessage = new SystemMessageConfig
+            {
+                Mode = SystemMessageMode.Replace,
+                Content = systemPrompt
+            },
+            Tools = [runCommandTool],
+            InfiniteSessions = new InfiniteSessionConfig { Enabled = false },
+            OnPermissionRequest = PermissionHandler.ApproveAll
+        });
+
+        _logger.LogDebug("Agentic session 已建立，發送分析請求");
+
+        var response = await session.SendAndWaitAsync(new MessageOptions
+        {
+            Prompt = userPrompt
+        }, timeout: TimeSpan.FromSeconds(_copilotOptions.Value.TimeoutSeconds));
+
+        return response?.Data?.Content;
+    }
+
+    /// <summary>
+    /// 發送簡單 Copilot 請求（不含工具）
+    /// </summary>
+    private async Task<string?> SendSimpleRequestAsync(
         string systemPrompt,
         string userPrompt,
         CancellationToken cancellationToken)
@@ -392,23 +339,16 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
 
         var clientOptions = new CopilotClientOptions { AutoStart = true };
         if (!string.IsNullOrWhiteSpace(token))
-        {
             clientOptions.GitHubToken = token;
-        }
 
         await using var client = new CopilotClient(clientOptions);
 
         var authStatus = await client.GetAuthStatusAsync();
         if (authStatus is not { IsAuthenticated: true })
         {
-            _logger.LogError(
-                "Copilot SDK 身份驗證失敗（IsAuthenticated: {IsAuthenticated}，AuthType: {AuthType}）",
-                authStatus?.IsAuthenticated,
-                authStatus?.AuthType ?? "unknown");
+            _logger.LogError("Copilot SDK 身份驗證失敗");
             return null;
         }
-
-        _logger.LogDebug("Copilot SDK 身份驗證成功（登入帳號: {Login}）", authStatus.Login);
 
         await using var session = await client.CreateSessionAsync(new SessionConfig
         {
@@ -422,8 +362,6 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
             OnPermissionRequest = PermissionHandler.ApproveAll
         });
 
-        _logger.LogDebug("Copilot session 已建立，正在發送風險分析請求");
-
         var response = await session.SendAndWaitAsync(new MessageOptions
         {
             Prompt = userPrompt
@@ -432,52 +370,19 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
         return response?.Data?.Content;
     }
 
-    /// <summary>
-    /// 建構 Pass 1 使用者提示詞
-    /// </summary>
-    private static string BuildPass1UserPrompt(string projectName, IReadOnlyList<PrDiffContext> diffs)
-    {
-        var diffsSummary = diffs.Select(d => new
-        {
-            d.Title,
-            d.Description,
-            d.SourceBranch,
-            d.TargetBranch,
-            d.AuthorName,
-            d.PrUrl,
-            d.ChangedFiles,
-            d.DiffContent
-        }).ToJson();
-
-        return $"請分析專案 \"{projectName}\" 的以下 PR 變更：\n{diffsSummary}";
-    }
-
-    /// <summary>
-    /// 建構動態分析使用者提示詞
-    /// </summary>
-    private static string BuildDynamicAnalysisUserPrompt(IReadOnlyList<RiskAnalysisReport> previousReports)
-    {
-        var reportsJson = previousReports.ToJson();
-        return $"以下是前一層的分析結果，請進行更深入的跨專案影響分析：\n{reportsJson}";
-    }
-
-    /// <summary>
-    /// 建構最終報告使用者提示詞
-    /// </summary>
+    /// <summary>建構最終報告使用者提示詞</summary>
     private static string BuildFinalReportUserPrompt(IReadOnlyList<RiskAnalysisReport> reports)
     {
         var reportsJson = reports.ToJson();
         return $"請根據以下風險分析結果產生最終報告：\n{reportsJson}";
     }
 
-    /// <summary>
-    /// 建立空白風險分析報告（作為回退值）
-    /// </summary>
+    /// <summary>建立空白報告（回退值）</summary>
     private RiskAnalysisReport CreateEmptyReport(string projectName)
     {
         return new RiskAnalysisReport
         {
-            PassKey = new AnalysisPassKey { Pass = 1, Sequence = 1 },
+            Sequence = 0,
             ProjectName = projectName,
             RiskItems = [],
             Summary = "AI 分析失敗，未產生風險報告",
@@ -485,38 +390,11 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
         };
     }
 
-    /// <summary>
-    /// 建立空白動態分析結果（作為回退值，停止繼續分析）
-    /// </summary>
-    private static DynamicAnalysisResult CreateEmptyDynamicResult()
-    {
-        return new DynamicAnalysisResult
-        {
-            Reports = [],
-            ContinueAnalysis = false,
-            ContinueReason = "AI 分析失敗，停止繼續分析",
-            AnalysisStrategy = string.Empty
-        };
-    }
-
-    /// <summary>
-    /// Pass 1 回應的 DTO（用於 JSON 反序列化）
-    /// </summary>
+    /// <summary>回應 DTO</summary>
     private sealed record ProjectRiskResponseDto
     {
         public IReadOnlyList<RiskItem>? RiskItems { get; init; }
         public string? Summary { get; init; }
-    }
-
-    /// <summary>
-    /// 動態分析回應的 DTO（用於 JSON 反序列化）
-    /// </summary>
-    private sealed record DynamicAnalysisResponseDto
-    {
-        public string? AnalysisStrategy { get; init; }
-        public bool ContinueAnalysis { get; init; }
-        public string? ContinueReason { get; init; }
-        public IReadOnlyList<RiskItem>? RiskItems { get; init; }
-        public string? Summary { get; init; }
+        public string? AnalysisLog { get; init; }
     }
 }

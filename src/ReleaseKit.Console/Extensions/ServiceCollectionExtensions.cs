@@ -246,12 +246,14 @@ public static class ServiceCollectionExtensions
         // 註冊風險分析服務
         services.AddTransient<IGitService, ReleaseKit.Infrastructure.Git.GitService>();
         services.AddTransient<IRiskAnalyzer, ReleaseKit.Infrastructure.Copilot.CopilotRiskAnalyzer>();
+        services.AddTransient<IShellCommandExecutor>(sp =>
+        {
+            var riskOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RiskAnalysisOptions>>().Value;
+            return new ReleaseKit.Infrastructure.Shell.ShellCommandExecutor(riskOptions.CloneBasePath);
+        });
 
         // 註冊風險分析任務
         services.AddTransient<CloneRepositoriesTask>();
-        services.AddTransient<ExtractPrDiffsTask>();
-        services.AddTransient<AnalyzeProjectRiskTask>();
-        services.AddTransient<AnalyzeCrossProjectRiskTask>();
         services.AddTransient<GenerateRiskReportTask>();
         services.AddTransient<AnalyzeRiskTask>();
         

@@ -76,9 +76,14 @@ public static class RedisKeys
         public const string ClonePaths = "ClonePaths";
 
         /// <summary>
-        /// PR Diff 資料欄位名稱
+        /// 中間分析結果欄位前綴（格式：Intermediate:{sequence}）
         /// </summary>
-        public const string PrDiffs = "PrDiffs";
+        public const string IntermediatePrefix = "Intermediate:";
+
+        /// <summary>
+        /// 分析上下文欄位前綴（格式：AnalysisContext:{sequence}）
+        /// </summary>
+        public const string AnalysisContextPrefix = "AnalysisContext:";
 
         /// <summary>
         /// 最終風險分析報告欄位名稱

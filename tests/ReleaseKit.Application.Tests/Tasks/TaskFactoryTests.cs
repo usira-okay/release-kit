@@ -86,9 +86,6 @@ public class TaskFactoryTests
 
         // 註冊風險分析任務的 Logger mocks
         services.AddSingleton(new Mock<ILogger<CloneRepositoriesTask>>().Object);
-        services.AddSingleton(new Mock<ILogger<ExtractPrDiffsTask>>().Object);
-        services.AddSingleton(new Mock<ILogger<AnalyzeProjectRiskTask>>().Object);
-        services.AddSingleton(new Mock<ILogger<AnalyzeCrossProjectRiskTask>>().Object);
         services.AddSingleton(new Mock<ILogger<GenerateRiskReportTask>>().Object);
         services.AddSingleton(new Mock<ILogger<AnalyzeRiskTask>>().Object);
 
@@ -105,9 +102,6 @@ public class TaskFactoryTests
 
         // 註冊風險分析任務
         services.AddTransient<CloneRepositoriesTask>();
-        services.AddTransient<ExtractPrDiffsTask>();
-        services.AddTransient<AnalyzeProjectRiskTask>();
-        services.AddTransient<AnalyzeCrossProjectRiskTask>();
         services.AddTransient<GenerateRiskReportTask>();
         services.AddTransient<AnalyzeRiskTask>();
 
@@ -231,39 +225,6 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<CloneRepositoriesTask>(task);
-    }
-
-    [Fact]
-    public void CreateTask_WithExtractPrDiffs_ShouldReturnCorrectTaskType()
-    {
-        // Act
-        var task = _factory.CreateTask(TaskType.ExtractPrDiffs);
-
-        // Assert
-        Assert.NotNull(task);
-        Assert.IsType<ExtractPrDiffsTask>(task);
-    }
-
-    [Fact]
-    public void CreateTask_WithAnalyzeProjectRisk_ShouldReturnCorrectTaskType()
-    {
-        // Act
-        var task = _factory.CreateTask(TaskType.AnalyzeProjectRisk);
-
-        // Assert
-        Assert.NotNull(task);
-        Assert.IsType<AnalyzeProjectRiskTask>(task);
-    }
-
-    [Fact]
-    public void CreateTask_WithAnalyzeCrossProjectRisk_ShouldReturnCorrectTaskType()
-    {
-        // Act
-        var task = _factory.CreateTask(TaskType.AnalyzeCrossProjectRisk);
-
-        // Assert
-        Assert.NotNull(task);
-        Assert.IsType<AnalyzeCrossProjectRiskTask>(task);
     }
 
     [Fact]

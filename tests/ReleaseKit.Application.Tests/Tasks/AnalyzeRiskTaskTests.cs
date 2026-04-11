@@ -1,208 +1,334 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using ReleaseKit.Application.Common;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
+using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
+using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
 /// <summary>
-/// AnalyzeRiskTask Orchestrator 單元測試
+/// AnalyzeRiskTask 單元測試（Agentic 模式）
 /// </summary>
-public class AnalyzeRiskTaskTests : IDisposable
+public class AnalyzeRiskTaskTests
 {
     private readonly Mock<IRedisService> _redisServiceMock;
-    private readonly Mock<IGitService> _gitServiceMock;
     private readonly Mock<IRiskAnalyzer> _riskAnalyzerMock;
-    private readonly Mock<INow> _nowMock;
-    private readonly List<string> _callOrder;
-    private readonly string _reportOutputPath;
+    private readonly Mock<ILogger<AnalyzeRiskTask>> _loggerMock;
+    private readonly RiskAnalysisOptions _riskOptions;
 
     public AnalyzeRiskTaskTests()
     {
         _redisServiceMock = new Mock<IRedisService>();
-        _gitServiceMock = new Mock<IGitService>();
         _riskAnalyzerMock = new Mock<IRiskAnalyzer>();
-        _nowMock = new Mock<INow>();
-        _callOrder = new List<string>();
-
-        _nowMock.Setup(x => x.UtcNow)
-            .Returns(new DateTimeOffset(2025, 7, 15, 10, 0, 0, TimeSpan.Zero));
-
-        _reportOutputPath = Path.Combine(
-            Path.GetTempPath(),
-            $"release-kit-orchestrator-test-{Guid.NewGuid():N}");
-
-        SetupDefaultRedisResponses();
+        _loggerMock = new Mock<ILogger<AnalyzeRiskTask>>();
+        _riskOptions = new RiskAnalysisOptions
+        {
+            CloneBasePath = "/clone",
+            ReportOutputPath = "/reports",
+            MaxConcurrentAnalysis = 2
+        };
     }
 
-    public void Dispose()
+    private AnalyzeRiskTask CreateTask()
     {
-        if (Directory.Exists(_reportOutputPath))
-            Directory.Delete(_reportOutputPath, recursive: true);
+        return new AnalyzeRiskTask(
+            _redisServiceMock.Object,
+            _riskAnalyzerMock.Object,
+            Options.Create(_riskOptions),
+            _loggerMock.Object);
     }
 
-    /// <summary>
-    /// 設定 Redis 預設回應，讓所有子 Task 能正常完成
-    /// </summary>
-    private void SetupDefaultRedisResponses()
+    private static FetchResult CreateFetchResult(params ProjectResult[] projects)
     {
-        // CloneRepositoriesTask 最後呼叫 — 追蹤順序
-        _redisServiceMock.Setup(x => x.HashSetAsync(
-                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths, It.IsAny<string>()))
-            .Callback(() => _callOrder.Add("CloneRepositories"))
-            .ReturnsAsync(true);
+        return new FetchResult { Results = projects.ToList() };
+    }
 
-        // ExtractPrDiffsTask 讀取 PR 資料
+    private static ProjectResult CreateProjectResult(
+        string projectPath,
+        params MergeRequestOutput[] prs)
+    {
+        return new ProjectResult
+        {
+            ProjectPath = projectPath,
+            PullRequests = prs.ToList()
+        };
+    }
+
+    private static MergeRequestOutput CreatePr(
+        string? mergeCommitSha = "abc123",
+        string title = "feat: 測試",
+        string sourceBranch = "feature/test",
+        string targetBranch = "main",
+        string authorName = "dev1",
+        string prUrl = "https://example.com/pr/1")
+    {
+        return new MergeRequestOutput
+        {
+            MergeCommitSha = mergeCommitSha,
+            Title = title,
+            SourceBranch = sourceBranch,
+            TargetBranch = targetBranch,
+            AuthorName = authorName,
+            PRUrl = prUrl
+        };
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_無PR資料時跳過分析()
+    {
+        // Arrange — GitLab 與 Bitbucket 都沒有 PR 資料
         _redisServiceMock.Setup(x => x.HashGetAsync(
                 RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync((string?)null);
-
         _redisServiceMock.Setup(x => x.HashGetAsync(
                 RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync((string?)null);
-
         _redisServiceMock.Setup(x => x.HashGetAsync(
                 RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths))
             .ReturnsAsync((string?)null);
 
-        // ExtractPrDiffsTask 最後呼叫 — 追蹤順序
-        _redisServiceMock.Setup(x => x.HashSetAsync(
-                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.PrDiffs, It.IsAny<string>()))
-            .Callback(() => _callOrder.Add("ExtractPrDiffs"))
-            .ReturnsAsync(true);
-
-        // AnalyzeProjectRiskTask 讀取 PrDiffs
-        _redisServiceMock.Setup(x => x.HashGetAsync(
-                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.PrDiffs))
-            .Callback(() => _callOrder.Add("AnalyzeProjectRisk"))
-            .ReturnsAsync((string?)null);
-
-        // GenerateRiskReportTask 讀取欄位清單
-        _redisServiceMock.Setup(x => x.HashFieldsAsync(RedisKeys.RiskAnalysisHash))
-            .Callback(() => _callOrder.Add("GenerateRiskReport"))
-            .ReturnsAsync(new List<string>());
-
-        _redisServiceMock.Setup(x => x.HashGetByPrefixAsync(
-                RedisKeys.RiskAnalysisHash, It.IsAny<string>()))
-            .ReturnsAsync(new Dictionary<string, string>());
-
-        // GenerateRiskReportTask 存入最終報告
-        _redisServiceMock.Setup(x => x.HashSetAsync(
-                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.FinalReport, It.IsAny<string>()))
-            .ReturnsAsync(true);
-
-        // IRiskAnalyzer
-        _riskAnalyzerMock.Setup(x => x.GenerateFinalReportAsync(
-                It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("# 測試報告");
-    }
-
-    /// <summary>
-    /// 建立 AnalyzeRiskTask 與所有子 Task
-    /// </summary>
-    private AnalyzeRiskTask CreateTask()
-    {
-        var riskAnalysisOptions = Options.Create(new RiskAnalysisOptions
-        {
-            CloneBasePath = "/clone",
-            ReportOutputPath = _reportOutputPath
-        });
-
-        var gitLabOptions = Options.Create(new GitLabOptions());
-        var bitbucketOptions = Options.Create(new BitbucketOptions());
-
-        var cloneTask = new CloneRepositoriesTask(
-            _redisServiceMock.Object,
-            _gitServiceMock.Object,
-            gitLabOptions,
-            bitbucketOptions,
-            riskAnalysisOptions,
-            new Mock<ILogger<CloneRepositoriesTask>>().Object);
-
-        var extractTask = new ExtractPrDiffsTask(
-            _redisServiceMock.Object,
-            _gitServiceMock.Object,
-            new Mock<ILogger<ExtractPrDiffsTask>>().Object);
-
-        var analyzeProjectTask = new AnalyzeProjectRiskTask(
-            _redisServiceMock.Object,
-            _riskAnalyzerMock.Object,
-            riskAnalysisOptions,
-            _nowMock.Object,
-            new Mock<ILogger<AnalyzeProjectRiskTask>>().Object);
-
-        var analyzeCrossProjectTask = new AnalyzeCrossProjectRiskTask(
-            _redisServiceMock.Object,
-            _riskAnalyzerMock.Object,
-            riskAnalysisOptions,
-            _nowMock.Object,
-            new Mock<ILogger<AnalyzeCrossProjectRiskTask>>().Object);
-
-        var generateReportTask = new GenerateRiskReportTask(
-            _redisServiceMock.Object,
-            _riskAnalyzerMock.Object,
-            riskAnalysisOptions,
-            _nowMock.Object,
-            new Mock<ILogger<GenerateRiskReportTask>>().Object);
-
-        return new AnalyzeRiskTask(
-            cloneTask,
-            extractTask,
-            analyzeProjectTask,
-            analyzeCrossProjectTask,
-            generateReportTask,
-            new Mock<ILogger<AnalyzeRiskTask>>().Object);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_五個子Task依序執行()
-    {
-        // Arrange
         var task = CreateTask();
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert — 透過 Redis 呼叫順序驗證子 Task 依序執行
-        Assert.Equal(4, _callOrder.Count);
-        Assert.Equal("CloneRepositories", _callOrder[0]);
-        Assert.Equal("ExtractPrDiffs", _callOrder[1]);
-        Assert.Equal("AnalyzeProjectRisk", _callOrder[2]);
-        Assert.Equal("GenerateRiskReport", _callOrder[3]);
-
-        // 額外驗證 GenerateFinalReportAsync 被呼叫（表示 GenerateRiskReportTask 有執行）
-        _riskAnalyzerMock.Verify(x => x.GenerateFinalReportAsync(
-            It.IsAny<IReadOnlyList<RiskAnalysisReport>>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        // Assert — IRiskAnalyzer 不應被呼叫
+        _riskAnalyzerMock.Verify(x => x.AnalyzeProjectRiskAsync(
+            It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_第一個子Task失敗時不繼續()
+    public async Task ExecuteAsync_無ClonePaths時跳過分析()
     {
-        // Arrange — 讓 CloneRepositoriesTask 的 Redis 寫入拋出例外
-        _redisServiceMock.Setup(x => x.HashSetAsync(
-                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths, It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("Redis 連線失敗"));
+        // Arrange — 有 PR 資料但無 ClonePaths
+        var fetchResult = CreateFetchResult(
+            CreateProjectResult("group/project-a", CreatePr("sha1")));
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync(fetchResult.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync((string?)null);
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths))
+            .ReturnsAsync((string?)null);
 
         var task = CreateTask();
 
-        // Act & Assert — 預期例外向上傳遞
-        await Assert.ThrowsAsync<InvalidOperationException>(task.ExecuteAsync);
+        // Act
+        await task.ExecuteAsync();
 
-        // 後續子 Task 的 Redis 呼叫不應發生
-        _redisServiceMock.Verify(x => x.HashGetAsync(
-            RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser), Times.Never);
+        // Assert — IRiskAnalyzer 不應被呼叫
+        _riskAnalyzerMock.Verify(x => x.AnalyzeProjectRiskAsync(
+            It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 
-        _redisServiceMock.Verify(x => x.HashFieldsAsync(
-            RedisKeys.RiskAnalysisHash), Times.Never);
+    [Fact]
+    public async Task ExecuteAsync_專案無MergeCommitSha時跳過該專案()
+    {
+        // Arrange — 專案的 PR 都沒有 MergeCommitSha
+        var fetchResult = CreateFetchResult(
+            CreateProjectResult("group/project-a",
+                CreatePr(mergeCommitSha: null),
+                CreatePr(mergeCommitSha: "")));
 
-        // IRiskAnalyzer 也不應被呼叫
-        _riskAnalyzerMock.Verify(x => x.GenerateFinalReportAsync(
-            It.IsAny<IReadOnlyList<RiskAnalysisReport>>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        var clonePaths = new Dictionary<string, string>
+        {
+            ["group/project-a"] = "/clone/project-a"
+        };
+
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync(fetchResult.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync((string?)null);
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths))
+            .ReturnsAsync(clonePaths.ToJson());
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — 該專案被跳過，IRiskAnalyzer 不應被呼叫
+        _riskAnalyzerMock.Verify(x => x.AnalyzeProjectRiskAsync(
+            It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_正常專案建立正確的ProjectAnalysisContext()
+    {
+        // Arrange
+        var fetchResult = CreateFetchResult(
+            CreateProjectResult("group/project-a",
+                CreatePr("sha1", title: "feat: 功能A"),
+                CreatePr("sha2", title: "fix: 修復B")));
+
+        var clonePaths = new Dictionary<string, string>
+        {
+            ["group/project-a"] = "/clone/project-a"
+        };
+
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync(fetchResult.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync((string?)null);
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths))
+            .ReturnsAsync(clonePaths.ToJson());
+
+        ProjectAnalysisContext? capturedContext = null;
+        _riskAnalyzerMock.Setup(x => x.AnalyzeProjectRiskAsync(
+                It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()))
+            .Returns((ProjectAnalysisContext ctx, CancellationToken _) =>
+            {
+                capturedContext = ctx;
+                return Task.FromResult(new RiskAnalysisReport
+                {
+                    Sequence = 0,
+                    ProjectName = ctx.ProjectName,
+                    RiskItems = new List<RiskItem>(),
+                    Summary = "測試摘要",
+                    AnalyzedAt = DateTimeOffset.UtcNow
+                });
+            });
+
+        _redisServiceMock.Setup(x => x.HashSetAsync(
+                RedisKeys.RiskAnalysisHash, It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — 驗證傳入 IRiskAnalyzer 的上下文正確
+        Assert.NotNull(capturedContext);
+        Assert.Equal("group/project-a", capturedContext.ProjectName);
+        Assert.Equal("/clone/project-a", capturedContext.RepoPath);
+        Assert.Equal(2, capturedContext.CommitShas.Count);
+        Assert.Contains("sha1", capturedContext.CommitShas);
+        Assert.Contains("sha2", capturedContext.CommitShas);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_結果存入Redis的Intermediate與AnalysisContext欄位()
+    {
+        // Arrange
+        var fetchResult = CreateFetchResult(
+            CreateProjectResult("group/project-a", CreatePr("sha1")));
+
+        var clonePaths = new Dictionary<string, string>
+        {
+            ["group/project-a"] = "/clone/project-a"
+        };
+
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync(fetchResult.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync((string?)null);
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths))
+            .ReturnsAsync(clonePaths.ToJson());
+
+        _riskAnalyzerMock.Setup(x => x.AnalyzeProjectRiskAsync(
+                It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RiskAnalysisReport
+            {
+                Sequence = 0,
+                ProjectName = "group/project-a",
+                RiskItems = new List<RiskItem>(),
+                Summary = "摘要",
+                AnalyzedAt = DateTimeOffset.UtcNow
+            });
+
+        var storedFields = new Dictionary<string, string>();
+        _redisServiceMock.Setup(x => x.HashSetAsync(
+                RedisKeys.RiskAnalysisHash, It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string _, string field, string value) =>
+            {
+                storedFields[field] = value;
+                return Task.FromResult(true);
+            });
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — 驗證 Intermediate 與 AnalysisContext 都有存入
+        Assert.Contains(storedFields.Keys,
+            k => k.StartsWith(RedisKeys.Fields.IntermediatePrefix));
+        Assert.Contains(storedFields.Keys,
+            k => k.StartsWith(RedisKeys.Fields.AnalysisContextPrefix));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_重複CommitSha應去重()
+    {
+        // Arrange — 兩個 PR 有相同的 MergeCommitSha
+        var fetchResult = CreateFetchResult(
+            CreateProjectResult("group/project-a",
+                CreatePr("same-sha"),
+                CreatePr("same-sha"),
+                CreatePr("different-sha")));
+
+        var clonePaths = new Dictionary<string, string>
+        {
+            ["group/project-a"] = "/clone/project-a"
+        };
+
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync(fetchResult.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+            .ReturnsAsync((string?)null);
+        _redisServiceMock.Setup(x => x.HashGetAsync(
+                RedisKeys.RiskAnalysisHash, RedisKeys.Fields.ClonePaths))
+            .ReturnsAsync(clonePaths.ToJson());
+
+        ProjectAnalysisContext? capturedContext = null;
+        _riskAnalyzerMock.Setup(x => x.AnalyzeProjectRiskAsync(
+                It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()))
+            .Returns((ProjectAnalysisContext ctx, CancellationToken _) =>
+            {
+                capturedContext = ctx;
+                return Task.FromResult(new RiskAnalysisReport
+                {
+                    Sequence = 0,
+                    ProjectName = ctx.ProjectName,
+                    RiskItems = new List<RiskItem>(),
+                    Summary = "摘要",
+                    AnalyzedAt = DateTimeOffset.UtcNow
+                });
+            });
+
+        _redisServiceMock.Setup(x => x.HashSetAsync(
+                RedisKeys.RiskAnalysisHash, It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — CommitShas 應去重，只有 2 個
+        Assert.NotNull(capturedContext);
+        Assert.Equal(2, capturedContext.CommitShas.Count);
+        Assert.Contains("same-sha", capturedContext.CommitShas);
+        Assert.Contains("different-sha", capturedContext.CommitShas);
     }
 }

@@ -12,9 +12,6 @@ public class CommandLineParserRiskTests
 
     [Theory]
     [InlineData("clone-repos", TaskType.CloneRepositories)]
-    [InlineData("extract-pr-diffs", TaskType.ExtractPrDiffs)]
-    [InlineData("analyze-project-risk", TaskType.AnalyzeProjectRisk)]
-    [InlineData("analyze-cross-project-risk", TaskType.AnalyzeCrossProjectRisk)]
     [InlineData("generate-risk-report", TaskType.GenerateRiskReport)]
     [InlineData("analyze-risk", TaskType.AnalyzeRisk)]
     public void Parse_WithRiskAnalysisCommand_ShouldReturnCorrectTaskType(string command, TaskType expected)
