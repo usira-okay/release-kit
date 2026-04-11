@@ -145,15 +145,12 @@ public class CloneRepositoriesTask : ITask
     }
 
     /// <summary>
-    /// 建構 Bitbucket Clone URL（使用 x-token-auth 內嵌認證）。
-    /// Bitbucket 支援以 x-token-auth:{access_token} 進行 git 認證，
-    /// 無需提供 username 或 email。
+    /// 建構 Bitbucket Clone URL（使用 username:AccessToken 內嵌認證）
     /// </summary>
     /// <param name="projectPath">專案路徑</param>
     /// <returns>Bitbucket Clone URL</returns>
     internal string BuildBitbucketCloneUrl(string projectPath)
     {
-        var encodedToken = Uri.EscapeDataString(_bitbucketOptions.AccessToken);
-        return $"https://x-token-auth:{encodedToken}@bitbucket.org/{projectPath}.git";
+        return $"https://{_bitbucketOptions.Username}:{_bitbucketOptions.AccessToken}@bitbucket.org/{projectPath}.git";
     }
 }

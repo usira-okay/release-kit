@@ -42,6 +42,7 @@ public class CloneRepositoriesTaskTests
         _bitbucketOptions = new BitbucketOptions
         {
             ApiUrl = "https://api.bitbucket.org/2.0",
+            Username = "bb-user",
             Email = "test@example.com",
             AccessToken = "test-token",
             Projects = new List<BitbucketProjectOptions>
@@ -143,8 +144,8 @@ public class CloneRepositoriesTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert — 使用 x-token-auth:{token} 認證
-        Assert.Equal("https://x-token-auth:test-token@bitbucket.org/team/repo-b.git", capturedUrl);
+        // Assert — 使用 username:token 認證
+        Assert.Equal("https://bb-user:test-token@bitbucket.org/team/repo-b.git", capturedUrl);
     }
 
     [Fact]

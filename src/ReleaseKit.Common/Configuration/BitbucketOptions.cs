@@ -11,6 +11,11 @@ public class BitbucketOptions
     public string ApiUrl { get; init; } = string.Empty;
 
     /// <summary>
+    /// Bitbucket 使用者名稱（用於 Git Clone 認證）
+    /// </summary>
+    public string Username { get; init; } = string.Empty;
+
+    /// <summary>
     /// Bitbucket 帳戶 Email
     /// </summary>
     public string Email { get; init; } = string.Empty;
