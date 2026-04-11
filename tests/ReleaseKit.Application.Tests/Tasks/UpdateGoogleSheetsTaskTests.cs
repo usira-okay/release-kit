@@ -596,7 +596,7 @@ public class UpdateGoogleSheetsTaskTests
     }
 
     /// <summary>
-    /// T012: 測試 UniqueKeyColumn 格式為 {workItemId}{projectName}
+    /// T012: 測試 UniqueKeyColumn 格式為 {workItemId}{projectName}， projectName 取自 Google Sheet RepositoryNameColumn
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_NewRow_UniqueKeyShouldBeCorrectFormat()
@@ -623,6 +623,37 @@ public class UpdateGoogleSheetsTaskTests
                     updates.Any(u =>
                         u.Range.Contains("Y") &&
                         u.Values[0][0].ToString() == "12345my-repo"))),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// T012b: 測試逗號分隔 RepositoryNameColumn 時， UniqueKey 使用 Sheet 的 ProjectName 而非 Redis 的 ProjectName
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_NewRow_CommaSeparatedRepoName_UniqueKeyShouldUseSheetProjectName()
+    {
+        // Arrange - Redis 中專案名稱為 "repoA"，但 Sheet 的 RepositoryNameColumn 為 "repoA,repoB"
+        var entry = CreateEntry(100);
+        var result = CreateConsolidatedResult(("repoA", new[] { entry }));
+        SetupRedisConsolidatedData(result);
+        SetupSheetId(0);
+
+        var sheetData = CreateSheetData(("repoA,repoB", null));
+        SetupSheetData(sheetData);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - UniqueKey 應使用 Sheet 的 "repoA,repoB" 而非 Redis 的 "repoA"
+        _googleSheetServiceMock.Verify(
+            x => x.BatchUpdateCellsAsync(
+                _defaultOptions.SpreadsheetId,
+                It.Is<IList<(string Range, IList<IList<object>> Values)>>(updates =>
+                    updates.Any(u =>
+                        u.Range.Contains("Y") &&
+                        u.Values[0][0].ToString() == "100repoA,repoB"))),
             Times.Once);
     }
 
