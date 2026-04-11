@@ -107,7 +107,7 @@ public sealed class GitService : IGitService
         }
 
         return await RunGitCommandAsync(
-            $"show {commitSha} --format=\"\"",
+            $"show {commitSha}",
             workingDirectory: repoPath,
             cancellationToken);
     }

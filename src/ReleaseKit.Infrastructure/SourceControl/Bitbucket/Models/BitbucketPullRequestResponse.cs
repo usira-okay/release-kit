@@ -63,4 +63,13 @@ public sealed record BitbucketPullRequestResponse
     /// </summary>
     [JsonPropertyName("links")]
     public BitbucketLinksResponse Links { get; init; } = new();
+
+    /// <summary>
+    /// Merge Commit 資訊
+    /// </summary>
+    /// <remarks>
+    /// 僅在 PR 已合併時才有值，包含合併時產生的 commit hash。
+    /// </remarks>
+    [JsonPropertyName("merge_commit")]
+    public BitbucketMergeCommitResponse? MergeCommit { get; init; }
 }

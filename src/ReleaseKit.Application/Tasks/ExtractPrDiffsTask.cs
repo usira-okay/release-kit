@@ -119,28 +119,41 @@ public class ExtractPrDiffsTask : ITask
     }
 
     /// <summary>
-    /// 透過 Merge commit 取得 PR 的 diff 內容
+    /// 取得 PR 的 diff 內容
     /// </summary>
+    /// <remarks>
+    /// 優先使用 PR 的 MergeCommitSha 直接取得 diff，
+    /// 若無 MergeCommitSha 則回退至透過 git log 搜尋 merge commit。
+    /// </remarks>
     private async Task<string?> GetDiffContentAsync(string clonePath, MergeRequestOutput pr)
     {
-        var mergeCommitResult = await _gitService.FindMergeCommitAsync(
-            clonePath, pr.SourceBranch);
+        var commitSha = pr.MergeCommitSha;
 
-        if (mergeCommitResult.IsFailure)
+        if (string.IsNullOrEmpty(commitSha))
         {
-            _logger.LogWarning("找不到 Merge commit：{Title}（{Source}）",
+            _logger.LogInformation("PR 無 MergeCommitSha，嘗試從 git log 搜尋：{Title}（{Source}）",
                 pr.Title, pr.SourceBranch);
-            return null;
+
+            var mergeCommitResult = await _gitService.FindMergeCommitAsync(
+                clonePath, pr.SourceBranch);
+
+            if (mergeCommitResult.IsFailure)
+            {
+                _logger.LogWarning("找不到 Merge commit：{Title}（{Source}）",
+                    pr.Title, pr.SourceBranch);
+                return null;
+            }
+
+            commitSha = mergeCommitResult.Value!;
         }
 
-        var commitDiffResult = await _gitService.GetCommitDiffAsync(
-            clonePath, mergeCommitResult.Value!);
+        var commitDiffResult = await _gitService.GetCommitDiffAsync(clonePath, commitSha);
 
         if (commitDiffResult.IsSuccess)
             return commitDiffResult.Value;
 
-        _logger.LogWarning("無法取得 PR diff：{Title}（{Source}），Commit diff 擷取失敗",
-            pr.Title, pr.SourceBranch);
+        _logger.LogWarning("無法取得 PR diff：{Title}（{Source}），Commit SHA: {CommitSha}",
+            pr.Title, pr.SourceBranch, commitSha);
         return null;
     }
 

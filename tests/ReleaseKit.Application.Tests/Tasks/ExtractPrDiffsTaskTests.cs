@@ -89,7 +89,8 @@ public class ExtractPrDiffsTaskTests
         string sourceBranch = "feature/test",
         string targetBranch = "main",
         string authorName = "developer",
-        string prUrl = "https://gitlab.example.com/mr/1")
+        string prUrl = "https://gitlab.example.com/mr/1",
+        string? mergeCommitSha = null)
     {
         return new MergeRequestOutput
         {
@@ -104,7 +105,8 @@ public class ExtractPrDiffsTaskTests
             AuthorName = authorName,
             PrId = "1",
             PRUrl = prUrl,
-            WorkItemId = 12345
+            WorkItemId = 12345,
+            MergeCommitSha = mergeCommitSha
         };
     }
 
@@ -386,5 +388,72 @@ public class ExtractPrDiffsTaskTests
             RedisKeys.RiskAnalysisHash,
             RedisKeys.Fields.PrDiffs,
             It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_有MergeCommitSha時_應直接使用不呼叫FindMergeCommitAsync()
+    {
+        // Arrange
+        var pr = CreatePr(mergeCommitSha: "direct-sha-123");
+        var fetchResult = CreateFetchResult("group/project-a", SourceControlPlatform.GitLab, pr);
+        SetupGitLabPrData(fetchResult);
+        SetupBitbucketPrData(null);
+        SetupClonePaths(new Dictionary<string, string> { ["group/project-a"] = "/clone/group/project-a" });
+
+        _gitServiceMock.Setup(x => x.GetCommitDiffAsync(
+                "/clone/group/project-a", "direct-sha-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success(SampleDiff));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — 不應呼叫 FindMergeCommitAsync
+        _gitServiceMock.Verify(x => x.FindMergeCommitAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        // 驗證 GetCommitDiffAsync 以 MergeCommitSha 被呼叫
+        _gitServiceMock.Verify(x => x.GetCommitDiffAsync(
+            "/clone/group/project-a", "direct-sha-123", It.IsAny<CancellationToken>()), Times.Once);
+
+        Assert.NotNull(_capturedRedisJson);
+        var result = _capturedRedisJson.ToTypedObject<Dictionary<string, List<PrDiffContext>>>();
+        Assert.NotNull(result);
+        Assert.True(result.ContainsKey("group/project-a"));
+        Assert.Single(result["group/project-a"]);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_無MergeCommitSha時_應回退至FindMergeCommitAsync()
+    {
+        // Arrange
+        var pr = CreatePr(mergeCommitSha: null);
+        var fetchResult = CreateFetchResult("group/project-a", SourceControlPlatform.GitLab, pr);
+        SetupGitLabPrData(fetchResult);
+        SetupBitbucketPrData(null);
+        SetupClonePaths(new Dictionary<string, string> { ["group/project-a"] = "/clone/group/project-a" });
+
+        _gitServiceMock.Setup(x => x.FindMergeCommitAsync(
+                "/clone/group/project-a", "feature/test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success("fallback-sha-456"));
+        _gitServiceMock.Setup(x => x.GetCommitDiffAsync(
+                "/clone/group/project-a", "fallback-sha-456", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success(SampleDiff));
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert — 應呼叫 FindMergeCommitAsync
+        _gitServiceMock.Verify(x => x.FindMergeCommitAsync(
+            "/clone/group/project-a", "feature/test", It.IsAny<CancellationToken>()), Times.Once);
+
+        Assert.NotNull(_capturedRedisJson);
+        var result = _capturedRedisJson.ToTypedObject<Dictionary<string, List<PrDiffContext>>>();
+        Assert.NotNull(result);
+        Assert.True(result.ContainsKey("group/project-a"));
+        Assert.Single(result["group/project-a"]);
     }
 }

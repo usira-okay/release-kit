@@ -141,4 +141,14 @@ public sealed record MergeRequest
     /// 若 SourceBranch 不包含 VSTS ID，此值為 null。
     /// </remarks>
     public int? WorkItemId { get; init; }
+
+    /// <summary>
+    /// Merge Commit SHA
+    /// </summary>
+    /// <remarks>
+    /// 對應 GitLab 的 merge_commit_sha 欄位或 Bitbucket 的 merge_commit.hash 欄位。
+    /// 表示 PR/MR 合併時產生的 commit SHA，可用於直接取得 diff 內容。
+    /// 若 PR/MR 尚未合併或平台未提供此資訊，此值為 null。
+    /// </remarks>
+    public string? MergeCommitSha { get; init; }
 }

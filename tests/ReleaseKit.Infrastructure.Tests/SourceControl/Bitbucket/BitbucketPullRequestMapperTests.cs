@@ -394,4 +394,82 @@ public class BitbucketPullRequestMapperTests
         Assert.NotNull(result.WorkItemId);
         Assert.Equal(33333, result.WorkItemId.Value);
     }
+
+    [Fact]
+    public void ToDomain_WithMergeCommit_ShouldMapMergeCommitSha()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "feat: 新增功能",
+            Summary = new BitbucketSummaryResponse { Raw = "描述" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/test" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/1" }
+            },
+            MergeCommit = new BitbucketMergeCommitResponse
+            {
+                Hash = "abc123def456789"
+            }
+        };
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Equal("abc123def456789", result.MergeCommitSha);
+    }
+
+    [Fact]
+    public void ToDomain_WithNullMergeCommit_ShouldMapNullMergeCommitSha()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "WIP",
+            Summary = new BitbucketSummaryResponse { Raw = "WIP" },
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/wip" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = null,
+            State = "OPEN",
+            Author = new BitbucketAuthorResponse
+            {
+                Uuid = "{test-uuid}",
+                DisplayName = "Test User"
+            },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/2" }
+            }
+        };
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Null(result.MergeCommitSha);
+    }
 }

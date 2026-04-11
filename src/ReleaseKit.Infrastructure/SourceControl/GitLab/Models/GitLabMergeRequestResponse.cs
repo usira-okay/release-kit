@@ -67,4 +67,13 @@ public sealed record GitLabMergeRequestResponse
     /// </summary>
     [JsonPropertyName("author")]
     public GitLabAuthorResponse Author { get; init; } = new();
+
+    /// <summary>
+    /// 合併 Commit SHA
+    /// </summary>
+    /// <remarks>
+    /// MR 合併時產生的 commit SHA，僅在 MR 已合併時才有值。
+    /// </remarks>
+    [JsonPropertyName("merge_commit_sha")]
+    public string? MergeCommitSha { get; init; }
 }

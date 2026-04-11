@@ -121,4 +121,53 @@ public class MergeRequestTests
         // Assert
         Assert.Equal(SourceControlPlatform.Bitbucket, mergeRequest.Platform);
     }
+
+    [Fact]
+    public void MergeCommitSha_ShouldStoreValue()
+    {
+        // Arrange & Act
+        var mergeRequest = new MergeRequest
+        {
+            Title = "test",
+            SourceBranch = "feature",
+            TargetBranch = "main",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            State = "merged",
+            AuthorUserId = "123",
+            AuthorName = "test",
+            PrId = "1",
+            PRUrl = "https://example.com",
+            Platform = SourceControlPlatform.GitLab,
+            ProjectPath = "test/project",
+            MergeCommitSha = "abc123def456"
+        };
+
+        // Assert
+        Assert.Equal("abc123def456", mergeRequest.MergeCommitSha);
+    }
+
+    [Fact]
+    public void MergeCommitSha_WithNull_ShouldBeNull()
+    {
+        // Arrange & Act
+        var mergeRequest = new MergeRequest
+        {
+            Title = "test",
+            SourceBranch = "feature",
+            TargetBranch = "main",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = null,
+            State = "opened",
+            AuthorUserId = "123",
+            AuthorName = "test",
+            PrId = "1",
+            PRUrl = "https://example.com",
+            Platform = SourceControlPlatform.GitLab,
+            ProjectPath = "test/project"
+        };
+
+        // Assert
+        Assert.Null(mergeRequest.MergeCommitSha);
+    }
 }
