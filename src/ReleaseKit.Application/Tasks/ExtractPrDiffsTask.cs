@@ -119,27 +119,16 @@ public class ExtractPrDiffsTask : ITask
     }
 
     /// <summary>
-    /// 取得 PR 的 diff 內容，先嘗試 Branch diff，失敗則使用 Merge commit fallback
+    /// 透過 Merge commit 取得 PR 的 diff 內容
     /// </summary>
     private async Task<string?> GetDiffContentAsync(string clonePath, MergeRequestOutput pr)
     {
-        // 主要策略：Branch diff
-        var branchDiffResult = await _gitService.GetBranchDiffAsync(
-            clonePath, pr.TargetBranch, pr.SourceBranch);
-
-        if (branchDiffResult.IsSuccess)
-            return branchDiffResult.Value;
-
-        _logger.LogWarning("Branch diff 失敗（{Source} → {Target}），嘗試 Merge commit fallback",
-            pr.SourceBranch, pr.TargetBranch);
-
-        // 備援策略：透過 Merge commit
         var mergeCommitResult = await _gitService.FindMergeCommitAsync(
             clonePath, pr.SourceBranch);
 
         if (mergeCommitResult.IsFailure)
         {
-            _logger.LogWarning("無法取得 PR diff：{Title}（{Source}），所有策略皆失敗",
+            _logger.LogWarning("找不到 Merge commit：{Title}（{Source}）",
                 pr.Title, pr.SourceBranch);
             return null;
         }

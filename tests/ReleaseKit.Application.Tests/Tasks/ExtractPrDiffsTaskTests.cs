@@ -139,7 +139,7 @@ public class ExtractPrDiffsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_成功取得BranchDiff_應建立正確的PrDiffContext()
+    public async Task ExecuteAsync_成功取得MergeCommitDiff_應建立正確的PrDiffContext()
     {
         // Arrange
         var pr = CreatePr();
@@ -148,8 +148,11 @@ public class ExtractPrDiffsTaskTests
         SetupBitbucketPrData(null);
         SetupClonePaths(new Dictionary<string, string> { ["group/project-a"] = "/clone/group/project-a" });
 
-        _gitServiceMock.Setup(x => x.GetBranchDiffAsync(
-                "/clone/group/project-a", "main", "feature/test", It.IsAny<CancellationToken>()))
+        _gitServiceMock.Setup(x => x.FindMergeCommitAsync(
+                "/clone/group/project-a", "feature/test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success("abc123"));
+        _gitServiceMock.Setup(x => x.GetCommitDiffAsync(
+                "/clone/group/project-a", "abc123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Success(SampleDiff));
 
         var task = CreateTask();
@@ -178,7 +181,7 @@ public class ExtractPrDiffsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_BranchDiff失敗時_應使用MergeCommitFallback()
+    public async Task ExecuteAsync_CommitDiff失敗時_應跳過PR()
     {
         // Arrange
         var pr = CreatePr();
@@ -187,43 +190,32 @@ public class ExtractPrDiffsTaskTests
         SetupBitbucketPrData(null);
         SetupClonePaths(new Dictionary<string, string> { ["group/project-a"] = "/clone/group/project-a" });
 
-        // Branch diff 失敗
-        _gitServiceMock.Setup(x => x.GetBranchDiffAsync(
-                "/clone/group/project-a", "main", "feature/test", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<string>.Failure(
-                Error.RiskAnalysis.GitCommandFailed("git diff", "branch not found")));
-
-        // Fallback: FindMergeCommit 成功
+        // FindMergeCommit 成功
         _gitServiceMock.Setup(x => x.FindMergeCommitAsync(
                 "/clone/group/project-a", "feature/test", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Success("abc123"));
 
-        // GetCommitDiff 成功
+        // GetCommitDiff 失敗
         _gitServiceMock.Setup(x => x.GetCommitDiffAsync(
                 "/clone/group/project-a", "abc123", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<string>.Success(SampleDiff));
+            .ReturnsAsync(Result<string>.Failure(
+                Error.RiskAnalysis.GitCommandFailed("git show", "commit diff failed")));
 
         var task = CreateTask();
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert
+        // Assert — 結果中不包含任何 PrDiffContext
         Assert.NotNull(_capturedRedisJson);
         var result = _capturedRedisJson.ToTypedObject<Dictionary<string, List<PrDiffContext>>>();
         Assert.NotNull(result);
-        Assert.True(result.ContainsKey("group/project-a"));
-        Assert.Single(result["group/project-a"]);
-
-        // 驗證 fallback 流程被呼叫
-        _gitServiceMock.Verify(x => x.FindMergeCommitAsync(
-            "/clone/group/project-a", "feature/test", It.IsAny<CancellationToken>()), Times.Once);
-        _gitServiceMock.Verify(x => x.GetCommitDiffAsync(
-            "/clone/group/project-a", "abc123", It.IsAny<CancellationToken>()), Times.Once);
+        var totalDiffs = result.Values.SelectMany(x => x).Count();
+        Assert.Equal(0, totalDiffs);
     }
 
     [Fact]
-    public async Task ExecuteAsync_所有策略失敗時_應跳過PR並記錄警告()
+    public async Task ExecuteAsync_FindMergeCommit失敗時_應跳過PR並記錄警告()
     {
         // Arrange
         var pr = CreatePr();
@@ -232,13 +224,7 @@ public class ExtractPrDiffsTaskTests
         SetupBitbucketPrData(null);
         SetupClonePaths(new Dictionary<string, string> { ["group/project-a"] = "/clone/group/project-a" });
 
-        // Branch diff 失敗
-        _gitServiceMock.Setup(x => x.GetBranchDiffAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<string>.Failure(
-                Error.RiskAnalysis.GitCommandFailed("git diff", "failed")));
-
-        // Merge commit 也失敗
+        // Merge commit 失敗
         _gitServiceMock.Setup(x => x.FindMergeCommitAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Failure(
@@ -254,7 +240,6 @@ public class ExtractPrDiffsTaskTests
         var result = _capturedRedisJson.ToTypedObject<Dictionary<string, List<PrDiffContext>>>();
         Assert.NotNull(result);
 
-        // 應該存入空字典或不含該專案的資料
         var totalDiffs = result.Values.SelectMany(x => x).Count();
         Assert.Equal(0, totalDiffs);
     }
@@ -269,8 +254,11 @@ public class ExtractPrDiffsTaskTests
         SetupBitbucketPrData(null);
         SetupClonePaths(new Dictionary<string, string> { ["group/project-a"] = "/clone/group/project-a" });
 
-        _gitServiceMock.Setup(x => x.GetBranchDiffAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _gitServiceMock.Setup(x => x.FindMergeCommitAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success("abc123"));
+        _gitServiceMock.Setup(x => x.GetCommitDiffAsync(
+                It.IsAny<string>(), "abc123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Success(SampleDiff));
 
         var task = CreateTask();
@@ -307,8 +295,11 @@ public class ExtractPrDiffsTaskTests
             ["team/repo-b"] = "/clone/team/repo-b"
         });
 
-        _gitServiceMock.Setup(x => x.GetBranchDiffAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _gitServiceMock.Setup(x => x.FindMergeCommitAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success("abc123"));
+        _gitServiceMock.Setup(x => x.GetCommitDiffAsync(
+                It.IsAny<string>(), "abc123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Success(SampleDiff));
 
         var task = CreateTask();
@@ -367,8 +358,8 @@ public class ExtractPrDiffsTaskTests
         await task.ExecuteAsync();
 
         // Assert — 不應呼叫任何 Git 操作
-        _gitServiceMock.Verify(x => x.GetBranchDiffAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _gitServiceMock.Verify(x => x.FindMergeCommitAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 
         Assert.NotNull(_capturedRedisJson);
         var result = _capturedRedisJson.ToTypedObject<Dictionary<string, List<PrDiffContext>>>();
