@@ -4,9 +4,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Common.Configuration;
-using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Infrastructure.Copilot;
@@ -23,7 +21,6 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
     private readonly IOptions<CopilotOptions> _copilotOptions;
     private readonly IOptions<RiskAnalysisOptions> _riskOptions;
     private readonly IShellCommandExecutor _shellExecutor;
-    private readonly INow _now;
     private readonly ILogger<CopilotRiskAnalyzer> _logger;
 
     /// <summary>
@@ -54,22 +51,34 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
         - Stored Procedure 參數變更 → 呼叫端可能傳錯參數
 
         ## 輸出格式
-        你的最終回應必須是純 JSON（禁止 markdown code block），格式如下：
-        {
-          "riskItems": [
-            {
-              "category": "ApiContract|DatabaseSchema|DatabaseData|EventFormat|Configuration",
-              "level": "High|Medium|Low",
-              "changeSummary": "變更摘要（繁體中文）",
-              "affectedFiles": ["file1.cs", "file2.cs"],
-              "potentiallyAffectedServices": ["ServiceA", "ServiceB"],
-              "impactDescription": "影響說明（繁體中文）",
-              "suggestedValidationSteps": ["驗證步驟1", "驗證步驟2"]
-            }
-          ],
-          "summary": "整體分析摘要（繁體中文）",
-          "analysisLog": "你執行了哪些指令、為什麼執行這些指令的簡要說明（繁體中文）"
-        }
+        你的最終回應必須是 Markdown 格式的風險分析報告，結構如下：
+
+        # {專案名稱} 風險分析
+
+        ## 分析摘要
+        （整體分析摘要，繁體中文）
+
+        ## 風險項目
+
+        ### 🔴 高風險
+        #### {風險標題}
+        - **類別**: ApiContract|DatabaseSchema|DatabaseData|EventFormat|Configuration
+        - **變更摘要**: （繁體中文）
+        - **影響檔案**: file1.cs, file2.cs
+        - **可能受影響服務**: ServiceA, ServiceB
+        - **影響描述**: （繁體中文）
+        - **建議驗證步驟**:
+          1. 步驟一
+          2. 步驟二
+
+        ### 🟡 中風險
+        （同上格式）
+
+        ### 🟢 低風險
+        （同上格式）
+
+        ## 分析記錄
+        （你執行了哪些指令、為什麼執行這些指令的簡要說明）
         """;
 
     /// <summary>
@@ -96,20 +105,18 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
         IOptions<CopilotOptions> copilotOptions,
         IOptions<RiskAnalysisOptions> riskOptions,
         IShellCommandExecutor shellExecutor,
-        INow now,
         ILogger<CopilotRiskAnalyzer> logger)
     {
         _copilotOptions = copilotOptions;
         _riskOptions = riskOptions;
         _shellExecutor = shellExecutor;
-        _now = now;
         _logger = logger;
     }
 
     /// <summary>
     /// 分析單一專案的變更風險（Agentic 模式）
     /// </summary>
-    public async Task<RiskAnalysisReport> AnalyzeProjectRiskAsync(
+    public async Task<string> AnalyzeProjectRiskAsync(
         ProjectAnalysisContext context,
         CancellationToken cancellationToken = default)
     {
@@ -131,24 +138,16 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
             if (string.IsNullOrWhiteSpace(responseContent))
             {
                 _logger.LogWarning("Copilot 回傳空白回應，專案: {ProjectName}", context.ProjectName);
-                return CreateEmptyReport(context.ProjectName);
+                return CreateEmptyReportMarkdown(context.ProjectName);
             }
 
-            var report = ParseProjectRiskResponse(responseContent, context.ProjectName, _now.UtcNow);
-            if (report is null)
-            {
-                _logger.LogWarning("無法解析 Copilot 回應，專案: {ProjectName}", context.ProjectName);
-                return CreateEmptyReport(context.ProjectName);
-            }
-
-            _logger.LogInformation("專案 {ProjectName} agentic 分析完成，識別到 {Count} 項風險",
-                context.ProjectName, report.RiskItems.Count);
-            return report;
+            _logger.LogInformation("專案 {ProjectName} agentic 分析完成", context.ProjectName);
+            return responseContent;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Copilot agentic 分析失敗，專案: {ProjectName}", context.ProjectName);
-            return CreateEmptyReport(context.ProjectName);
+            return CreateEmptyReportMarkdown(context.ProjectName);
         }
     }
 
@@ -156,7 +155,7 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
     /// 產生最終整合報告 Markdown
     /// </summary>
     public async Task<string> GenerateFinalReportAsync(
-        IReadOnlyList<RiskAnalysisReport> reports,
+        IReadOnlyList<string> reports,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("開始產生最終風險報告，共 {Count} 份中間報告", reports.Count);
@@ -179,41 +178,6 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
     }
 
     /// <summary>
-    /// 解析 Copilot 回應為 RiskAnalysisReport
-    /// </summary>
-    internal static RiskAnalysisReport? ParseProjectRiskResponse(
-        string content,
-        string projectName,
-        DateTimeOffset analyzedAt)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-            return null;
-
-        var cleaned = CleanMarkdownWrapper(content);
-
-        try
-        {
-            var dto = cleaned.ToTypedObject<ProjectRiskResponseDto>();
-            if (dto is null)
-                return null;
-
-            return new RiskAnalysisReport
-            {
-                Sequence = 0,
-                ProjectName = projectName,
-                RiskItems = dto.RiskItems ?? [],
-                Summary = dto.Summary ?? string.Empty,
-                AnalysisLog = dto.AnalysisLog,
-                AnalyzedAt = analyzedAt
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
     /// 建構 agentic 分析使用者提示詞
     /// </summary>
     internal static string BuildUserPrompt(ProjectAnalysisContext context)
@@ -229,27 +193,6 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
             請使用 run_command 工具探索 repo，分析這些 commit 的變更風險。
             工作目錄請使用: {context.RepoPath}
             """;
-    }
-
-    /// <summary>
-    /// 清除 Markdown 代碼區塊包裝
-    /// </summary>
-    internal static string CleanMarkdownWrapper(string content)
-    {
-        var trimmed = content.Trim();
-        if (trimmed.StartsWith("```"))
-        {
-            var firstNewline = trimmed.IndexOf('\n');
-            if (firstNewline >= 0)
-                trimmed = trimmed[(firstNewline + 1)..];
-
-            if (trimmed.EndsWith("```"))
-                trimmed = trimmed[..^3];
-
-            return trimmed.Trim();
-        }
-
-        return trimmed;
     }
 
     /// <summary>
@@ -371,30 +314,15 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
     }
 
     /// <summary>建構最終報告使用者提示詞</summary>
-    private static string BuildFinalReportUserPrompt(IReadOnlyList<RiskAnalysisReport> reports)
+    private static string BuildFinalReportUserPrompt(IReadOnlyList<string> reports)
     {
-        var reportsJson = reports.ToJson();
-        return $"請根據以下風險分析結果產生最終報告：\n{reportsJson}";
+        var combined = string.Join("\n\n---\n\n", reports);
+        return $"請根據以下各專案風險分析結果產生最終報告：\n\n{combined}";
     }
 
-    /// <summary>建立空白報告（回退值）</summary>
-    private RiskAnalysisReport CreateEmptyReport(string projectName)
+    /// <summary>建立空白報告 Markdown（回退值）</summary>
+    private static string CreateEmptyReportMarkdown(string projectName)
     {
-        return new RiskAnalysisReport
-        {
-            Sequence = 0,
-            ProjectName = projectName,
-            RiskItems = [],
-            Summary = "AI 分析失敗，未產生風險報告",
-            AnalyzedAt = _now.UtcNow
-        };
-    }
-
-    /// <summary>回應 DTO</summary>
-    private sealed record ProjectRiskResponseDto
-    {
-        public IReadOnlyList<RiskItem>? RiskItems { get; init; }
-        public string? Summary { get; init; }
-        public string? AnalysisLog { get; init; }
+        return $"# {projectName} 風險分析\n\n## 分析摘要\n\nAI 分析失敗，未產生風險報告。\n";
     }
 }

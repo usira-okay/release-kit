@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
-using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Domain.Entities;
 
 namespace ReleaseKit.Application.Tasks;
 
@@ -57,15 +55,15 @@ public class GenerateRiskReportTask : ITask
         _logger.LogInformation("最終風險分析報告產生完成");
     }
 
-    /// <summary>從 Redis 載入所有中間分析報告</summary>
-    private async Task<IReadOnlyList<RiskAnalysisReport>> LoadIntermediateReportsAsync()
+    /// <summary>從 Redis 載入所有中間分析報告（Markdown 格式）</summary>
+    private async Task<IReadOnlyList<string>> LoadIntermediateReportsAsync()
     {
         var entries = await _redisService.HashGetByPrefixAsync(
             RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix);
 
-        return entries.Values
-            .Select(json => json.ToTypedObject<RiskAnalysisReport>()!)
-            .OrderBy(r => r.Sequence)
+        return entries
+            .OrderBy(e => e.Key)
+            .Select(e => e.Value)
             .ToList();
     }
 

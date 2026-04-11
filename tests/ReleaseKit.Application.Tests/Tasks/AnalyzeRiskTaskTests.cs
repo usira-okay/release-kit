@@ -7,7 +7,6 @@ using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tests.Tasks;
@@ -193,14 +192,7 @@ public class AnalyzeRiskTaskTests
             .Returns((ProjectAnalysisContext ctx, CancellationToken _) =>
             {
                 capturedContext = ctx;
-                return Task.FromResult(new RiskAnalysisReport
-                {
-                    Sequence = 0,
-                    ProjectName = ctx.ProjectName,
-                    RiskItems = new List<RiskItem>(),
-                    Summary = "測試摘要",
-                    AnalyzedAt = DateTimeOffset.UtcNow
-                });
+                return Task.FromResult("# 測試風險分析報告\n\n## 分析摘要\n\n測試摘要");
             });
 
         _redisServiceMock.Setup(x => x.HashSetAsync(
@@ -245,14 +237,7 @@ public class AnalyzeRiskTaskTests
 
         _riskAnalyzerMock.Setup(x => x.AnalyzeProjectRiskAsync(
                 It.IsAny<ProjectAnalysisContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RiskAnalysisReport
-            {
-                Sequence = 0,
-                ProjectName = "group/project-a",
-                RiskItems = new List<RiskItem>(),
-                Summary = "摘要",
-                AnalyzedAt = DateTimeOffset.UtcNow
-            });
+            .ReturnsAsync("# 風險分析報告\n\n## 分析摘要\n\n摘要");
 
         var storedFields = new Dictionary<string, string>();
         _redisServiceMock.Setup(x => x.HashSetAsync(
@@ -306,14 +291,7 @@ public class AnalyzeRiskTaskTests
             .Returns((ProjectAnalysisContext ctx, CancellationToken _) =>
             {
                 capturedContext = ctx;
-                return Task.FromResult(new RiskAnalysisReport
-                {
-                    Sequence = 0,
-                    ProjectName = ctx.ProjectName,
-                    RiskItems = new List<RiskItem>(),
-                    Summary = "摘要",
-                    AnalyzedAt = DateTimeOffset.UtcNow
-                });
+                return Task.FromResult("# 風險分析報告\n\n## 分析摘要\n\n摘要");
             });
 
         _redisServiceMock.Setup(x => x.HashSetAsync(

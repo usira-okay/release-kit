@@ -19,11 +19,11 @@
                 // "update-googlesheet"
                 // "enhance-titles"
                 // "clone-repos"
-                "extract-pr-diffs"
+                // "extract-pr-diffs"
                 // "analyze-project-risk"
                 // "analyze-cross-project-risk"
+                "analyze-risk"
                 // "generate-risk-report"
-                // "analyze-risk"
 
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",

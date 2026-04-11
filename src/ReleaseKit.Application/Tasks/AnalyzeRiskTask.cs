@@ -139,21 +139,19 @@ public sealed class AnalyzeRiskTask : ITask
             _logger.LogInformation("分析專案 {ProjectName}（Sequence={Sequence}，CommitShas={Count}）",
                 context.ProjectName, sequence, context.CommitShas.Count);
 
-            var report = await _riskAnalyzer.AnalyzeProjectRiskAsync(context);
-            report = report with { Sequence = sequence };
+            var markdown = await _riskAnalyzer.AnalyzeProjectRiskAsync(context);
 
             await _redisService.HashSetAsync(
                 RedisKeys.RiskAnalysisHash,
                 $"{RedisKeys.Fields.IntermediatePrefix}{sequence}",
-                report.ToJson());
+                markdown);
 
             await _redisService.HashSetAsync(
                 RedisKeys.RiskAnalysisHash,
                 $"{RedisKeys.Fields.AnalysisContextPrefix}{sequence}",
                 context.ToJson());
 
-            _logger.LogInformation("專案 {ProjectName} 分析完成，識別 {Count} 個風險項目",
-                context.ProjectName, report.RiskItems.Count);
+            _logger.LogInformation("專案 {ProjectName} 分析完成", context.ProjectName);
         }
         finally
         {

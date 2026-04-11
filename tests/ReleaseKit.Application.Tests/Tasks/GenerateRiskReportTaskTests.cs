@@ -4,10 +4,7 @@ using Moq;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
-using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Domain.Entities;
-using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Application.Tests.Tasks;
 
@@ -59,49 +56,25 @@ public class GenerateRiskReportTaskTests : IDisposable
             _loggerMock.Object);
     }
 
-    /// <summary>
-    /// 建立測試用 RiskAnalysisReport
-    /// </summary>
-    private static RiskAnalysisReport CreateReport(int sequence, string? projectName = null) => new()
-    {
-        Sequence = sequence,
-        ProjectName = projectName ?? $"project-{sequence}",
-        RiskItems = new List<RiskItem>
-        {
-            new()
-            {
-                Category = RiskCategory.ApiContract,
-                Level = RiskLevel.High,
-                ChangeSummary = "測試變更",
-                AffectedFiles = new List<string> { "src/Foo.cs" },
-                PotentiallyAffectedServices = new List<string> { "ServiceA" },
-                ImpactDescription = "測試影響",
-                SuggestedValidationSteps = new List<string> { "步驟一" }
-            }
-        },
-        Summary = "測試摘要",
-        AnalyzedAt = DateTimeOffset.UtcNow
-    };
-
     [Fact]
     public async Task ExecuteAsync_載入所有中間報告並傳入GenerateFinalReportAsync()
     {
         // Arrange
-        var report1 = CreateReport(1, "project-a");
-        var report2 = CreateReport(2, "project-b");
+        const string report1Md = "# project-a 風險分析\n\n## 分析摘要\n\n摘要A";
+        const string report2Md = "# project-b 風險分析\n\n## 分析摘要\n\n摘要B";
         var intermediateData = new Dictionary<string, string>
         {
-            [$"{RedisKeys.Fields.IntermediatePrefix}1"] = report1.ToJson(),
-            [$"{RedisKeys.Fields.IntermediatePrefix}2"] = report2.ToJson()
+            [$"{RedisKeys.Fields.IntermediatePrefix}1"] = report1Md,
+            [$"{RedisKeys.Fields.IntermediatePrefix}2"] = report2Md
         };
         _redisServiceMock.Setup(x => x.HashGetByPrefixAsync(
                 RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix))
             .ReturnsAsync(intermediateData);
 
-        IReadOnlyList<RiskAnalysisReport>? capturedReports = null;
+        IReadOnlyList<string>? capturedReports = null;
         _riskAnalyzerMock.Setup(x => x.GenerateFinalReportAsync(
-                It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()))
-            .Returns((IReadOnlyList<RiskAnalysisReport> reports, CancellationToken _) =>
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .Returns((IReadOnlyList<string> reports, CancellationToken _) =>
             {
                 capturedReports = reports;
                 return Task.FromResult("# 風險報告");
@@ -121,7 +94,7 @@ public class GenerateRiskReportTaskTests : IDisposable
         Assert.Equal(2, capturedReports.Count);
 
         _riskAnalyzerMock.Verify(x => x.GenerateFinalReportAsync(
-            It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -132,12 +105,12 @@ public class GenerateRiskReportTaskTests : IDisposable
                 RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix))
             .ReturnsAsync(new Dictionary<string, string>
             {
-                [$"{RedisKeys.Fields.IntermediatePrefix}1"] = CreateReport(1).ToJson()
+                [$"{RedisKeys.Fields.IntermediatePrefix}1"] = "# 中間報告"
             });
 
         const string expectedMarkdown = "# 最終風險報告\n\n風險項目...";
         _riskAnalyzerMock.Setup(x => x.GenerateFinalReportAsync(
-                It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedMarkdown);
 
         string? capturedMarkdown = null;
@@ -168,12 +141,12 @@ public class GenerateRiskReportTaskTests : IDisposable
                 RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix))
             .ReturnsAsync(new Dictionary<string, string>
             {
-                [$"{RedisKeys.Fields.IntermediatePrefix}1"] = CreateReport(1).ToJson()
+                [$"{RedisKeys.Fields.IntermediatePrefix}1"] = "# 中間報告"
             });
 
         const string expectedMarkdown = "# 風險報告內容";
         _riskAnalyzerMock.Setup(x => x.GenerateFinalReportAsync(
-                It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedMarkdown);
 
         _redisServiceMock.Setup(x => x.HashSetAsync(
@@ -201,7 +174,7 @@ public class GenerateRiskReportTaskTests : IDisposable
             .ReturnsAsync(new Dictionary<string, string>());
 
         _riskAnalyzerMock.Setup(x => x.GenerateFinalReportAsync(
-                It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()))
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("# 空報告");
 
         _redisServiceMock.Setup(x => x.HashSetAsync(
@@ -215,31 +188,28 @@ public class GenerateRiskReportTaskTests : IDisposable
 
         // Assert — 以空清單呼叫 GenerateFinalReportAsync
         _riskAnalyzerMock.Verify(x => x.GenerateFinalReportAsync(
-            It.Is<IReadOnlyList<RiskAnalysisReport>>(r => r.Count == 0),
+            It.Is<IReadOnlyList<string>>(r => r.Count == 0),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task ExecuteAsync_報告依Sequence排序後傳入GenerateFinalReportAsync()
+    public async Task ExecuteAsync_報告依Key排序後傳入GenerateFinalReportAsync()
     {
         // Arrange — 故意以逆序存入 Redis
-        var report3 = CreateReport(3, "project-c");
-        var report1 = CreateReport(1, "project-a");
-        var report2 = CreateReport(2, "project-b");
         var intermediateData = new Dictionary<string, string>
         {
-            [$"{RedisKeys.Fields.IntermediatePrefix}3"] = report3.ToJson(),
-            [$"{RedisKeys.Fields.IntermediatePrefix}1"] = report1.ToJson(),
-            [$"{RedisKeys.Fields.IntermediatePrefix}2"] = report2.ToJson()
+            [$"{RedisKeys.Fields.IntermediatePrefix}3"] = "# project-c 風險分析",
+            [$"{RedisKeys.Fields.IntermediatePrefix}1"] = "# project-a 風險分析",
+            [$"{RedisKeys.Fields.IntermediatePrefix}2"] = "# project-b 風險分析"
         };
         _redisServiceMock.Setup(x => x.HashGetByPrefixAsync(
                 RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix))
             .ReturnsAsync(intermediateData);
 
-        IReadOnlyList<RiskAnalysisReport>? capturedReports = null;
+        IReadOnlyList<string>? capturedReports = null;
         _riskAnalyzerMock.Setup(x => x.GenerateFinalReportAsync(
-                It.IsAny<IReadOnlyList<RiskAnalysisReport>>(), It.IsAny<CancellationToken>()))
-            .Returns((IReadOnlyList<RiskAnalysisReport> reports, CancellationToken _) =>
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .Returns((IReadOnlyList<string> reports, CancellationToken _) =>
             {
                 capturedReports = reports;
                 return Task.FromResult("# 排序報告");
@@ -254,11 +224,11 @@ public class GenerateRiskReportTaskTests : IDisposable
         // Act
         await task.ExecuteAsync();
 
-        // Assert — 確認依 Sequence 升序排列
+        // Assert — 確認依 Key 升序排列
         Assert.NotNull(capturedReports);
         Assert.Equal(3, capturedReports.Count);
-        Assert.Equal(1, capturedReports[0].Sequence);
-        Assert.Equal(2, capturedReports[1].Sequence);
-        Assert.Equal(3, capturedReports[2].Sequence);
+        Assert.Equal("# project-a 風險分析", capturedReports[0]);
+        Assert.Equal("# project-b 風險分析", capturedReports[1]);
+        Assert.Equal("# project-c 風險分析", capturedReports[2]);
     }
 }

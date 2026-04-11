@@ -1,4 +1,3 @@
-using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
 namespace ReleaseKit.Domain.Abstractions;
@@ -8,19 +7,19 @@ namespace ReleaseKit.Domain.Abstractions;
 /// </summary>
 public interface IRiskAnalyzer
 {
-    /// <summary>分析單一專案的變更風險（Agentic：Copilot 自主探索 repo）</summary>
+    /// <summary>分析單一專案的變更風險，回傳 Markdown 格式報告</summary>
     /// <param name="context">專案分析上下文（含 repo 路徑與 commit SHA）</param>
     /// <param name="cancellationToken">取消權杖</param>
-    /// <returns>風險分析報告</returns>
-    Task<RiskAnalysisReport> AnalyzeProjectRiskAsync(
+    /// <returns>Markdown 格式的風險分析報告</returns>
+    Task<string> AnalyzeProjectRiskAsync(
         ProjectAnalysisContext context,
         CancellationToken cancellationToken = default);
 
     /// <summary>產生最終整合報告 Markdown</summary>
-    /// <param name="reports">所有專案的中間分析報告</param>
+    /// <param name="reports">所有專案的中間分析報告（Markdown 格式）</param>
     /// <param name="cancellationToken">取消權杖</param>
     /// <returns>Markdown 格式的最終報告</returns>
     Task<string> GenerateFinalReportAsync(
-        IReadOnlyList<RiskAnalysisReport> reports,
+        IReadOnlyList<string> reports,
         CancellationToken cancellationToken = default);
 }
