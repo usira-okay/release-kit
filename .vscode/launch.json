@@ -7,10 +7,10 @@
             "preLaunchTask": "dotnet: build",
             "program": "${workspaceFolder}/src/ReleaseKit.Console/bin/Debug/net10.0/ReleaseKit.Console.dll",
             "args": [
-                // "fetch-gitlab-pr"
-                // "fetch-bitbucket-pr"
                 // "fetch-gitlab-release-branch"
                 // "fetch-bitbucket-release-branch"
+                // "fetch-gitlab-pr"
+                // "fetch-bitbucket-pr"
                 // "filter-gitlab-pr-by-user"
                 // "filter-bitbucket-pr-by-user"
                 // "fetch-azure-workitems"
@@ -19,10 +19,7 @@
                 // "update-googlesheet"
                 // "enhance-titles"
                 // "clone-repos"
-                // "extract-pr-diffs"
-                // "analyze-project-risk"
-                // "analyze-cross-project-risk"
-                "analyze-risk"
+                // "analyze-risk"
                 // "generate-risk-report"
 
             ],
