@@ -130,8 +130,7 @@ public class RedisService : IRedisService
         var hashEntries = await _database.HashGetAllAsync(fullKey);
         var result = hashEntries
             .Where(e => e.Name.ToString().StartsWith(fieldPrefix, StringComparison.Ordinal))
-            .ToDictionary(e => e.Name.ToString(), e => e.Value.ToString())
-            .AsReadOnly();
+            .ToDictionary(e => e.Name.ToString(), e => e.Value.ToString());
         _logger.LogInformation("Redis HGETBYPREFIX: {Key} Prefix: {Prefix}, Count: {Count}", fullKey, fieldPrefix, result.Count);
         return result;
     }
