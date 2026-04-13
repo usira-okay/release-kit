@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.ValueObjects;
 
@@ -35,10 +36,14 @@ public class ShellCommandExecutor : IShellCommandExecutor
     {
         ValidateWorkingDirectory(workingDirectory);
 
+        var (shellFileName, shellArgs) = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? ("cmd.exe", $"/c \"{command.Replace("\"", "\\\"")}\"")
+            : ("/bin/bash", $"-c \"{command.Replace("\"", "\\\"")}\"");
+
         var startInfo = new ProcessStartInfo
         {
-            FileName = "/bin/bash",
-            Arguments = $"-c \"{command.Replace("\"", "\\\"")}\"",
+            FileName = shellFileName,
+            Arguments = shellArgs,
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -49,11 +54,12 @@ public class ShellCommandExecutor : IShellCommandExecutor
         using var process = new Process { StartInfo = startInfo };
         process.Start();
 
+        // 使用外部取消 token（非超時 token）讀取串流，確保超時後仍可收集部分輸出
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
-
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(cts.Token);
-        var stderrTask = process.StandardError.ReadToEndAsync(cts.Token);
 
         try
         {
@@ -71,13 +77,20 @@ public class ShellCommandExecutor : IShellCommandExecutor
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            // 超時而非外部取消
+            // 超時而非外部取消：終止程序並收集部分輸出
             SafeKillProcess(process);
+
+            var partialStdout = "";
+            var partialStderr = "";
+            try { partialStdout = await stdoutTask; } catch (OperationCanceledException) { }
+            try { partialStderr = await stderrTask; } catch (OperationCanceledException) { }
 
             return new ShellCommandResult
             {
-                StandardOutput = "",
-                StandardError = "指令執行超時",
+                StandardOutput = partialStdout,
+                StandardError = string.IsNullOrEmpty(partialStderr)
+                    ? "指令執行超時"
+                    : $"指令執行超時\n{partialStderr}",
                 ExitCode = -1,
                 TimedOut = true
             };
@@ -93,7 +106,8 @@ public class ShellCommandExecutor : IShellCommandExecutor
         var normalizedBase = Path.GetFullPath(_allowedBasePath);
         var normalizedDir = Path.GetFullPath(workingDirectory);
 
-        if (!normalizedDir.StartsWith(normalizedBase, StringComparison.Ordinal))
+        var relativePath = Path.GetRelativePath(normalizedBase, normalizedDir);
+        if (relativePath.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relativePath))
         {
             throw new ArgumentException(
                 $"工作目錄 '{workingDirectory}' 不在允許的路徑 '{_allowedBasePath}' 下",

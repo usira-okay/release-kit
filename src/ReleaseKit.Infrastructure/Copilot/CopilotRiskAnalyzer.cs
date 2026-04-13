@@ -235,11 +235,16 @@ public class CopilotRiskAnalyzer : IRiskAnalyzer
                     output = output[..maxOutputChars] +
                              $"\n\n[輸出已截斷，共 {output.Length} 字元，僅顯示前 {maxOutputChars} 字元]";
 
+                var stderrOutput = result.StandardError;
+                if (stderrOutput.Length > maxOutputChars)
+                    stderrOutput = stderrOutput[..maxOutputChars] +
+                                   $"\n\n[stderr 已截斷，共 {stderrOutput.Length} 字元，僅顯示前 {maxOutputChars} 字元]";
+
                 if (result.TimedOut)
-                    return $"[指令超時] stderr: {result.StandardError}";
+                    return $"[指令超時] stderr: {stderrOutput}";
 
                 if (result.ExitCode != 0)
-                    return $"[exit code: {result.ExitCode}]\nstdout:\n{output}\nstderr:\n{result.StandardError}";
+                    return $"[exit code: {result.ExitCode}]\nstdout:\n{output}\nstderr:\n{stderrOutput}";
 
                 return output;
             },

@@ -54,6 +54,9 @@ public sealed class AnalyzeRiskTask : ITask
 
         _logger.LogInformation("準備分析 {Count} 個專案", contexts.Count);
 
+        // 清除上一輪的中間報告與分析上下文，避免重新執行時保留舊資料
+        await ClearPreviousRunDataAsync();
+
         var semaphore = new SemaphoreSlim(_options.MaxConcurrentAnalysis);
         var tasks = contexts.Select((ctx, index) =>
             AnalyzeProjectAsync(ctx, index + 1, semaphore));
@@ -103,7 +106,7 @@ public sealed class AnalyzeRiskTask : ITask
             }
 
             var commitShas = project.PullRequests
-                .Where(pr => !string.IsNullOrEmpty(pr.MergeCommitSha))
+                .Where(pr => !string.IsNullOrWhiteSpace(pr.MergeCommitSha))
                 .Select(pr => pr.MergeCommitSha!)
                 .Distinct()
                 .ToList();
@@ -123,6 +126,22 @@ public sealed class AnalyzeRiskTask : ITask
         }
 
         return contexts;
+    }
+
+    /// <summary>
+    /// 清除上一輪的中間報告與分析上下文（避免重新執行時保留舊資料）
+    /// </summary>
+    private async Task ClearPreviousRunDataAsync()
+    {
+        var intermediateEntries = await _redisService.HashGetByPrefixAsync(
+            RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix);
+        foreach (var key in intermediateEntries.Keys)
+            await _redisService.HashDeleteAsync(RedisKeys.RiskAnalysisHash, key);
+
+        var contextEntries = await _redisService.HashGetByPrefixAsync(
+            RedisKeys.RiskAnalysisHash, RedisKeys.Fields.AnalysisContextPrefix);
+        foreach (var key in contextEntries.Keys)
+            await _redisService.HashDeleteAsync(RedisKeys.RiskAnalysisHash, key);
     }
 
     /// <summary>

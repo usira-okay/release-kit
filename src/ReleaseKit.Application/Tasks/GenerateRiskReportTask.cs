@@ -62,9 +62,21 @@ public class GenerateRiskReportTask : ITask
             RedisKeys.RiskAnalysisHash, RedisKeys.Fields.IntermediatePrefix);
 
         return entries
-            .OrderBy(e => e.Key)
+            .OrderBy(e => GetIntermediateReportSequence(e.Key))
             .Select(e => e.Value)
             .ToList();
+    }
+
+    private static int GetIntermediateReportSequence(string key)
+    {
+        var prefix = RedisKeys.Fields.IntermediatePrefix;
+        if (key.StartsWith(prefix, StringComparison.Ordinal) &&
+            int.TryParse(key[prefix.Length..], out var sequence))
+        {
+            return sequence;
+        }
+
+        return int.MaxValue;
     }
 
     /// <summary>將報告寫入檔案系統</summary>

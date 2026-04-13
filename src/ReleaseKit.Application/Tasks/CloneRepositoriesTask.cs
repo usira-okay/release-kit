@@ -59,8 +59,16 @@ public class CloneRepositoriesTask : ITask
         // 清除整個 CloneBasePath，確保乾淨的 Clone 環境
         if (Directory.Exists(_riskAnalysisOptions.CloneBasePath))
         {
+            var normalizedPath = Path.GetFullPath(_riskAnalysisOptions.CloneBasePath);
+            if (string.IsNullOrEmpty(Path.GetDirectoryName(normalizedPath)))
+            {
+                _logger.LogError("CloneBasePath 設定不安全（根目錄或磁碟根目錄），拒絕清除：{CloneBasePath}",
+                    _riskAnalysisOptions.CloneBasePath);
+                return;
+            }
+
             _logger.LogInformation("刪除現有 CloneBasePath：{CloneBasePath}", _riskAnalysisOptions.CloneBasePath);
-            Directory.Delete(_riskAnalysisOptions.CloneBasePath, recursive: true);
+            Directory.Delete(normalizedPath, recursive: true);
         }
 
         var clonePaths = new Dictionary<string, string>();
@@ -105,29 +113,33 @@ public class CloneRepositoriesTask : ITask
         SemaphoreSlim semaphore)
     {
         await semaphore.WaitAsync();
-
-        // 統一使用正斜線，避免 Windows 上 Path.Combine 產生反斜線導致 git 路徑問題
-        var targetPath = Path.Combine(_riskAnalysisOptions.CloneBasePath, projectPath)
-            .Replace('\\', '/');
-
-        _logger.LogInformation("正在 Clone {ProjectPath} 至 {TargetPath}", projectPath, targetPath);
-
-        var result = await _gitService.CloneRepositoryAsync(cloneUrl, targetPath);
-
-        if (result.IsSuccess)
+        try
         {
-            lock (clonePaths)
+            // 統一使用正斜線，避免 Windows 上 Path.Combine 產生反斜線導致 git 路徑問題
+            var targetPath = Path.Combine(_riskAnalysisOptions.CloneBasePath, projectPath)
+                .Replace('\\', '/');
+
+            _logger.LogInformation("正在 Clone {ProjectPath} 至 {TargetPath}", projectPath, targetPath);
+
+            var result = await _gitService.CloneRepositoryAsync(cloneUrl, targetPath);
+
+            if (result.IsSuccess)
             {
-                clonePaths[projectPath] = targetPath;
+                lock (clonePaths)
+                {
+                    clonePaths[projectPath] = targetPath;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Clone 失敗：{ProjectPath}，錯誤：{Error}",
+                    projectPath, result.Error?.Message);
             }
         }
-        else
+        finally
         {
-            _logger.LogWarning("Clone 失敗：{ProjectPath}，錯誤：{Error}",
-                projectPath, result.Error?.Message);
+            semaphore.Release();
         }
-
-        semaphore.Release();
     }
 
     /// <summary>
@@ -137,11 +149,17 @@ public class CloneRepositoriesTask : ITask
     /// <returns>包含 PAT 認證的 GitLab Clone URL</returns>
     internal string BuildGitLabCloneUrl(string projectPath)
     {
-        var baseUrl = _gitLabOptions.ApiUrl.Replace("/api/v4", string.Empty);
-        var uri = new Uri(baseUrl);
+        var uri = new Uri(_gitLabOptions.ApiUrl);
         var encodedToken = Uri.EscapeDataString(_gitLabOptions.AccessToken);
         var basePath = uri.AbsolutePath.TrimEnd('/');
-        return $"{uri.Scheme}://oauth2:{encodedToken}@{uri.Host}{basePath}/{projectPath}.git";
+
+        if (basePath.EndsWith("/api/v4", StringComparison.OrdinalIgnoreCase))
+        {
+            basePath = basePath[..^"/api/v4".Length];
+        }
+
+        basePath = basePath.TrimEnd('/');
+        return $"{uri.Scheme}://oauth2:{encodedToken}@{uri.Authority}{basePath}/{projectPath}.git";
     }
 
     /// <summary>
@@ -151,6 +169,8 @@ public class CloneRepositoriesTask : ITask
     /// <returns>Bitbucket Clone URL</returns>
     internal string BuildBitbucketCloneUrl(string projectPath)
     {
-        return $"https://{_bitbucketOptions.Username}:{_bitbucketOptions.AccessToken}@bitbucket.org/{projectPath}.git";
+        var encodedUsername = Uri.EscapeDataString(_bitbucketOptions.Username);
+        var encodedToken = Uri.EscapeDataString(_bitbucketOptions.AccessToken);
+        return $"https://{encodedUsername}:{encodedToken}@bitbucket.org/{projectPath}.git";
     }
 }

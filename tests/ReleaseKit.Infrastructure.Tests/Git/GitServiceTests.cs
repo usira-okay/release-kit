@@ -72,6 +72,7 @@ public class GitServiceTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task CloneRepositoryAsync_WithNonExistentRepo_ShouldReturnFailure()
     {
         var result = await _sut.CloneRepositoryAsync(

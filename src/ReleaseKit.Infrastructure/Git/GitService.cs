@@ -33,20 +33,21 @@ public sealed class GitService : IGitService
             return Result<string>.Failure(Error.RiskAnalysis.CloneFailed("URL 或目標路徑不得為空"));
         }
 
-        _logger.LogInformation("開始 Clone：{RepoUrl} → {TargetPath}", repoUrl, targetPath);
+        var safeUrl = RedactUrl(repoUrl);
+        _logger.LogInformation("開始 Clone：{RepoUrl} → {TargetPath}", safeUrl, targetPath);
 
         var cloneResult = await RunGitCommandAsync(
-            $"clone {repoUrl} {targetPath}",
+            ["clone", repoUrl, targetPath],
             workingDirectory: null,
             cancellationToken);
 
         if (cloneResult.IsFailure)
         {
-            return Result<string>.Failure(Error.RiskAnalysis.CloneFailed(repoUrl));
+            return Result<string>.Failure(Error.RiskAnalysis.CloneFailed(safeUrl));
         }
 
         var fetchResult = await RunGitCommandAsync(
-            "fetch --all",
+            ["fetch", "--all"],
             workingDirectory: targetPath,
             cancellationToken);
 
@@ -69,7 +70,7 @@ public sealed class GitService : IGitService
         }
 
         return await RunGitCommandAsync(
-            $"diff {baseBranch}...{headBranch}",
+            ["diff", $"{baseBranch}...{headBranch}"],
             workingDirectory: repoPath,
             cancellationToken);
     }
@@ -84,7 +85,7 @@ public sealed class GitService : IGitService
         }
 
         var result = await RunGitCommandAsync(
-            $"log --merges --format=%H --grep=\"Merge branch '{branchName}'\" -1",
+            ["log", "--merges", "--format=%H", $"--grep=Merge branch '{branchName}'", "-1"],
             workingDirectory: repoPath,
             cancellationToken);
 
@@ -107,7 +108,7 @@ public sealed class GitService : IGitService
         }
 
         return await RunGitCommandAsync(
-            $"show {commitSha}",
+            ["show", commitSha],
             workingDirectory: repoPath,
             cancellationToken);
     }
@@ -122,7 +123,7 @@ public sealed class GitService : IGitService
         }
 
         var result = await RunGitCommandAsync(
-            "remote get-url origin",
+            ["remote", "get-url", "origin"],
             workingDirectory: repoPath,
             cancellationToken);
 
@@ -136,17 +137,19 @@ public sealed class GitService : IGitService
 
     /// <summary>執行 git 命令並回傳輸出</summary>
     internal async Task<Result<string>> RunGitCommandAsync(
-        string arguments, string? workingDirectory, CancellationToken cancellationToken)
+        string[] arguments, string? workingDirectory, CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo
         {
             FileName = "git",
-            Arguments = arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        foreach (var arg in arguments)
+            startInfo.ArgumentList.Add(arg);
 
         if (!string.IsNullOrWhiteSpace(workingDirectory))
         {
@@ -154,9 +157,9 @@ public sealed class GitService : IGitService
         }
 
         _logger.LogDebug("執行 git 命令：git {Arguments}（工作目錄：{WorkingDirectory}）",
-            arguments, workingDirectory ?? "(null)");
+            string.Join(" ", arguments), workingDirectory ?? "(null)");
 
-        var process = new Process { StartInfo = startInfo };
+        using var process = new Process { StartInfo = startInfo };
         process.Start();
 
         var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
@@ -170,10 +173,22 @@ public sealed class GitService : IGitService
         if (process.ExitCode != 0)
         {
             _logger.LogWarning("git 命令失敗（exit code {ExitCode}）：git {Arguments}，錯誤：{Error}",
-                process.ExitCode, arguments, error);
-            return Result<string>.Failure(Error.RiskAnalysis.GitCommandFailed($"git {arguments}", error));
+                process.ExitCode, string.Join(" ", arguments), error);
+            return Result<string>.Failure(Error.RiskAnalysis.GitCommandFailed($"git {string.Join(" ", arguments)}", error));
         }
 
         return Result<string>.Success(output);
+    }
+
+    /// <summary>從 URL 中移除認證資訊（userinfo），避免洩漏 token 至日誌</summary>
+    private static string RedactUrl(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            var builder = new UriBuilder(uri) { UserName = string.Empty, Password = string.Empty };
+            return builder.Uri.ToString();
+        }
+
+        return url;
     }
 }

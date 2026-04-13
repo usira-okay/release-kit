@@ -32,6 +32,11 @@ public class AnalyzeRiskTaskTests
             ReportOutputPath = "/reports",
             MaxConcurrentAnalysis = 2
         };
+
+        // 預設 HashGetByPrefixAsync 回傳空字典（清除舊資料時不會拋例外）
+        _redisServiceMock.Setup(x => x.HashGetByPrefixAsync(
+                It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new Dictionary<string, string>());
     }
 
     private AnalyzeRiskTask CreateTask()

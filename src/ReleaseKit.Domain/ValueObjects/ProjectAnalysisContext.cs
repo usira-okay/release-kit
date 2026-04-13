@@ -17,4 +17,29 @@ public sealed record ProjectAnalysisContext
 
     /// <summary>要分析的 commit SHA 列表</summary>
     public required IReadOnlyList<string> CommitShas { get; init; }
+
+    /// <inheritdoc />
+    public bool Equals(ProjectAnalysisContext? other)
+    {
+        if (ReferenceEquals(this, other))
+            return true;
+
+        if (other is null)
+            return false;
+
+        return string.Equals(ProjectName, other.ProjectName, StringComparison.Ordinal)
+               && string.Equals(RepoPath, other.RepoPath, StringComparison.Ordinal)
+               && CommitShas.SequenceEqual(other.CommitShas, StringComparer.Ordinal);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(ProjectName, StringComparer.Ordinal);
+        hash.Add(RepoPath, StringComparer.Ordinal);
+        foreach (var sha in CommitShas)
+            hash.Add(sha, StringComparer.Ordinal);
+        return hash.ToHashCode();
+    }
 }

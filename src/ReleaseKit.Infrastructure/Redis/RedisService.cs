@@ -117,8 +117,8 @@ public class RedisService : IRedisService
     public async Task<IReadOnlyList<string>> HashFieldsAsync(string hashKey)
     {
         var fullKey = GetFullKey(hashKey);
-        var hashEntries = await _database.HashGetAllAsync(fullKey);
-        var fields = hashEntries.Select(e => e.Name.ToString()).ToList().AsReadOnly();
+        var hashFields = await _database.HashKeysAsync(fullKey);
+        var fields = hashFields.Select(field => field.ToString()).ToList().AsReadOnly();
         _logger.LogInformation("Redis HKEYS: {Key}, Count: {Count}", fullKey, fields.Count);
         return fields;
     }
