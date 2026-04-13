@@ -169,8 +169,6 @@ public class CloneRepositoriesTask : ITask
     /// <returns>Bitbucket Clone URL</returns>
     internal string BuildBitbucketCloneUrl(string projectPath)
     {
-        var encodedUsername = Uri.EscapeDataString(_bitbucketOptions.Username);
-        var encodedToken = Uri.EscapeDataString(_bitbucketOptions.AccessToken);
-        return $"https://{encodedUsername}:{encodedToken}@bitbucket.org/{projectPath}.git";
+        return $"https://{_bitbucketOptions.Username}:{_bitbucketOptions.AccessToken}@bitbucket.org/{projectPath}.git";
     }
 }
