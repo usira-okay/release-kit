@@ -137,7 +137,7 @@ public class GetReleaseSettingTask : ITask
         }
 
         var projects = new List<ProjectSettingOutput>();
-        var cutoffDate = _now.UtcNow.Date.AddMonths(-ExpiredMonths);
+        var cutoffDate = _now.UtcNow.UtcDateTime.Date.AddMonths(-ExpiredMonths);
 
         foreach (var (branchName, projectPaths) in branchData)
         {
@@ -195,7 +195,7 @@ public class GetReleaseSettingTask : ITask
             return (FetchMode.DateTimeRange, null);
         }
 
-        if (branchDate.Value.Date < cutoffDate)
+        if (branchDate.Value.UtcDateTime.Date < cutoffDate)
         {
             return (FetchMode.DateTimeRange, null);
         }
