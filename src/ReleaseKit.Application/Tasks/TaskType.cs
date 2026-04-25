@@ -58,5 +58,10 @@ public enum TaskType
     /// <summary>
     /// 使用 AI 增強 Release 標題
     /// </summary>
-    EnhanceTitles
+    EnhanceTitles,
+
+    /// <summary>
+    /// 產生 Release Setting 設定
+    /// </summary>
+    GetReleaseSetting
 }
