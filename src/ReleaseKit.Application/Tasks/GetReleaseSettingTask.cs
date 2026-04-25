@@ -79,11 +79,24 @@ public class GetReleaseSettingTask : ITask
         // 清除舊資料並寫入 Redis
         if (await _redisService.ExistsAsync(RedisKeys.ReleaseSetting))
         {
-            await _redisService.DeleteAsync(RedisKeys.ReleaseSetting);
-            _logger.LogInformation("已清除 Redis 中的舊 Release Setting 資料");
+            var deleted = await _redisService.DeleteAsync(RedisKeys.ReleaseSetting);
+            if (deleted)
+            {
+                _logger.LogInformation("已清除 Redis 中的舊 Release Setting 資料");
+            }
+            else
+            {
+                _logger.LogWarning("Redis 中的舊 Release Setting 資料刪除失敗，Key: {Key}", RedisKeys.ReleaseSetting);
+            }
         }
 
-        await _redisService.SetAsync(RedisKeys.ReleaseSetting, json);
+        var isWritten = await _redisService.SetAsync(RedisKeys.ReleaseSetting, json);
+        if (!isWritten)
+        {
+            _logger.LogWarning("Release Setting 寫入 Redis 失敗，Key: {Key}", RedisKeys.ReleaseSetting);
+            throw new InvalidOperationException($"寫入 Redis 失敗，Key: {RedisKeys.ReleaseSetting}");
+        }
+
         _logger.LogInformation("Release Setting 已寫入 Redis，Key: {Key}", RedisKeys.ReleaseSetting);
 
         _logger.LogInformation(
@@ -124,7 +137,7 @@ public class GetReleaseSettingTask : ITask
         }
 
         var projects = new List<ProjectSettingOutput>();
-        var cutoffDate = _now.UtcNow.AddMonths(-ExpiredMonths);
+        var cutoffDate = _now.UtcNow.Date.AddMonths(-ExpiredMonths);
 
         foreach (var (branchName, projectPaths) in branchData)
         {
@@ -161,7 +174,7 @@ public class GetReleaseSettingTask : ITask
     /// 依 release branch 名稱判斷 FetchMode
     /// </summary>
     private static (FetchMode fetchMode, string? sourceBranch) DetermineFetchMode(
-        string branchName, DateTimeOffset cutoffDate)
+        string branchName, DateTime cutoffDate)
     {
         // 規則 1：NotFound 專案
         if (branchName == NotFoundKey)
@@ -175,9 +188,14 @@ public class GetReleaseSettingTask : ITask
             return (FetchMode.DateTimeRange, null);
         }
 
-        // 規則 3：日期超過 3 個月
+        // 規則 3：日期無法解析或超過 3 個月
         var branchDate = ReleaseBranchHelper.ParseReleaseBranchDate(branchName);
-        if (branchDate.HasValue && branchDate.Value < cutoffDate)
+        if (!branchDate.HasValue)
+        {
+            return (FetchMode.DateTimeRange, null);
+        }
+
+        if (branchDate.Value.Date < cutoffDate)
         {
             return (FetchMode.DateTimeRange, null);
         }

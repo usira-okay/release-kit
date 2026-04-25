@@ -276,6 +276,61 @@ public class GetReleaseSettingTaskTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_當ReleaseBranch格式符合但日期不存在_應使用DateTimeRange模式()
+    {
+        // Arrange — release/20250230（2 月 30 日不存在）格式符合正規表示式但日期無效
+        var branchData = new Dictionary<string, List<string>>
+        {
+            { "release/20250230", new List<string> { "group/project-a" } }
+        };
+
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+            .ReturnsAsync(branchData.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+            .ReturnsAsync((string?)null);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        var result = GetCapturedResult();
+        Assert.Single(result.GitLab.Projects);
+        Assert.Equal(FetchMode.DateTimeRange, result.GitLab.Projects[0].FetchMode);
+        Assert.Null(result.GitLab.Projects[0].SourceBranch);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_當現在時間非午夜且ReleaseBranch日期剛好三個月_應使用BranchDiff模式()
+    {
+        // Arrange — 目前時間 2025-04-25 12:34:56 UTC（非午夜），cutoff 日期 = 2025-01-25
+        // release/20250125 剛好等於 cutoff 日期，不應受時間成分影響而誤判為過期
+        _nowMock.Setup(x => x.UtcNow).Returns(new DateTimeOffset(2025, 4, 25, 12, 34, 56, TimeSpan.Zero));
+
+        var branchData = new Dictionary<string, List<string>>
+        {
+            { "release/20250125", new List<string> { "group/project-a" } }
+        };
+
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+            .ReturnsAsync(branchData.ToJson());
+        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+            .ReturnsAsync((string?)null);
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert
+        var result = GetCapturedResult();
+        Assert.Single(result.GitLab.Projects);
+        Assert.Equal(FetchMode.BranchDiff, result.GitLab.Projects[0].FetchMode);
+        Assert.Equal("release/20250125", result.GitLab.Projects[0].SourceBranch);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_當兩個平台都有資料_應正確產生完整設定()
     {
         // Arrange
