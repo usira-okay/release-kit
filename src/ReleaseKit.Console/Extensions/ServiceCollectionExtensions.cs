@@ -239,6 +239,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetUserStoryTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
         services.AddTransient<EnhanceTitlesWithCopilotTask>();
+        services.AddTransient<GetReleaseSettingTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
