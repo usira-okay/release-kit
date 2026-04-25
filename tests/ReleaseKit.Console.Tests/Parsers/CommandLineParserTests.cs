@@ -68,6 +68,7 @@ public class CommandLineParserTests
     [InlineData("filter-bitbucket-pr-by-user", TaskType.FilterBitbucketPullRequestsByUser)]
     [InlineData("consolidate-release-data", TaskType.ConsolidateReleaseData)]
     [InlineData("enhance-titles", TaskType.EnhanceTitles)]
+    [InlineData("get-release-setting", TaskType.GetReleaseSetting)]
     public void Parse_WithValidTaskName_ShouldReturnSuccessWithCorrectTaskType(string taskName, TaskType expectedTaskType)
     {
         // Arrange
@@ -93,6 +94,7 @@ public class CommandLineParserTests
     [InlineData("FiLtEr-BiTbUcKeT-pR-bY-uSeR", TaskType.FilterBitbucketPullRequestsByUser)]
     [InlineData("CONSOLIDATE-RELEASE-DATA", TaskType.ConsolidateReleaseData)]
     [InlineData("ENHANCE-TITLES", TaskType.EnhanceTitles)]
+    [InlineData("GET-RELEASE-SETTING", TaskType.GetReleaseSetting)]
     public void Parse_WithValidTaskName_ShouldBeCaseInsensitive(string taskName, TaskType expectedTaskType)
     {
         // Arrange

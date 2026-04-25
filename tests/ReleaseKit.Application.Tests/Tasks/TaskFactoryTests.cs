@@ -40,6 +40,12 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
         services.AddSingleton(new Mock<ILogger<UpdateGoogleSheetsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<GetReleaseSettingTask>>().Object);
+        
+        // 註冊 INow mock
+        var mockNow = new Mock<INow>();
+        mockNow.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
+        services.AddSingleton(mockNow.Object);
         
         // 註冊 ISourceControlRepository mock with keyed services
         var mockGitLabRepository = new Mock<ISourceControlRepository>();
@@ -74,6 +80,7 @@ public class TaskFactoryTests
         services.AddTransient<FilterGitLabPullRequestsByUserTask>();
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
+        services.AddTransient<GetReleaseSettingTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -184,6 +191,17 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<ConsolidateReleaseDataTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithGetReleaseSetting_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.GetReleaseSetting);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<GetReleaseSettingTask>(task);
     }
 
     [Fact]
