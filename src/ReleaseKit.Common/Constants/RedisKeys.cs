@@ -26,6 +26,11 @@ public static class RedisKeys
     public const string ReleaseDataHash = "ReleaseData";
 
     /// <summary>
+    /// Release Setting 設定的 Redis Key
+    /// </summary>
+    public const string ReleaseSetting = "ReleaseSetting";
+
+    /// <summary>
     /// Redis Hash 欄位名稱常數
     /// </summary>
     public static class Fields
