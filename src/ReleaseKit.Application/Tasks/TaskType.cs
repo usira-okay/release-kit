@@ -63,5 +63,35 @@ public enum TaskType
     /// <summary>
     /// 產生 Release Setting 設定
     /// </summary>
-    GetReleaseSetting
+    GetReleaseSetting,
+
+    /// <summary>
+    /// Clone/Pull 所有專案 Repo
+    /// </summary>
+    CloneRepositories,
+
+    /// <summary>
+    /// 分析 PR Diff 資訊
+    /// </summary>
+    AnalyzePRDiffs,
+
+    /// <summary>
+    /// 靜態專案結構分析
+    /// </summary>
+    StaticProjectAnalysis,
+
+    /// <summary>
+    /// Copilot SDK 風險分析
+    /// </summary>
+    CopilotRiskAnalysis,
+
+    /// <summary>
+    /// 跨專案交叉比對
+    /// </summary>
+    CrossProjectCorrelation,
+
+    /// <summary>
+    /// 產生風險報告
+    /// </summary>
+    GenerateRiskReport
 }
