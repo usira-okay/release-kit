@@ -52,6 +52,57 @@ public class GitLabMergeRequestMapperTests
     }
 
     [Fact]
+    public void ToDomain_WithMergeCommitSha_ShouldMapCorrectly()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Iid = 10,
+            Title = "feat: 新增功能",
+            SourceBranch = "feature/new-feature",
+            TargetBranch = "main",
+            State = "merged",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" },
+            MergeCommitSha = "abc123def456789"
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Equal("abc123def456789", domain.MergeCommitSha);
+    }
+
+    [Fact]
+    public void ToDomain_WithNullMergeCommitSha_ShouldMapToNull()
+    {
+        // Arrange
+        var response = new GitLabMergeRequestResponse
+        {
+            Id = 1,
+            Title = "test",
+            SourceBranch = "feature",
+            TargetBranch = "main",
+            State = "opened",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = null,
+            WebUrl = "https://example.com",
+            Author = new GitLabAuthorResponse { Id = 1, Username = "test" },
+            MergeCommitSha = null
+        };
+
+        // Act
+        var domain = GitLabMergeRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Null(domain.MergeCommitSha);
+    }
+
+    [Fact]
     public void ToDomain_WithNullDescription_ShouldMapToNull()
     {
         // Arrange

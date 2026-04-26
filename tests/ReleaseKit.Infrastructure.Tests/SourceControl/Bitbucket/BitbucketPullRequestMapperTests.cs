@@ -10,6 +10,72 @@ namespace ReleaseKit.Infrastructure.Tests.SourceControl.Bitbucket;
 public class BitbucketPullRequestMapperTests
 {
     [Fact]
+    public void ToDomain_WithMergeCommit_ShouldMapMergeCommitSha()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "feat: 新增功能",
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/new-feature" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = DateTimeOffset.UtcNow,
+            State = "MERGED",
+            Author = new BitbucketAuthorResponse { Uuid = "{uuid}", DisplayName = "Test User" },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/1" }
+            },
+            MergeCommit = new BitbucketMergeCommitResponse { Hash = "abc123def456" }
+        };
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Equal("abc123def456", result.MergeCommitSha);
+    }
+
+    [Fact]
+    public void ToDomain_WithNullMergeCommit_ShouldMapMergeCommitShaToNull()
+    {
+        // Arrange
+        var response = new BitbucketPullRequestResponse
+        {
+            Title = "feat: 尚未合併",
+            Source = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "feature/wip" }
+            },
+            Destination = new BitbucketBranchRefResponse
+            {
+                Branch = new BitbucketBranchResponse { Name = "main" }
+            },
+            CreatedOn = DateTimeOffset.UtcNow,
+            ClosedOn = null,
+            State = "OPEN",
+            Author = new BitbucketAuthorResponse { Uuid = "{uuid}", DisplayName = "Test User" },
+            Links = new BitbucketLinksResponse
+            {
+                Html = new BitbucketLinkResponse { Href = "https://example.com/pr/2" }
+            },
+            MergeCommit = null
+        };
+
+        // Act
+        var result = BitbucketPullRequestMapper.ToDomain(response, "test/project");
+
+        // Assert
+        Assert.Null(result.MergeCommitSha);
+    }
+
+    [Fact]
     public void ToDomain_WithValidResponse_ShouldMapCorrectly()
     {
         // Arrange
