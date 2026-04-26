@@ -18,7 +18,7 @@ public static class CloneUrlBuilder
         => Common.Git.CloneUrlBuilder.BuildGitLabCloneUrl(options, projectPath);
 
     /// <summary>
-    /// 建構 Bitbucket Clone URL（使用 email:AccessToken 內嵌認證）
+    /// 建構 Bitbucket Clone URL（使用 Username:AccessToken 內嵌認證）
     /// </summary>
     /// <param name="options">Bitbucket 配置選項</param>
     /// <param name="projectPath">專案路徑</param>

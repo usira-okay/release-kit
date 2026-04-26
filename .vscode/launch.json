@@ -19,6 +19,12 @@
                 // "consolidate-release-data"
                 // "update-googlesheet"
                 // "enhance-titles"
+                // "clone-repositories"
+                "analyze-pr-diffs"
+                // "static-project-analysis"
+                // "copilot-risk-analysis"
+                // "cross-project-correlation"
+                // "generate-risk-report"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

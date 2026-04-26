@@ -29,14 +29,14 @@ public static class CloneUrlBuilder
     }
 
     /// <summary>
-    /// 建構 Bitbucket Clone URL（使用 email:AccessToken 內嵌認證）
+    /// 建構 Bitbucket Clone URL（使用 Username:AccessToken 內嵌認證）
     /// </summary>
     /// <param name="options">Bitbucket 配置選項</param>
     /// <param name="projectPath">專案路徑</param>
     /// <returns>Bitbucket Clone URL</returns>
     public static string BuildBitbucketCloneUrl(BitbucketOptions options, string projectPath)
     {
-        var encodedEmail = Uri.EscapeDataString(options.Email);
-        return $"https://{encodedEmail}:{options.AccessToken}@bitbucket.org/{projectPath}.git";
+        var encodedUsername = Uri.EscapeDataString(options.Username);
+        return $"https://{encodedUsername}:{options.AccessToken}@bitbucket.org/{projectPath}.git";
     }
 }

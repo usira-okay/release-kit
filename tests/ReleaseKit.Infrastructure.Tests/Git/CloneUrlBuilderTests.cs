@@ -37,16 +37,16 @@ public class CloneUrlBuilderTests
     }
 
     [Fact]
-    public void BuildBitbucketCloneUrl_應嵌入Email與Token()
+    public void BuildBitbucketCloneUrl_應嵌入Username與Token()
     {
         var bitbucketOptions = new BitbucketOptions
         {
-            Email = "user@example.com",
+            Username = "bb-user",
             AccessToken = "bb-token-456"
         };
 
         var result = CloneUrlBuilder.BuildBitbucketCloneUrl(bitbucketOptions, "workspace/repo");
 
-        Assert.Equal("https://user%40example.com:bb-token-456@bitbucket.org/workspace/repo.git", result);
+        Assert.Equal("https://bb-user:bb-token-456@bitbucket.org/workspace/repo.git", result);
     }
 }

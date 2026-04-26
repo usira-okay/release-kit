@@ -21,6 +21,11 @@ public class BitbucketOptions
     public string AccessToken { get; init; } = string.Empty;
 
     /// <summary>
+    /// Bitbucket 帳戶名稱
+    /// </summary>
+    public string Username { get; init; } = string.Empty;
+
+    /// <summary>
     /// 專案清單
     /// </summary>
     public List<BitbucketProjectOptions> Projects { get; init; } = new();
