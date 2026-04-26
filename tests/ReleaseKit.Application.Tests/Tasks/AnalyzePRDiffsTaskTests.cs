@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using ReleaseKit.Application.Common;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
@@ -38,7 +39,7 @@ public class AnalyzePRDiffsTaskTests
     private AnalyzePRDiffsTask CreateTask() =>
         new(_gitServiceMock.Object, _redisServiceMock.Object, _loggerMock.Object);
 
-    private static MergeRequest BuildMergeRequest(string? mergeCommitSha = CommitSha) =>
+    private static MergeRequestOutput BuildMergeRequestOutput(string? mergeCommitSha = CommitSha) =>
         new()
         {
             Title = "feat: add login",
@@ -46,11 +47,9 @@ public class AnalyzePRDiffsTaskTests
             TargetBranch = "main",
             AuthorName = "Alice",
             AuthorUserId = "alice",
-            ProjectPath = ProjectPath,
             MergeCommitSha = mergeCommitSha,
             PrId = "42",
             PRUrl = "https://gitlab.example.com/group/project-a/-/merge_requests/42",
-            Platform = SourceControlPlatform.GitLab,
             State = "merged",
             CreatedAt = DateTimeOffset.UtcNow,
             MergedAt = DateTimeOffset.UtcNow
@@ -75,15 +74,34 @@ public class AnalyzePRDiffsTaskTests
             .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), projectPath))
             .ReturnsAsync(new { LocalPath = localPath, Status = status }.ToJson());
 
-    private void SetupGitLabPrs(Dictionary<string, List<MergeRequest>> data) =>
+    private void SetupGitLabPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
         _redisServiceMock
             .Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
-            .ReturnsAsync(data.ToJson());
+            .ReturnsAsync(ToFetchResultJson(data, SourceControlPlatform.GitLab));
 
-    private void SetupBitbucketPrs(Dictionary<string, List<MergeRequest>> data) =>
+    private void SetupBitbucketPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
         _redisServiceMock
             .Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
-            .ReturnsAsync(data.ToJson());
+            .ReturnsAsync(ToFetchResultJson(data, SourceControlPlatform.Bitbucket));
+
+    /// <summary>
+    /// 將測試資料轉換為 FetchResult JSON，模擬 BaseFetchPullRequestsTask 的實際輸出格式
+    /// </summary>
+    private static string ToFetchResultJson(
+        Dictionary<string, List<MergeRequestOutput>> data,
+        SourceControlPlatform platform)
+    {
+        var fetchResult = new FetchResult
+        {
+            Results = data.Select(kvp => new ProjectResult
+            {
+                ProjectPath = kvp.Key,
+                Platform = platform,
+                PullRequests = kvp.Value
+            }).ToList()
+        };
+        return fetchResult.ToJson();
+    }
 
     [Fact]
     public async Task ExecuteAsync_找不到RunId時_應提早結束不分析()
@@ -109,9 +127,9 @@ public class AnalyzePRDiffsTaskTests
     {
         // Arrange
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
-            [ProjectPath] = new() { BuildMergeRequest() }
+            [ProjectPath] = new() { BuildMergeRequestOutput() }
         });
         SetupStage1(ProjectPath, LocalPath, "Failed: connection refused");
         var task = CreateTask();
@@ -134,7 +152,7 @@ public class AnalyzePRDiffsTaskTests
         // Arrange
         SetupRunId();
         // 空 PR 資料
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>());
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>());
         _redisServiceMock
             .Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync((string?)null);
@@ -155,9 +173,9 @@ public class AnalyzePRDiffsTaskTests
     {
         // Arrange
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
-            [ProjectPath] = new() { BuildMergeRequest(mergeCommitSha: null) }
+            [ProjectPath] = new() { BuildMergeRequestOutput(mergeCommitSha: null) }
         });
         SetupStage1(ProjectPath, LocalPath);
         var task = CreateTask();
@@ -181,9 +199,9 @@ public class AnalyzePRDiffsTaskTests
         // Arrange
         var fileDiff = BuildFileDiff();
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
-            [ProjectPath] = new() { BuildMergeRequest() }
+            [ProjectPath] = new() { BuildMergeRequestOutput() }
         });
         SetupStage1(ProjectPath, LocalPath);
         _gitServiceMock
@@ -211,9 +229,9 @@ public class AnalyzePRDiffsTaskTests
     {
         // Arrange
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
-            [ProjectPath] = new() { BuildMergeRequest() }
+            [ProjectPath] = new() { BuildMergeRequestOutput() }
         });
         SetupStage1(ProjectPath, LocalPath);
         _gitServiceMock
@@ -236,10 +254,10 @@ public class AnalyzePRDiffsTaskTests
         // Arrange
         const string sha1 = "aaa111";
         const string sha2 = "bbb222";
-        var mr1 = BuildMergeRequest(sha1);
-        var mr2 = BuildMergeRequest(sha2);
+        var mr1 = BuildMergeRequestOutput(sha1);
+        var mr2 = BuildMergeRequestOutput(sha2);
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
             [ProjectPath] = new() { mr1, mr2 }
         });
@@ -270,26 +288,24 @@ public class AnalyzePRDiffsTaskTests
         const string bbSha = "cccc4444";
 
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
-            [ProjectPath] = new() { BuildMergeRequest() }
+            [ProjectPath] = new() { BuildMergeRequestOutput() }
         });
-        SetupBitbucketPrs(new Dictionary<string, List<MergeRequest>>
+        SetupBitbucketPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
             [bbProject] = new()
             {
-                new MergeRequest
+                new MergeRequestOutput
                 {
                     Title = "bb-pr",
                     SourceBranch = "feature/x",
                     TargetBranch = "main",
                     AuthorName = "Bob",
                     AuthorUserId = "bob",
-                    ProjectPath = bbProject,
                     MergeCommitSha = bbSha,
                     PrId = "7",
                     PRUrl = "https://bitbucket.org/workspace/repo-b/pull-requests/7",
-                    Platform = SourceControlPlatform.Bitbucket,
                     State = "merged",
                     CreatedAt = DateTimeOffset.UtcNow,
                     MergedAt = DateTimeOffset.UtcNow
@@ -322,9 +338,9 @@ public class AnalyzePRDiffsTaskTests
     {
         // Arrange
         SetupRunId();
-        SetupGitLabPrs(new Dictionary<string, List<MergeRequest>>
+        SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
-            [ProjectPath] = new() { BuildMergeRequest() }
+            [ProjectPath] = new() { BuildMergeRequestOutput() }
         });
         // Stage1 中無此專案的記錄
         _redisServiceMock

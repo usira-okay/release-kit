@@ -78,4 +78,13 @@ public sealed record MergeRequestOutput
     /// 若 SourceBranch 不包含 VSTS ID，此值為 null。
     /// </remarks>
     public int? WorkItemId { get; init; }
+
+    /// <summary>
+    /// Merge Commit SHA（合併後的 commit hash）
+    /// </summary>
+    /// <remarks>
+    /// 用於在 clone 下來的 repo 中取得具體的異動 diff。
+    /// 若 PR/MR 尚未合併，此值為 null。
+    /// </remarks>
+    public string? MergeCommitSha { get; init; }
 }

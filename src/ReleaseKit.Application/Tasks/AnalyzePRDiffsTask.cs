@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
@@ -69,38 +70,52 @@ public class AnalyzePRDiffsTask : ITask
     /// <summary>
     /// 從 Redis 載入 GitLab 與 Bitbucket 所有 PR 資料，以專案路徑為 Key 合併
     /// </summary>
-    private async Task<Dictionary<string, List<MergeRequest>>> LoadAllMergeRequestsAsync()
+    private async Task<Dictionary<string, List<MergeRequestOutput>>> LoadAllMergeRequestsAsync()
     {
-        var result = new Dictionary<string, List<MergeRequest>>();
+        var result = new Dictionary<string, List<MergeRequestOutput>>();
 
         var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests);
         if (!string.IsNullOrEmpty(gitLabJson))
         {
-            var gitLabPrs = gitLabJson.ToTypedObject<Dictionary<string, List<MergeRequest>>>();
-            if (gitLabPrs != null)
-            {
-                foreach (var kvp in gitLabPrs)
-                    result[kvp.Key] = kvp.Value;
-            }
+            var gitLabFetchResult = gitLabJson.ToTypedObject<FetchResult>();
+            MergeFetchResultInto(result, gitLabFetchResult);
         }
 
         var bbJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests);
         if (!string.IsNullOrEmpty(bbJson))
         {
-            var bbPrs = bbJson.ToTypedObject<Dictionary<string, List<MergeRequest>>>();
-            if (bbPrs != null)
-            {
-                foreach (var kvp in bbPrs)
-                {
-                    if (result.TryGetValue(kvp.Key, out var existing))
-                        existing.AddRange(kvp.Value);
-                    else
-                        result[kvp.Key] = kvp.Value;
-                }
-            }
+            var bbFetchResult = bbJson.ToTypedObject<FetchResult>();
+            MergeFetchResultInto(result, bbFetchResult);
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// 將 FetchResult 中各專案的 PR 資料合併至目標字典
+    /// </summary>
+    /// <param name="target">目標字典（依專案路徑分組）</param>
+    /// <param name="fetchResult">擷取結果</param>
+    private void MergeFetchResultInto(
+        Dictionary<string, List<MergeRequestOutput>> target,
+        FetchResult? fetchResult)
+    {
+        if (fetchResult?.Results == null) return;
+
+        foreach (var projectResult in fetchResult.Results)
+        {
+            if (!string.IsNullOrWhiteSpace(projectResult.Error))
+            {
+                _logger.LogWarning("專案 {ProjectPath} 擷取失敗（Error: {Error}），跳過",
+                    projectResult.ProjectPath, projectResult.Error);
+                continue;
+            }
+
+            if (target.TryGetValue(projectResult.ProjectPath, out var existing))
+                existing.AddRange(projectResult.PullRequests);
+            else
+                target[projectResult.ProjectPath] = projectResult.PullRequests.ToList();
+        }
     }
 
     /// <summary>
@@ -114,7 +129,7 @@ public class AnalyzePRDiffsTask : ITask
         string runId,
         string projectPath,
         string cloneJson,
-        List<MergeRequest> mergeRequests)
+        List<MergeRequestOutput> mergeRequests)
     {
         var cloneResult = cloneJson.ToTypedObject<CloneStageResult>();
         if (cloneResult?.Status != "Success")
