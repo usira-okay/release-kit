@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
+using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
 
 namespace ReleaseKit.Infrastructure.Analysis;
@@ -9,7 +10,7 @@ namespace ReleaseKit.Infrastructure.Analysis;
 /// <summary>
 /// 靜態專案結構掃描器，分析本地 .NET 專案目錄結構
 /// </summary>
-public class ProjectStructureScanner
+public class ProjectStructureScanner : IProjectStructureScanner
 {
     private readonly ILogger<ProjectStructureScanner> _logger;
 

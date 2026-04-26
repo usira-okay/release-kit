@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
@@ -7,7 +8,7 @@ namespace ReleaseKit.Infrastructure.Analysis;
 /// <summary>
 /// 推斷跨專案相依性的引擎
 /// </summary>
-public class DependencyInferrer
+public class DependencyInferrer : IDependencyInferrer
 {
     private readonly ILogger<DependencyInferrer> _logger;
 
