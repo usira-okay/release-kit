@@ -1,10 +1,9 @@
 using ReleaseKit.Common.Configuration;
-using ReleaseKit.Common.Git;
 
-namespace ReleaseKit.Infrastructure.Git;
+namespace ReleaseKit.Common.Git;
 
 /// <summary>
-/// 建構 Git Clone URL 的工具類別（委派至 ReleaseKit.Common.Git.CloneUrlBuilder）
+/// 建構 Git Clone URL 的工具類別
 /// </summary>
 public static class CloneUrlBuilder
 {
@@ -15,7 +14,19 @@ public static class CloneUrlBuilder
     /// <param name="projectPath">專案路徑</param>
     /// <returns>包含 PAT 認證的 GitLab Clone URL</returns>
     public static string BuildGitLabCloneUrl(GitLabOptions options, string projectPath)
-        => Common.Git.CloneUrlBuilder.BuildGitLabCloneUrl(options, projectPath);
+    {
+        var uri = new Uri(options.ApiUrl);
+        var encodedToken = Uri.EscapeDataString(options.AccessToken);
+        var basePath = uri.AbsolutePath.TrimEnd('/');
+
+        if (basePath.EndsWith("/api/v4", StringComparison.OrdinalIgnoreCase))
+        {
+            basePath = basePath[..^"/api/v4".Length];
+        }
+
+        basePath = basePath.TrimEnd('/');
+        return $"{uri.Scheme}://oauth2:{encodedToken}@{uri.Authority}{basePath}/{projectPath}.git";
+    }
 
     /// <summary>
     /// 建構 Bitbucket Clone URL（使用 email:AccessToken 內嵌認證）
@@ -24,5 +35,8 @@ public static class CloneUrlBuilder
     /// <param name="projectPath">專案路徑</param>
     /// <returns>Bitbucket Clone URL</returns>
     public static string BuildBitbucketCloneUrl(BitbucketOptions options, string projectPath)
-        => Common.Git.CloneUrlBuilder.BuildBitbucketCloneUrl(options, projectPath);
+    {
+        var encodedEmail = Uri.EscapeDataString(options.Email);
+        return $"https://{encodedEmail}:{options.AccessToken}@bitbucket.org/{projectPath}.git";
+    }
 }
