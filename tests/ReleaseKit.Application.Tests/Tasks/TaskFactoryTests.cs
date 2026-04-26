@@ -41,6 +41,12 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
         services.AddSingleton(new Mock<ILogger<UpdateGoogleSheetsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<GetReleaseSettingTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<CloneRepositoriesTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<AnalyzePRDiffsTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<StaticProjectAnalysisTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<CopilotRiskAnalysisTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<CrossProjectCorrelationTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<GenerateRiskReportTask>>().Object);
         
         // 註冊 INow mock
         var mockNow = new Mock<INow>();
@@ -63,6 +69,16 @@ public class TaskFactoryTests
         mockRedisService.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         services.AddSingleton(mockRedisService.Object);
 
+        // 註冊風險分析服務 mocks
+        services.AddSingleton(new Mock<IGitOperationService>().Object);
+        services.AddSingleton(new Mock<IProjectStructureScanner>().Object);
+        services.AddSingleton(new Mock<IDependencyInferrer>().Object);
+        services.AddSingleton(new Mock<ICopilotRiskAnalyzer>().Object);
+        services.AddSingleton(new Mock<IMarkdownReportGenerator>().Object);
+
+        // 註冊 RiskAnalysisOptions
+        services.AddSingleton(Options.Create(new RiskAnalysisOptions()));
+
         // 註冊 IGoogleSheetService mock
         var mockGoogleSheetService = new Mock<IGoogleSheetService>();
         services.AddSingleton(mockGoogleSheetService.Object);
@@ -81,6 +97,12 @@ public class TaskFactoryTests
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
         services.AddTransient<GetReleaseSettingTask>();
+        services.AddTransient<CloneRepositoriesTask>();
+        services.AddTransient<AnalyzePRDiffsTask>();
+        services.AddTransient<StaticProjectAnalysisTask>();
+        services.AddTransient<CopilotRiskAnalysisTask>();
+        services.AddTransient<CrossProjectCorrelationTask>();
+        services.AddTransient<GenerateRiskReportTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -202,6 +224,72 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<GetReleaseSettingTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithCloneRepositories_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.CloneRepositories);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<CloneRepositoriesTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithAnalyzePRDiffs_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.AnalyzePRDiffs);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<AnalyzePRDiffsTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithStaticProjectAnalysis_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.StaticProjectAnalysis);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<StaticProjectAnalysisTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithCopilotRiskAnalysis_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.CopilotRiskAnalysis);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<CopilotRiskAnalysisTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithCrossProjectCorrelation_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.CrossProjectCorrelation);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<CrossProjectCorrelationTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithGenerateRiskReport_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.GenerateRiskReport);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<GenerateRiskReportTask>(task);
     }
 
     [Fact]
