@@ -1,4 +1,5 @@
 using System.Text;
+using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
@@ -7,7 +8,7 @@ namespace ReleaseKit.Infrastructure.Reporting;
 /// <summary>
 /// Markdown 風險報告產生器
 /// </summary>
-public class MarkdownReportGenerator
+public class MarkdownReportGenerator : IMarkdownReportGenerator
 {
     /// <summary>
     /// 從 RiskReport 資料模型產生 Markdown 報告
