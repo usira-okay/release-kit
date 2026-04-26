@@ -3,6 +3,7 @@ using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReleaseKit.Common.Configuration;
+using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Domain.Entities;
 using ReleaseKit.Domain.ValueObjects;
 
@@ -11,7 +12,7 @@ namespace ReleaseKit.Infrastructure.Copilot;
 /// <summary>
 /// Copilot SDK 風險分析封裝
 /// </summary>
-public class CopilotRiskAnalyzer
+public class CopilotRiskAnalyzer : ICopilotRiskAnalyzer
 {
     private readonly IOptions<CopilotOptions> _options;
     private readonly ILogger<CopilotRiskAnalyzer> _logger;
