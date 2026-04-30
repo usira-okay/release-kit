@@ -18,11 +18,12 @@ public interface IGitOperationService
     Task<Result<string>> CloneOrPullAsync(string repoUrl, string localPath, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 取得指定 commit 的異動檔案與 diff 內容
+    /// 取得指定 Commit 的異動統計摘要（檔案清單 + 行數統計，不含完整 diff）
     /// </summary>
-    /// <param name="repoPath">本地 repo 路徑</param>
-    /// <param name="commitSha">Commit SHA</param>
-    /// <param name="cancellationToken">取消標記</param>
-    /// <returns>成功時回傳 FileDiff 清單；失敗時回傳錯誤</returns>
-    Task<Result<IReadOnlyList<FileDiff>>> GetCommitDiffAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default);
+    Task<Result<CommitSummary>> GetCommitStatAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 取得指定 Commit 的完整 diff 內容（unified diff 格式）
+    /// </summary>
+    Task<Result<string>> GetCommitRawDiffAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default);
 }

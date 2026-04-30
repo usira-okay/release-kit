@@ -18,11 +18,6 @@ public sealed record FileDiff
     public required ChangeType ChangeType { get; init; }
 
     /// <summary>
-    /// Diff 內容（unified diff 格式）
-    /// </summary>
-    public required string DiffContent { get; init; }
-
-    /// <summary>
     /// 對應的 Commit SHA
     /// </summary>
     public required string CommitSha { get; init; }

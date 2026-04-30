@@ -1,7 +1,7 @@
 namespace ReleaseKit.Domain.Entities;
 
 /// <summary>
-/// 表示單一專案的所有差異結果
+/// 表示單一專案的所有 Commit 異動摘要
 /// </summary>
 public sealed record ProjectDiffResult
 {
@@ -11,7 +11,7 @@ public sealed record ProjectDiffResult
     public required string ProjectPath { get; init; }
 
     /// <summary>
-    /// 所有異動檔案的差異清單
+    /// 各 Commit 的異動摘要清單
     /// </summary>
-    public required IReadOnlyList<FileDiff> FileDiffs { get; init; }
+    public required IReadOnlyList<CommitSummary> CommitSummaries { get; init; }
 }
