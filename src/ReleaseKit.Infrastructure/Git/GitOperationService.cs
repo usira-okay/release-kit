@@ -51,23 +51,55 @@ public class GitOperationService : IGitOperationService
     }
 
     /// <inheritdoc />
-    public async Task<Result<IReadOnlyList<FileDiff>>> GetCommitDiffAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default)
+    public async Task<Result<CommitSummary>> GetCommitStatAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default)
     {
         if (!Directory.Exists(Path.Combine(repoPath, ".git")))
         {
-            return Result<IReadOnlyList<FileDiff>>.Failure(
+            return Result<CommitSummary>.Failure(
                 Error.Git.DiffFailed(commitSha, $"'{repoPath}' 不是有效的 Git 倉庫"));
         }
 
-        // 使用 {commitSha}^1 對比第一個 parent，可正確處理 merge commit（2 parents 時 diff-tree/show 會輸出空結果）
+        // 使用 {commitSha}^1 對比第一個 parent，可正確處理 merge commit
         var nameStatusResult = await RunGitCommandAsync(
             $"diff {commitSha}^1 {commitSha} --name-status",
             repoPath, cancellationToken);
 
         if (!nameStatusResult.IsSuccess)
         {
-            return Result<IReadOnlyList<FileDiff>>.Failure(
+            return Result<CommitSummary>.Failure(
                 Error.Git.DiffFailed(commitSha, nameStatusResult.Error!.Message));
+        }
+
+        var shortStatResult = await RunGitCommandAsync(
+            $"diff {commitSha}^1 {commitSha} --shortstat",
+            repoPath, cancellationToken);
+
+        if (!shortStatResult.IsSuccess)
+        {
+            return Result<CommitSummary>.Failure(
+                Error.Git.DiffFailed(commitSha, shortStatResult.Error!.Message));
+        }
+
+        var changedFiles = ParseNameStatusToFileDiffs(nameStatusResult.Value!, commitSha);
+        var (linesAdded, linesRemoved) = ParseShortStat(shortStatResult.Value ?? string.Empty);
+
+        return Result<CommitSummary>.Success(new CommitSummary
+        {
+            CommitSha = commitSha,
+            ChangedFiles = changedFiles,
+            TotalFilesChanged = changedFiles.Count,
+            TotalLinesAdded = linesAdded,
+            TotalLinesRemoved = linesRemoved
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<string>> GetCommitRawDiffAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(Path.Combine(repoPath, ".git")))
+        {
+            return Result<string>.Failure(
+                Error.Git.DiffFailed(commitSha, $"'{repoPath}' 不是有效的 Git 倉庫"));
         }
 
         var diffResult = await RunGitCommandAsync(
@@ -76,12 +108,11 @@ public class GitOperationService : IGitOperationService
 
         if (!diffResult.IsSuccess)
         {
-            return Result<IReadOnlyList<FileDiff>>.Failure(
+            return Result<string>.Failure(
                 Error.Git.DiffFailed(commitSha, diffResult.Error!.Message));
         }
 
-        var fileDiffs = ParseDiffOutput(nameStatusResult.Value!, diffResult.Value!, commitSha);
-        return Result<IReadOnlyList<FileDiff>>.Success(fileDiffs);
+        return Result<string>.Success(diffResult.Value ?? string.Empty);
     }
 
     /// <summary>
@@ -121,31 +152,22 @@ public class GitOperationService : IGitOperationService
     }
 
     /// <summary>
-    /// 解析 diff 輸出為 FileDiff 清單
+    /// 解析 git diff --name-status 輸出為 FileDiff 清單（不含 diff 內容）
     /// </summary>
-    internal static IReadOnlyList<FileDiff> ParseDiffOutput(string nameStatusOutput, string diffOutput, string commitSha)
+    internal static IReadOnlyList<FileDiff> ParseNameStatusToFileDiffs(string nameStatusOutput, string commitSha)
     {
-        var fileDiffs = new List<FileDiff>();
-        var fileChanges = ParseNameStatus(nameStatusOutput);
-        var fileDiffContents = SplitDiffByFile(diffOutput);
-
-        foreach (var (changeType, filePath) in fileChanges)
-        {
-            var diffContent = fileDiffContents.GetValueOrDefault(filePath, string.Empty);
-            fileDiffs.Add(new FileDiff
+        return ParseNameStatus(nameStatusOutput)
+            .Select(fc => new FileDiff
             {
-                FilePath = filePath,
-                ChangeType = changeType,
-                DiffContent = diffContent,
+                FilePath = fc.FilePath,
+                ChangeType = fc.ChangeType,
                 CommitSha = commitSha
-            });
-        }
-
-        return fileDiffs;
+            })
+            .ToList();
     }
 
     /// <summary>
-    /// 解析 git diff-tree --name-status 的輸出
+    /// 解析 git diff --name-status 的輸出
     /// </summary>
     private static List<(ChangeType ChangeType, string FilePath)> ParseNameStatus(string output)
     {
@@ -168,23 +190,25 @@ public class GitOperationService : IGitOperationService
     }
 
     /// <summary>
-    /// 將完整 diff 輸出依檔案拆分
+    /// 解析 git diff --shortstat 輸出，取得新增與刪除行數
     /// </summary>
-    private static Dictionary<string, string> SplitDiffByFile(string diffOutput)
+    /// <remarks>
+    /// 輸出格式範例：" 5 files changed, 120 insertions(+), 45 deletions(-)"
+    /// </remarks>
+    internal static (int LinesAdded, int LinesRemoved) ParseShortStat(string shortStatOutput)
     {
-        var result = new Dictionary<string, string>();
-        var diffPattern = new Regex(@"^diff --git a/(.+?) b/", RegexOptions.Multiline);
-        var matches = diffPattern.Matches(diffOutput);
+        var linesAdded = 0;
+        var linesRemoved = 0;
 
-        for (var i = 0; i < matches.Count; i++)
-        {
-            var filePath = matches[i].Groups[1].Value;
-            var startIndex = matches[i].Index;
-            var endIndex = i + 1 < matches.Count ? matches[i + 1].Index : diffOutput.Length;
-            result[filePath] = diffOutput[startIndex..endIndex].Trim();
-        }
+        var insertionMatch = Regex.Match(shortStatOutput, @"(\d+) insertion");
+        if (insertionMatch.Success)
+            int.TryParse(insertionMatch.Groups[1].Value, out linesAdded);
 
-        return result;
+        var deletionMatch = Regex.Match(shortStatOutput, @"(\d+) deletion");
+        if (deletionMatch.Success)
+            int.TryParse(deletionMatch.Groups[1].Value, out linesRemoved);
+
+        return (linesAdded, linesRemoved);
     }
 
     /// <summary>

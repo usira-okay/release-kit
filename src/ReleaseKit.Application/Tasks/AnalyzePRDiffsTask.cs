@@ -12,7 +12,8 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 /// <remarks>
 /// 從 Redis 讀取 Stage 1 clone 結果與 PR 資料，對每個成功 clone 的專案執行
-/// git diff，並將 <see cref="ProjectDiffResult"/> 寫入 Stage 2 Redis Hash。
+/// git diff --shortstat 與 --name-status，並將 <see cref="ProjectDiffResult"/> 寫入 Stage 2 Redis Hash。
+/// 僅儲存輕量 metadata（CommitSha、異動檔案清單、行數統計），不儲存完整 diff 內容。
 /// </remarks>
 public class AnalyzePRDiffsTask : ITask
 {
@@ -23,9 +24,6 @@ public class AnalyzePRDiffsTask : ITask
     /// <summary>
     /// 初始化 <see cref="AnalyzePRDiffsTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="gitService">Git 操作服務</param>
-    /// <param name="redisService">Redis 快取服務</param>
-    /// <param name="logger">日誌記錄器</param>
     public AnalyzePRDiffsTask(
         IGitOperationService gitService,
         IRedisService redisService,
@@ -37,7 +35,7 @@ public class AnalyzePRDiffsTask : ITask
     }
 
     /// <summary>
-    /// 執行 Stage 2：讀取 PR 資料並分析每個 Merge Commit 的 diff
+    /// 執行 Stage 2：讀取 PR 資料並收集每個 Merge Commit 的異動摘要
     /// </summary>
     public async Task ExecuteAsync()
     {
@@ -94,8 +92,6 @@ public class AnalyzePRDiffsTask : ITask
     /// <summary>
     /// 將 FetchResult 中各專案的 PR 資料合併至目標字典
     /// </summary>
-    /// <param name="target">目標字典（依專案路徑分組）</param>
-    /// <param name="fetchResult">擷取結果</param>
     private void MergeFetchResultInto(
         Dictionary<string, List<MergeRequestOutput>> target,
         FetchResult? fetchResult)
@@ -119,12 +115,8 @@ public class AnalyzePRDiffsTask : ITask
     }
 
     /// <summary>
-    /// 分析單一專案的所有 PR Diff，並將 <see cref="ProjectDiffResult"/> 寫入 Stage 2 Hash
+    /// 分析單一專案的所有 PR，收集每個 Merge Commit 的異動摘要，並寫入 Stage 2 Hash
     /// </summary>
-    /// <param name="runId">本次執行 ID</param>
-    /// <param name="projectPath">專案路徑</param>
-    /// <param name="cloneJson">Stage 1 clone 結果 JSON</param>
-    /// <param name="mergeRequests">該專案的 MR 清單</param>
     private async Task AnalyzeProjectDiffsAsync(
         string runId,
         string projectPath,
@@ -144,7 +136,7 @@ public class AnalyzePRDiffsTask : ITask
             return;
         }
 
-        var allDiffs = new List<FileDiff>();
+        var commitSummaries = new List<CommitSummary>();
 
         foreach (var mr in mergeRequests)
         {
@@ -154,22 +146,22 @@ public class AnalyzePRDiffsTask : ITask
                 continue;
             }
 
-            var diffResult = await _gitService.GetCommitDiffAsync(cloneResult.LocalPath, mr.MergeCommitSha);
-            if (diffResult.IsSuccess)
+            var statResult = await _gitService.GetCommitStatAsync(cloneResult.LocalPath, mr.MergeCommitSha);
+            if (statResult.IsSuccess)
             {
-                allDiffs.AddRange(diffResult.Value);
+                commitSummaries.Add(statResult.Value);
             }
             else
             {
-                _logger.LogWarning("取得 diff 失敗: {ProjectPath} commit {Sha} - {Error}",
-                    projectPath, mr.MergeCommitSha, diffResult.Error!.Message);
+                _logger.LogWarning("取得 commit 統計失敗: {ProjectPath} commit {Sha} - {Error}",
+                    projectPath, mr.MergeCommitSha, statResult.Error!.Message);
             }
         }
 
         var projectDiffResult = new ProjectDiffResult
         {
             ProjectPath = projectPath,
-            FileDiffs = allDiffs
+            CommitSummaries = commitSummaries
         };
 
         await _redisService.HashSetAsync(
@@ -177,8 +169,9 @@ public class AnalyzePRDiffsTask : ITask
             projectPath,
             projectDiffResult.ToJson());
 
-        _logger.LogInformation("專案 {ProjectPath} 分析完成: {DiffCount} 個異動檔案, {MRCount} 個 PR",
-            projectPath, allDiffs.Count, mergeRequests.Count);
+        _logger.LogInformation("專案 {ProjectPath} 統計完成: {CommitCount} 個 commit, {TotalLines} 行異動",
+            projectPath, commitSummaries.Count,
+            commitSummaries.Sum(c => c.TotalLinesAdded + c.TotalLinesRemoved));
     }
 
     /// <summary>
