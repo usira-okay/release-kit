@@ -36,19 +36,6 @@ public class CrossProjectCorrelationTaskTests
     private CrossProjectCorrelationTask CreateTask() =>
         new(_redisServiceMock.Object, _loggerMock.Object);
 
-    private static ProjectStructure BuildStructure(string projectPath, IReadOnlyList<ServiceDependency>? deps = null) =>
-        new()
-        {
-            ProjectPath = projectPath,
-            ApiEndpoints = new List<ApiEndpoint>(),
-            NuGetPackages = new List<string>(),
-            DbContextFiles = new List<string>(),
-            MigrationFiles = new List<string>(),
-            MessageContracts = new List<string>(),
-            ConfigKeys = new List<string>(),
-            InferredDependencies = deps ?? new List<ServiceDependency>()
-        };
-
     private static ProjectRiskAnalysis BuildAnalysis(string projectPath, IReadOnlyList<RiskFinding>? findings = null) =>
         new()
         {
@@ -94,7 +81,7 @@ public class CrossProjectCorrelationTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_應從Stage3與Stage4讀取資料()
+    public async Task ExecuteAsync_應只從Stage4讀取資料()
     {
         // Arrange
         _redisServiceMock
@@ -106,9 +93,9 @@ public class CrossProjectCorrelationTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert
-        _redisServiceMock.Verify(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)), Times.Once);
+        // Assert — 只讀取 Stage4，不讀取 Stage3
         _redisServiceMock.Verify(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage4Hash(RunId)), Times.Once);
+        _redisServiceMock.Verify(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)), Times.Never);
     }
 
     [Fact]
@@ -134,40 +121,48 @@ public class CrossProjectCorrelationTaskTests
     }
 
     [Fact]
-    public void BuildDependencyEdges_兩個專案共用相同相依目標_應建立相依邊()
+    public void BuildDependencyEdges_有PotentiallyAffectedProjects_應建立相依邊()
     {
         // Arrange
-        var sharedDep = new ServiceDependency { DependencyType = DependencyType.SharedDb, Target = "orders-db" };
-        var structureA = BuildStructure("project-a", new List<ServiceDependency> { sharedDep });
-        var structureB = BuildStructure("project-b", new List<ServiceDependency> { sharedDep });
+        var finding = BuildFinding(potentiallyAffected: new[] { "project-b" });
+        var analysis = BuildAnalysis("project-a", new[] { finding });
 
         // Act
-        var edges = CrossProjectCorrelationTask.BuildDependencyEdges(new[] { structureA, structureB });
+        var edges = CrossProjectCorrelationTask.BuildDependencyEdges(new[] { analysis });
 
         // Assert
-        Assert.Equal(2, edges.Count);
-        Assert.Contains(edges, e => e.SourceProject == "project-a" && e.TargetProject == "project-b");
-        Assert.Contains(edges, e => e.SourceProject == "project-b" && e.TargetProject == "project-a");
+        Assert.Single(edges);
+        Assert.Equal("project-a", edges[0].SourceProject);
+        Assert.Equal("project-b", edges[0].TargetProject);
     }
 
     [Fact]
-    public void BuildDependencyEdges_無共用相依_應回傳空清單()
+    public void BuildDependencyEdges_無PotentiallyAffectedProjects_應回傳空清單()
     {
         // Arrange
-        var structureA = BuildStructure("project-a", new List<ServiceDependency>
-        {
-            new() { DependencyType = DependencyType.NuGet, Target = "PackageA" }
-        });
-        var structureB = BuildStructure("project-b", new List<ServiceDependency>
-        {
-            new() { DependencyType = DependencyType.NuGet, Target = "PackageB" }
-        });
+        var finding = BuildFinding(potentiallyAffected: new List<string>());
+        var analysis = BuildAnalysis("project-a", new[] { finding });
 
         // Act
-        var edges = CrossProjectCorrelationTask.BuildDependencyEdges(new[] { structureA, structureB });
+        var edges = CrossProjectCorrelationTask.BuildDependencyEdges(new[] { analysis });
 
         // Assert
         Assert.Empty(edges);
+    }
+
+    [Fact]
+    public void BuildDependencyEdges_相同目標重複出現_不應重複建立相同邊()
+    {
+        // Arrange — 兩個 finding 都指向 project-b，且情境相同（ApiContractBreak → HttpCall）
+        var finding1 = BuildFinding(potentiallyAffected: new[] { "project-b" });
+        var finding2 = BuildFinding(potentiallyAffected: new[] { "project-b" });
+        var analysis = BuildAnalysis("project-a", new[] { finding1, finding2 });
+
+        // Act
+        var edges = CrossProjectCorrelationTask.BuildDependencyEdges(new[] { analysis });
+
+        // Assert — 相同的 source/target/type 只建立一條邊
+        Assert.Single(edges);
     }
 
     [Fact]
@@ -185,17 +180,17 @@ public class CrossProjectCorrelationTaskTests
         };
 
         // Act
-        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges, Array.Empty<ProjectStructure>());
+        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges);
 
-        // Assert
+        // Assert — PotentiallyAffectedProjects 直接成為 ConfirmedAffectedProjects
         Assert.Single(result);
         Assert.Contains("project-b", result[0].ConfirmedAffectedProjects);
     }
 
     [Fact]
-    public void CorrelateFindings_PotentiallyAffectedProjects不在相依圖中_ConfirmedAffectedProjects應為空()
+    public void CorrelateFindings_PotentiallyAffectedProjects不在相依圖中_仍應確認受影響專案()
     {
-        // Arrange
+        // Arrange — AI 推斷的受影響專案無論是否在靜態相依圖中，皆直接作為確認結果
         var finding = BuildFinding(
             level: RiskLevel.High,
             potentiallyAffected: new[] { "project-c" });
@@ -207,11 +202,11 @@ public class CrossProjectCorrelationTaskTests
         };
 
         // Act
-        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges, Array.Empty<ProjectStructure>());
+        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges);
 
-        // Assert
+        // Assert — project-c 雖不在靜態相依圖中，仍應被確認
         Assert.Single(result);
-        Assert.Empty(result[0].ConfirmedAffectedProjects);
+        Assert.Contains("project-c", result[0].ConfirmedAffectedProjects);
     }
 
     [Fact]
@@ -229,7 +224,7 @@ public class CrossProjectCorrelationTaskTests
         };
 
         // Act
-        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges, Array.Empty<ProjectStructure>());
+        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges);
 
         // Assert
         Assert.Single(result);
@@ -251,7 +246,7 @@ public class CrossProjectCorrelationTaskTests
         };
 
         // Act
-        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges, Array.Empty<ProjectStructure>());
+        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges);
 
         // Assert
         Assert.Single(result);
@@ -259,25 +254,22 @@ public class CrossProjectCorrelationTaskTests
     }
 
     [Fact]
-    public void CorrelateFindings_Medium等級但無確認受影響專案_應維持Medium()
+    public void CorrelateFindings_Medium等級且無PotentiallyAffectedProjects_應維持Medium()
     {
-        // Arrange
+        // Arrange — PotentiallyAffectedProjects 為空時不升級風險等級
         var finding = BuildFinding(
             level: RiskLevel.Medium,
-            potentiallyAffected: new[] { "project-c" });
+            potentiallyAffected: new List<string>());
 
         var analysis = BuildAnalysis("project-a", new[] { finding });
-        var edges = new List<DependencyEdge>
-        {
-            new() { SourceProject = "project-a", TargetProject = "project-b", DependencyType = DependencyType.SharedDb, Target = "orders-db" }
-        };
 
         // Act
-        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, edges, Array.Empty<ProjectStructure>());
+        var result = CrossProjectCorrelationTask.CorrelateFindings(new[] { analysis }, new List<DependencyEdge>());
 
         // Assert
         Assert.Single(result);
         Assert.Equal(RiskLevel.Medium, result[0].FinalRiskLevel);
+        Assert.Empty(result[0].ConfirmedAffectedProjects);
     }
 
     [Fact]

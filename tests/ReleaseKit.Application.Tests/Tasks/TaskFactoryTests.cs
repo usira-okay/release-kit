@@ -43,7 +43,6 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<GetReleaseSettingTask>>().Object);
         services.AddSingleton(new Mock<ILogger<CloneRepositoriesTask>>().Object);
         services.AddSingleton(new Mock<ILogger<AnalyzePRDiffsTask>>().Object);
-        services.AddSingleton(new Mock<ILogger<StaticProjectAnalysisTask>>().Object);
         services.AddSingleton(new Mock<ILogger<CopilotRiskAnalysisTask>>().Object);
         services.AddSingleton(new Mock<ILogger<CrossProjectCorrelationTask>>().Object);
         services.AddSingleton(new Mock<ILogger<GenerateRiskReportTask>>().Object);
@@ -71,9 +70,7 @@ public class TaskFactoryTests
 
         // 註冊風險分析服務 mocks
         services.AddSingleton(new Mock<IGitOperationService>().Object);
-        services.AddSingleton(new Mock<IProjectStructureScanner>().Object);
-        services.AddSingleton(new Mock<IDependencyInferrer>().Object);
-        services.AddSingleton(new Mock<ICopilotRiskAnalyzer>().Object);
+        services.AddSingleton(new Mock<ICopilotRiskDispatcher>().Object);
         services.AddSingleton(new Mock<IMarkdownReportGenerator>().Object);
 
         // 註冊 RiskAnalysisOptions
@@ -99,7 +96,6 @@ public class TaskFactoryTests
         services.AddTransient<GetReleaseSettingTask>();
         services.AddTransient<CloneRepositoriesTask>();
         services.AddTransient<AnalyzePRDiffsTask>();
-        services.AddTransient<StaticProjectAnalysisTask>();
         services.AddTransient<CopilotRiskAnalysisTask>();
         services.AddTransient<CrossProjectCorrelationTask>();
         services.AddTransient<GenerateRiskReportTask>();
@@ -246,17 +242,6 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<AnalyzePRDiffsTask>(task);
-    }
-
-    [Fact]
-    public void CreateTask_WithStaticProjectAnalysis_ShouldReturnCorrectTaskType()
-    {
-        // Act
-        var task = _factory.CreateTask(TaskType.StaticProjectAnalysis);
-
-        // Assert
-        Assert.NotNull(task);
-        Assert.IsType<StaticProjectAnalysisTask>(task);
     }
 
     [Fact]

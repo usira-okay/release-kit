@@ -52,57 +52,41 @@ public class GitOperationServiceTests
     }
 
     [Fact]
-    public async Task GetCommitDiffAsync_無效路徑應回傳失敗()
+    public async Task GetCommitStatAsync_無效路徑應回傳失敗()
     {
-        var result = await _service.GetCommitDiffAsync("/nonexistent/path", "abc123");
+        var result = await _service.GetCommitStatAsync("/nonexistent/path", "abc123");
 
         Assert.True(result.IsFailure);
         Assert.Contains("Diff", result.Error!.Code);
     }
 
     [Fact]
-    public void ParseDiffOutput_空輸出應回傳空清單()
+    public void ParseNameStatusToFileDiffs_空輸出應回傳空清單()
     {
-        var result = GitOperationService.ParseDiffOutput("", "", "abc123");
+        var result = GitOperationService.ParseNameStatusToFileDiffs("", "abc123");
 
         Assert.Empty(result);
     }
 
     [Fact]
-    public void ParseDiffOutput_新增檔案_應正確解析ChangeType為Added()
+    public void ParseNameStatusToFileDiffs_新增檔案_應正確解析ChangeType為Added()
     {
         var nameStatus = "A\tsrc/NewFile.cs\n";
-        var diffOutput = "diff --git a/src/NewFile.cs b/src/NewFile.cs\n" +
-                         "new file mode 100644\n" +
-                         "--- /dev/null\n" +
-                         "+++ b/src/NewFile.cs\n" +
-                         "@@ -0,0 +1,3 @@\n" +
-                         "+line1\n" +
-                         "+line2\n" +
-                         "+line3\n";
 
-        var result = GitOperationService.ParseDiffOutput(nameStatus, diffOutput, "abc123");
+        var result = GitOperationService.ParseNameStatusToFileDiffs(nameStatus, "abc123");
 
         Assert.Single(result);
         Assert.Equal("src/NewFile.cs", result[0].FilePath);
         Assert.Equal(ChangeType.Added, result[0].ChangeType);
         Assert.Equal("abc123", result[0].CommitSha);
-        Assert.Contains("diff --git", result[0].DiffContent);
     }
 
     [Fact]
-    public void ParseDiffOutput_刪除檔案_應正確解析ChangeType為Deleted()
+    public void ParseNameStatusToFileDiffs_刪除檔案_應正確解析ChangeType為Deleted()
     {
         var nameStatus = "D\tsrc/OldFile.cs\n";
-        var diffOutput = "diff --git a/src/OldFile.cs b/src/OldFile.cs\n" +
-                         "deleted file mode 100644\n" +
-                         "--- a/src/OldFile.cs\n" +
-                         "+++ /dev/null\n" +
-                         "@@ -1,2 +0,0 @@\n" +
-                         "-line1\n" +
-                         "-line2\n";
 
-        var result = GitOperationService.ParseDiffOutput(nameStatus, diffOutput, "sha456");
+        var result = GitOperationService.ParseNameStatusToFileDiffs(nameStatus, "sha456");
 
         Assert.Single(result);
         Assert.Equal("src/OldFile.cs", result[0].FilePath);
@@ -111,19 +95,11 @@ public class GitOperationServiceTests
     }
 
     [Fact]
-    public void ParseDiffOutput_修改檔案_應正確解析ChangeType為Modified()
+    public void ParseNameStatusToFileDiffs_修改檔案_應正確解析ChangeType為Modified()
     {
         var nameStatus = "M\tsrc/Existing.cs\n";
-        var diffOutput = "diff --git a/src/Existing.cs b/src/Existing.cs\n" +
-                         "--- a/src/Existing.cs\n" +
-                         "+++ b/src/Existing.cs\n" +
-                         "@@ -1,3 +1,3 @@\n" +
-                         " context\n" +
-                         "-old line\n" +
-                         "+new line\n" +
-                         " context\n";
 
-        var result = GitOperationService.ParseDiffOutput(nameStatus, diffOutput, "sha789");
+        var result = GitOperationService.ParseNameStatusToFileDiffs(nameStatus, "sha789");
 
         Assert.Single(result);
         Assert.Equal("src/Existing.cs", result[0].FilePath);
@@ -131,27 +107,11 @@ public class GitOperationServiceTests
     }
 
     [Fact]
-    public void ParseDiffOutput_多個檔案_應分別解析每個檔案的Diff()
+    public void ParseNameStatusToFileDiffs_多個檔案_應分別解析每個檔案()
     {
         var nameStatus = "A\tsrc/New.cs\nM\tsrc/Changed.cs\nD\tsrc/Removed.cs\n";
-        var diffOutput =
-            "diff --git a/src/New.cs b/src/New.cs\n" +
-            "new file mode 100644\n" +
-            "+++ b/src/New.cs\n" +
-            "@@ -0,0 +1 @@\n" +
-            "+new\n" +
-            "diff --git a/src/Changed.cs b/src/Changed.cs\n" +
-            "--- a/src/Changed.cs\n" +
-            "+++ b/src/Changed.cs\n" +
-            "@@ -1 +1 @@\n" +
-            "-old\n" +
-            "+new\n" +
-            "diff --git a/src/Removed.cs b/src/Removed.cs\n" +
-            "deleted file mode 100644\n" +
-            "--- a/src/Removed.cs\n" +
-            "+++ /dev/null\n";
 
-        var result = GitOperationService.ParseDiffOutput(nameStatus, diffOutput, "sha000");
+        var result = GitOperationService.ParseNameStatusToFileDiffs(nameStatus, "sha000");
 
         Assert.Equal(3, result.Count);
         Assert.Contains(result, f => f.FilePath == "src/New.cs" && f.ChangeType == ChangeType.Added);
@@ -160,15 +120,33 @@ public class GitOperationServiceTests
     }
 
     [Fact]
-    public void ParseDiffOutput_檔案在nameStatus但無對應diff_DiffContent應為空字串()
+    public void ParseShortStat_標準輸出應正確解析新增與刪除行數()
     {
-        var nameStatus = "M\tsrc/NoDiff.cs\n";
-        var diffOutput = "";
+        var shortStat = " 5 files changed, 120 insertions(+), 45 deletions(-)";
 
-        var result = GitOperationService.ParseDiffOutput(nameStatus, diffOutput, "sha001");
+        var (linesAdded, linesRemoved) = GitOperationService.ParseShortStat(shortStat);
 
-        Assert.Single(result);
-        Assert.Equal("src/NoDiff.cs", result[0].FilePath);
-        Assert.Equal(string.Empty, result[0].DiffContent);
+        Assert.Equal(120, linesAdded);
+        Assert.Equal(45, linesRemoved);
+    }
+
+    [Fact]
+    public void ParseShortStat_只有新增無刪除時應正確解析()
+    {
+        var shortStat = " 2 files changed, 30 insertions(+)";
+
+        var (linesAdded, linesRemoved) = GitOperationService.ParseShortStat(shortStat);
+
+        Assert.Equal(30, linesAdded);
+        Assert.Equal(0, linesRemoved);
+    }
+
+    [Fact]
+    public void ParseShortStat_空字串應回傳零值()
+    {
+        var (linesAdded, linesRemoved) = GitOperationService.ParseShortStat("");
+
+        Assert.Equal(0, linesAdded);
+        Assert.Equal(0, linesRemoved);
     }
 }

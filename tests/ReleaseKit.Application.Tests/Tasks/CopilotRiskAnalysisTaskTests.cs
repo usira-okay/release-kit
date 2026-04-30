@@ -16,16 +16,17 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class CopilotRiskAnalysisTaskTests
 {
-    private readonly Mock<ICopilotRiskAnalyzer> _analyzerMock;
+    private readonly Mock<ICopilotRiskDispatcher> _dispatcherMock;
     private readonly Mock<IRedisService> _redisServiceMock;
     private readonly Mock<ILogger<CopilotRiskAnalysisTask>> _loggerMock;
 
     private const string RunId = "20240315103045";
     private const string ProjectPath = "group/project-a";
+    private const string LocalPath = "/repos/group/project-a";
 
     public CopilotRiskAnalysisTaskTests()
     {
-        _analyzerMock = new Mock<ICopilotRiskAnalyzer>();
+        _dispatcherMock = new Mock<ICopilotRiskDispatcher>();
         _redisServiceMock = new Mock<IRedisService>();
         _loggerMock = new Mock<ILogger<CopilotRiskAnalysisTask>>();
 
@@ -33,53 +34,52 @@ public class CopilotRiskAnalysisTaskTests
             .Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
 
-        _analyzerMock
-            .Setup(x => x.AnalyzeAsync(
+        _redisServiceMock
+            .Setup(x => x.HashGetAllAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+
+        _dispatcherMock
+            .Setup(x => x.DispatchAsync(
                 It.IsAny<string>(),
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                It.IsAny<ProjectStructure?>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<RiskScenario>>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((new List<RiskFinding>(), 1));
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     private CopilotRiskAnalysisTask CreateTask(RiskAnalysisOptions? options = null)
     {
         var effectiveOptions = options ?? new RiskAnalysisOptions();
         return new CopilotRiskAnalysisTask(
-            _analyzerMock.Object,
+            _dispatcherMock.Object,
             _redisServiceMock.Object,
             Options.Create(effectiveOptions),
             _loggerMock.Object);
     }
 
-    private static ProjectDiffResult BuildDiffResult(string projectPath, int diffCount = 1) =>
+    private static ProjectDiffResult BuildDiffResult(string projectPath, int count = 1) =>
         new()
         {
             ProjectPath = projectPath,
-            FileDiffs = Enumerable.Range(0, diffCount)
-                .Select(i => new FileDiff
+            CommitSummaries = Enumerable.Range(0, count)
+                .Select(i => new CommitSummary
                 {
-                    FilePath = $"src/File{i}.cs",
-                    DiffContent = $"+added line {i}",
-                    ChangeType = ChangeType.Modified,
-                    CommitSha = $"abc{i:D3}"
+                    CommitSha = $"abc{i:D3}",
+                    ChangedFiles = new List<FileDiff>
+                    {
+                        new() { FilePath = $"src/File{i}.cs", ChangeType = ChangeType.Modified, CommitSha = $"abc{i:D3}" }
+                    },
+                    TotalFilesChanged = 1,
+                    TotalLinesAdded = 10,
+                    TotalLinesRemoved = 5
                 })
                 .ToList()
         };
 
-    private static ProjectStructure BuildProjectStructure(string projectPath) =>
-        new()
-        {
-            ProjectPath = projectPath,
-            ApiEndpoints = new List<ApiEndpoint>(),
-            NuGetPackages = new List<string>(),
-            DbContextFiles = new List<string>(),
-            MigrationFiles = new List<string>(),
-            MessageContracts = new List<string>(),
-            ConfigKeys = new List<string>(),
-            InferredDependencies = new List<ServiceDependency>()
-        };
+    private static string BuildStage1Json(string localPath = LocalPath) =>
+        new { LocalPath = localPath, Status = "Success" }.ToJson();
 
     [Fact]
     public async Task ExecuteAsync_RunId不存在時_應提前結束不執行分析()
@@ -95,13 +95,14 @@ public class CopilotRiskAnalysisTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _analyzerMock.Verify(
-            x => x.AnalyzeAsync(
+        _dispatcherMock.Verify(
+            x => x.DispatchAsync(
                 It.IsAny<string>(),
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                It.IsAny<ProjectStructure?>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<RiskScenario>>(),
-                It.IsAny<string>()),
+                It.IsAny<CancellationToken>()),
             Times.Never);
         _redisServiceMock.Verify(
             x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
@@ -109,21 +110,20 @@ public class CopilotRiskAnalysisTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_應讀取Stage2與Stage3的Redis資料()
+    public async Task ExecuteAsync_應讀取Stage1與Stage2的Redis資料()
     {
         // Arrange
         var diffResult = BuildDiffResult(ProjectPath);
-        var structure = BuildProjectStructure(ProjectPath);
 
         _redisServiceMock
             .Setup(x => x.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey))
             .ReturnsAsync(RunId);
         _redisServiceMock
+            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId)))
+            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = BuildStage1Json() });
+        _redisServiceMock
             .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId)))
             .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = diffResult.ToJson() });
-        _redisServiceMock
-            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = structure.ToJson() });
 
         var task = CreateTask();
 
@@ -131,12 +131,12 @@ public class CopilotRiskAnalysisTaskTests
         await task.ExecuteAsync();
 
         // Assert
+        _redisServiceMock.Verify(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId)), Times.Once);
         _redisServiceMock.Verify(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId)), Times.Once);
-        _redisServiceMock.Verify(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)), Times.Once);
     }
 
     [Fact]
-    public async Task ExecuteAsync_應對每個有Diff的專案呼叫AnalyzeAsync()
+    public async Task ExecuteAsync_應對每個有CommitSummary的專案呼叫DispatchAsync()
     {
         // Arrange
         var diffA = BuildDiffResult("group/project-a");
@@ -146,15 +146,19 @@ public class CopilotRiskAnalysisTaskTests
             .Setup(x => x.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey))
             .ReturnsAsync(RunId);
         _redisServiceMock
+            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId)))
+            .ReturnsAsync(new Dictionary<string, string>
+            {
+                ["group/project-a"] = BuildStage1Json("/repos/group/project-a"),
+                ["group/project-b"] = BuildStage1Json("/repos/group/project-b")
+            });
+        _redisServiceMock
             .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId)))
             .ReturnsAsync(new Dictionary<string, string>
             {
                 ["group/project-a"] = diffA.ToJson(),
                 ["group/project-b"] = diffB.ToJson()
             });
-        _redisServiceMock
-            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string>());
 
         var task = CreateTask();
 
@@ -162,42 +166,34 @@ public class CopilotRiskAnalysisTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _analyzerMock.Verify(
-            x => x.AnalyzeAsync(
+        _dispatcherMock.Verify(
+            x => x.DispatchAsync(
+                RunId,
                 "group/project-a",
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                It.IsAny<ProjectStructure?>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<RiskScenario>>(),
-                It.IsAny<string>()),
+                It.IsAny<CancellationToken>()),
             Times.Once);
-        _analyzerMock.Verify(
-            x => x.AnalyzeAsync(
+        _dispatcherMock.Verify(
+            x => x.DispatchAsync(
+                RunId,
                 "group/project-b",
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                It.IsAny<ProjectStructure?>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<RiskScenario>>(),
-                It.IsAny<string>()),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task ExecuteAsync_應將ProjectRiskAnalysis儲存至Stage4Hash()
+    public async Task ExecuteAsync_無CommitSummary的專案_應跳過不呼叫DispatchAsync()
     {
         // Arrange
-        var diffResult = BuildDiffResult(ProjectPath);
-        var findings = new List<RiskFinding>
+        var emptyDiff = new ProjectDiffResult
         {
-            new()
-            {
-                Scenario = RiskScenario.ApiContractBreak,
-                RiskLevel = RiskLevel.High,
-                Description = "API 破壞性變更",
-                AffectedFile = "src/Controller.cs",
-                DiffSnippet = "-old method",
-                PotentiallyAffectedProjects = new List<string>(),
-                RecommendedAction = "Review API changes",
-                ChangedBy = string.Empty
-            }
+            ProjectPath = ProjectPath,
+            CommitSummaries = new List<CommitSummary>()
         };
 
         _redisServiceMock
@@ -205,18 +201,7 @@ public class CopilotRiskAnalysisTaskTests
             .ReturnsAsync(RunId);
         _redisServiceMock
             .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = diffResult.ToJson() });
-        _redisServiceMock
-            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string>());
-        _analyzerMock
-            .Setup(x => x.AnalyzeAsync(
-                ProjectPath,
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                null,
-                It.IsAny<IReadOnlyList<RiskScenario>>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((findings, 1));
+            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = emptyDiff.ToJson() });
 
         var task = CreateTask();
 
@@ -224,29 +209,33 @@ public class CopilotRiskAnalysisTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(
-                RiskAnalysisRedisKeys.Stage4Hash(RunId),
-                ProjectPath,
-                It.IsAny<string>()),
-            Times.Once);
+        _dispatcherMock.Verify(
+            x => x.DispatchAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<RiskScenario>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_無Diff的專案_應跳過不呼叫AnalyzeAsync()
+    public async Task ExecuteAsync_無Stage1記錄的專案_應跳過不呼叫DispatchAsync()
     {
         // Arrange
-        var emptyDiff = new ProjectDiffResult { ProjectPath = ProjectPath, FileDiffs = new List<FileDiff>() };
+        var diffResult = BuildDiffResult(ProjectPath);
 
         _redisServiceMock
             .Setup(x => x.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey))
             .ReturnsAsync(RunId);
+        // Stage1 為空（無任何專案記錄）
+        _redisServiceMock
+            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId)))
+            .ReturnsAsync(new Dictionary<string, string>());
         _redisServiceMock
             .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = emptyDiff.ToJson() });
-        _redisServiceMock
-            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string>());
+            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = diffResult.ToJson() });
 
         var task = CreateTask();
 
@@ -254,21 +243,19 @@ public class CopilotRiskAnalysisTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _analyzerMock.Verify(
-            x => x.AnalyzeAsync(
+        _dispatcherMock.Verify(
+            x => x.DispatchAsync(
                 It.IsAny<string>(),
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                It.IsAny<ProjectStructure?>(),
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<RiskScenario>>(),
-                It.IsAny<string>()),
-            Times.Never);
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_應將設定的Scenarios傳入AnalyzeAsync()
+    public async Task ExecuteAsync_應將設定的Scenarios傳入DispatchAsync()
     {
         // Arrange
         var customOptions = new RiskAnalysisOptions
@@ -281,11 +268,11 @@ public class CopilotRiskAnalysisTaskTests
             .Setup(x => x.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey))
             .ReturnsAsync(RunId);
         _redisServiceMock
+            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId)))
+            .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = BuildStage1Json() });
+        _redisServiceMock
             .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId)))
             .ReturnsAsync(new Dictionary<string, string> { [ProjectPath] = diffResult.ToJson() });
-        _redisServiceMock
-            .Setup(x => x.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(RunId)))
-            .ReturnsAsync(new Dictionary<string, string>());
 
         var task = CreateTask(customOptions);
 
@@ -293,16 +280,17 @@ public class CopilotRiskAnalysisTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _analyzerMock.Verify(
-            x => x.AnalyzeAsync(
+        _dispatcherMock.Verify(
+            x => x.DispatchAsync(
+                RunId,
                 ProjectPath,
-                It.IsAny<IReadOnlyList<FileDiff>>(),
-                It.IsAny<ProjectStructure?>(),
+                It.IsAny<IReadOnlyList<CommitSummary>>(),
+                It.IsAny<string>(),
                 It.Is<IReadOnlyList<RiskScenario>>(s =>
                     s.Count == 2 &&
                     s.Contains(RiskScenario.ApiContractBreak) &&
                     s.Contains(RiskScenario.DatabaseSchemaChange)),
-                It.IsAny<string>()),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

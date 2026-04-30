@@ -60,8 +60,20 @@ public class AnalyzePRDiffsTaskTests
         {
             FilePath = path,
             ChangeType = ChangeType.Modified,
-            DiffContent = "@@ -1,3 +1,4 @@",
             CommitSha = CommitSha
+        };
+
+    private static CommitSummary BuildCommitSummary(string sha = CommitSha) =>
+        new()
+        {
+            CommitSha = sha,
+            ChangedFiles = new List<FileDiff>
+            {
+                new() { FilePath = "src/Login.cs", ChangeType = ChangeType.Modified, CommitSha = sha }
+            },
+            TotalFilesChanged = 1,
+            TotalLinesAdded = 10,
+            TotalLinesRemoved = 5
         };
 
     private void SetupRunId(string? runId = RunId) =>
@@ -115,7 +127,7 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _redisServiceMock.Verify(
             x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
@@ -139,7 +151,7 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _redisServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
@@ -164,7 +176,7 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -185,7 +197,7 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         // 仍寫入空 diff 結果
         _redisServiceMock.Verify(
@@ -194,10 +206,9 @@ public class AnalyzePRDiffsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_成功取得Diff_應呼叫GetCommitDiffAsync並儲存結果()
+    public async Task ExecuteAsync_成功取得Diff_應呼叫GetCommitStatAsync並儲存結果()
     {
         // Arrange
-        var fileDiff = BuildFileDiff();
         SetupRunId();
         SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>
         {
@@ -205,8 +216,8 @@ public class AnalyzePRDiffsTaskTests
         });
         SetupStage1(ProjectPath, LocalPath);
         _gitServiceMock
-            .Setup(x => x.GetCommitDiffAsync(LocalPath, CommitSha, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<FileDiff>>.Success(new List<FileDiff> { fileDiff }));
+            .Setup(x => x.GetCommitStatAsync(LocalPath, CommitSha, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<CommitSummary>.Success(BuildCommitSummary()));
         var task = CreateTask();
 
         // Act
@@ -214,13 +225,13 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(LocalPath, CommitSha, It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(LocalPath, CommitSha, It.IsAny<CancellationToken>()),
             Times.Once);
         _redisServiceMock.Verify(
             x => x.HashSetAsync(
                 RiskAnalysisRedisKeys.Stage2Hash(RunId),
                 ProjectPath,
-                It.Is<string>(v => v.Contains("src/Login.cs"))),
+                It.Is<string>(v => v.Contains(CommitSha))),
             Times.Once);
     }
 
@@ -235,8 +246,8 @@ public class AnalyzePRDiffsTaskTests
         });
         SetupStage1(ProjectPath, LocalPath);
         _gitServiceMock
-            .Setup(x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<FileDiff>>.Failure(Error.Git.DiffFailed(CommitSha, "not found")));
+            .Setup(x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<CommitSummary>.Failure(Error.Git.DiffFailed(CommitSha, "not found")));
         var task = CreateTask();
 
         // Act — 不應拋出例外
@@ -249,7 +260,7 @@ public class AnalyzePRDiffsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_多個PR有MergeCommitSha_應對每個CommitSha呼叫GetCommitDiffAsync()
+    public async Task ExecuteAsync_多個PR有MergeCommitSha_應對每個CommitSha呼叫GetCommitStatAsync()
     {
         // Arrange
         const string sha1 = "aaa111";
@@ -263,8 +274,8 @@ public class AnalyzePRDiffsTaskTests
         });
         SetupStage1(ProjectPath, LocalPath);
         _gitServiceMock
-            .Setup(x => x.GetCommitDiffAsync(LocalPath, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<FileDiff>>.Success(new List<FileDiff> { BuildFileDiff() }));
+            .Setup(x => x.GetCommitStatAsync(LocalPath, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<CommitSummary>.Success(BuildCommitSummary()));
         var task = CreateTask();
 
         // Act
@@ -272,10 +283,10 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(LocalPath, sha1, It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(LocalPath, sha1, It.IsAny<CancellationToken>()),
             Times.Once);
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(LocalPath, sha2, It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(LocalPath, sha2, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -317,8 +328,8 @@ public class AnalyzePRDiffsTaskTests
             .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), bbProject))
             .ReturnsAsync(new { LocalPath = bbLocal, Status = "Success" }.ToJson());
         _gitServiceMock
-            .Setup(x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<IReadOnlyList<FileDiff>>.Success(new List<FileDiff>()));
+            .Setup(x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<CommitSummary>.Success(BuildCommitSummary()));
         var task = CreateTask();
 
         // Act
@@ -353,7 +364,7 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert
         _gitServiceMock.Verify(
-            x => x.GetCommitDiffAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _redisServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
