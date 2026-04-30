@@ -76,11 +76,6 @@ public enum TaskType
     AnalyzePRDiffs,
 
     /// <summary>
-    /// 靜態專案結構分析
-    /// </summary>
-    StaticProjectAnalysis,
-
-    /// <summary>
     /// Copilot SDK 風險分析
     /// </summary>
     CopilotRiskAnalysis,
