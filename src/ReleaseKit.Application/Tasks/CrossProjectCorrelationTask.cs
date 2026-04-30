@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using ReleaseKit.Application.Common;
 using ReleaseKit.Common.Constants;
 using ReleaseKit.Common.Extensions;
 using ReleaseKit.Domain.Abstractions;
@@ -12,8 +11,8 @@ namespace ReleaseKit.Application.Tasks;
 /// Stage 5：跨專案交叉比對
 /// </summary>
 /// <remarks>
-/// 讀取 Stage 3 專案結構與 Stage 4 AI 風險分析結果，建立相依性圖後交叉確認受影響專案，
-/// 並調整風險等級與產生通知對象清單，最後將 <see cref="CrossProjectCorrelation"/> 寫入 Stage 5 Redis Hash。
+/// 讀取 Stage 4 AI 風險分析結果，從 AI 推斷的 <see cref="RiskFinding.PotentiallyAffectedProjects"/>
+/// 建立相依性圖，並以此作為確認受影響專案的依據，最後將 <see cref="CrossProjectCorrelation"/> 寫入 Stage 5 Redis Hash。
 /// </remarks>
 public class CrossProjectCorrelationTask : ITask
 {
@@ -23,8 +22,6 @@ public class CrossProjectCorrelationTask : ITask
     /// <summary>
     /// 初始化 <see cref="CrossProjectCorrelationTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="redisService">Redis 快取服務</param>
-    /// <param name="logger">日誌記錄器</param>
     public CrossProjectCorrelationTask(
         IRedisService redisService,
         ILogger<CrossProjectCorrelationTask> logger)
@@ -46,11 +43,10 @@ public class CrossProjectCorrelationTask : ITask
         }
         _logger.LogInformation("開始 Stage 5: 跨專案交叉比對, RunId={RunId}", runId);
 
-        var structures = await LoadStage3StructuresAsync(runId);
         var analyses = await LoadStage4AnalysesAsync(runId);
 
-        var dependencyEdges = BuildDependencyEdges(structures);
-        var correlatedFindings = CorrelateFindings(analyses, dependencyEdges, structures);
+        var dependencyEdges = BuildDependencyEdges(analyses);
+        var correlatedFindings = CorrelateFindings(analyses, dependencyEdges);
         var notifications = BuildNotificationTargets(correlatedFindings);
 
         var correlation = new CrossProjectCorrelation
@@ -70,19 +66,6 @@ public class CrossProjectCorrelationTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis Stage 3 Hash 載入所有專案結構
-    /// </summary>
-    private async Task<IReadOnlyList<ProjectStructure>> LoadStage3StructuresAsync(string runId)
-    {
-        var stage3Data = await _redisService.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(runId));
-        return stage3Data.Values
-            .Select(json => json.ToTypedObject<ProjectStructure>())
-            .Where(s => s != null)
-            .Cast<ProjectStructure>()
-            .ToList();
-    }
-
-    /// <summary>
     /// 從 Redis Stage 4 Hash 載入所有專案風險分析結果
     /// </summary>
     private async Task<IReadOnlyList<ProjectRiskAnalysis>> LoadStage4AnalysesAsync(string runId)
@@ -96,36 +79,35 @@ public class CrossProjectCorrelationTask : ITask
     }
 
     /// <summary>
-    /// 從所有專案的推斷相依性建立相依性邊清單
+    /// 從 Stage 4 AI 風險發現中建立跨專案相依性邊清單
     /// </summary>
     /// <remarks>
-    /// 對每個專案的每條 <see cref="ServiceDependency"/>，尋找擁有相同相依目標的其他專案，
-    /// 建立有向邊（SourceProject → TargetProject）。
+    /// 以 AI 推斷的 <see cref="RiskFinding.PotentiallyAffectedProjects"/> 作為相依關係來源，
+    /// 對每個風險發現中提及的受影響專案建立有向邊（變更專案 → 受影響專案）。
     /// </remarks>
-    internal static IReadOnlyList<DependencyEdge> BuildDependencyEdges(IReadOnlyList<ProjectStructure> structures)
+    internal static IReadOnlyList<DependencyEdge> BuildDependencyEdges(IReadOnlyList<ProjectRiskAnalysis> analyses)
     {
         var edges = new List<DependencyEdge>();
 
-        foreach (var source in structures)
+        foreach (var analysis in analyses)
         {
-            foreach (var dep in source.InferredDependencies)
+            foreach (var finding in analysis.Findings)
             {
-                foreach (var target in structures)
+                foreach (var affectedProject in finding.PotentiallyAffectedProjects)
                 {
-                    if (target.ProjectPath == source.ProjectPath)
-                        continue;
+                    var alreadyExists = edges.Any(e =>
+                        e.SourceProject == analysis.ProjectPath &&
+                        e.TargetProject == affectedProject &&
+                        e.DependencyType == MapScenarioToDependencyType(finding.Scenario));
 
-                    var targetHasSameDep = target.InferredDependencies
-                        .Any(d => d.DependencyType == dep.DependencyType && d.Target == dep.Target);
-
-                    if (targetHasSameDep)
+                    if (!alreadyExists)
                     {
                         edges.Add(new DependencyEdge
                         {
-                            SourceProject = source.ProjectPath,
-                            TargetProject = target.ProjectPath,
-                            DependencyType = dep.DependencyType,
-                            Target = dep.Target
+                            SourceProject = analysis.ProjectPath,
+                            TargetProject = affectedProject,
+                            DependencyType = MapScenarioToDependencyType(finding.Scenario),
+                            Target = finding.AffectedFile
                         });
                     }
                 }
@@ -136,33 +118,23 @@ public class CrossProjectCorrelationTask : ITask
     }
 
     /// <summary>
-    /// 交叉比對風險發現與相依性圖，確認真正受影響的專案並調整風險等級
+    /// 將 AI 推斷的 PotentiallyAffectedProjects 作為確認受影響專案，並依相依性圖調整風險等級
     /// </summary>
     /// <remarks>
-    /// 對每個 <see cref="RiskFinding"/>：
-    /// <list type="bullet">
-    ///   <item>從 <c>PotentiallyAffectedProjects</c> 篩選出確實出現在相依性圖目標節點的專案</item>
-    ///   <item>若有確認受影響專案且原始等級為 <see cref="RiskLevel.Medium"/>，則提升至 <see cref="RiskLevel.High"/></item>
-    /// </list>
+    /// 由於 Stage 3 靜態分析已移除，此處直接採用 AI 推斷結果作為 <c>ConfirmedAffectedProjects</c>。
+    /// 若有確認受影響專案且原始等級為 <see cref="RiskLevel.Medium"/>，則提升至 <see cref="RiskLevel.High"/>。
     /// </remarks>
     internal static IReadOnlyList<CorrelatedRiskFinding> CorrelateFindings(
         IReadOnlyList<ProjectRiskAnalysis> analyses,
-        IReadOnlyList<DependencyEdge> dependencyEdges,
-        IReadOnlyList<ProjectStructure> structures)
+        IReadOnlyList<DependencyEdge> dependencyEdges)
     {
-        var dependencyTargetProjects = dependencyEdges
-            .Select(e => e.TargetProject)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var result = new List<CorrelatedRiskFinding>();
 
         foreach (var analysis in analyses)
         {
             foreach (var finding in analysis.Findings)
             {
-                var confirmed = finding.PotentiallyAffectedProjects
-                    .Where(p => dependencyTargetProjects.Contains(p))
-                    .ToList();
+                var confirmed = finding.PotentiallyAffectedProjects.ToList();
 
                 var finalRiskLevel = confirmed.Count > 0 && finding.RiskLevel == RiskLevel.Medium
                     ? RiskLevel.High
@@ -183,10 +155,6 @@ public class CrossProjectCorrelationTask : ITask
     /// <summary>
     /// 從已確認受影響的風險發現建立通知對象清單
     /// </summary>
-    /// <remarks>
-    /// 對每個有確認受影響專案的 <see cref="CorrelatedRiskFinding"/>，
-    /// 以風險發現的 <c>ChangedBy</c> 作為通知對象，每個確認專案產生一筆通知。
-    /// </remarks>
     internal static IReadOnlyList<NotificationTarget> BuildNotificationTargets(
         IReadOnlyList<CorrelatedRiskFinding> correlatedFindings)
     {
@@ -210,4 +178,15 @@ public class CrossProjectCorrelationTask : ITask
 
         return targets;
     }
+
+    /// <summary>
+    /// 將 <see cref="RiskScenario"/> 對應至最接近的 <see cref="DependencyType"/>
+    /// </summary>
+    private static DependencyType MapScenarioToDependencyType(RiskScenario scenario) => scenario switch
+    {
+        RiskScenario.ApiContractBreak => DependencyType.HttpCall,
+        RiskScenario.DatabaseSchemaChange => DependencyType.SharedDb,
+        RiskScenario.MessageQueueFormat => DependencyType.SharedMQ,
+        _ => DependencyType.HttpCall
+    };
 }
