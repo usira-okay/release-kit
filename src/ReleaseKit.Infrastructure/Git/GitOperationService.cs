@@ -59,8 +59,9 @@ public class GitOperationService : IGitOperationService
                 Error.Git.DiffFailed(commitSha, $"'{repoPath}' 不是有效的 Git 倉庫"));
         }
 
+        // 使用 {commitSha}^1 對比第一個 parent，可正確處理 merge commit（2 parents 時 diff-tree/show 會輸出空結果）
         var nameStatusResult = await RunGitCommandAsync(
-            $"diff-tree --no-commit-id -r --name-status {commitSha}",
+            $"diff {commitSha}^1 {commitSha} --name-status",
             repoPath, cancellationToken);
 
         if (!nameStatusResult.IsSuccess)
@@ -70,7 +71,7 @@ public class GitOperationService : IGitOperationService
         }
 
         var diffResult = await RunGitCommandAsync(
-            $"show {commitSha} --format= --unified=3",
+            $"diff {commitSha}^1 {commitSha} --unified=3",
             repoPath, cancellationToken);
 
         if (!diffResult.IsSuccess)
