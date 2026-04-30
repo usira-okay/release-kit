@@ -8,7 +8,6 @@ using ReleaseKit.Common.Constants;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
-using ReleaseKit.Infrastructure.Analysis;
 using ReleaseKit.Infrastructure.Copilot;
 using ReleaseKit.Infrastructure.Git;
 using ReleaseKit.Infrastructure.GoogleSheets;
@@ -223,9 +222,7 @@ public static class ServiceCollectionExtensions
         // 風險分析服務
         services.Configure<RiskAnalysisOptions>(configuration.GetSection("RiskAnalysis"));
         services.AddTransient<IGitOperationService, GitOperationService>();
-        services.AddTransient<IProjectStructureScanner, ProjectStructureScanner>();
-        services.AddTransient<IDependencyInferrer, DependencyInferrer>();
-        services.AddTransient<ICopilotRiskAnalyzer, CopilotRiskAnalyzer>();
+        services.AddTransient<ICopilotRiskDispatcher, CopilotRiskDispatcher>();
         services.AddTransient<IMarkdownReportGenerator, MarkdownReportGenerator>();
         
         // 註冊 Source Control Repositories
@@ -255,7 +252,6 @@ public static class ServiceCollectionExtensions
         // 風險分析任務
         services.AddTransient<CloneRepositoriesTask>();
         services.AddTransient<AnalyzePRDiffsTask>();
-        services.AddTransient<StaticProjectAnalysisTask>();
         services.AddTransient<CopilotRiskAnalysisTask>();
         services.AddTransient<CrossProjectCorrelationTask>();
         services.AddTransient<GenerateRiskReportTask>();

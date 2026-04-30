@@ -14,12 +14,13 @@ namespace ReleaseKit.Application.Tasks;
 /// Stage 4：Copilot AI 風險分析
 /// </summary>
 /// <remarks>
-/// 從 Redis 讀取 Stage 2 diff 結果與 Stage 3 專案結構，對每個有 diff 的專案呼叫
-/// Copilot AI 進行風險分析，並將 <see cref="ProjectRiskAnalysis"/> 寫入 Stage 4 Redis Hash。
+/// 從 Redis 讀取 Stage 2 CommitSummaries 與 Stage 1 localPath，
+/// 對每個有 Commit 記錄的專案透過 <see cref="ICopilotRiskDispatcher"/> 啟動雙層 SubAgent 分析流程。
+/// SubAgent 2 完成後直接將 <see cref="ProjectRiskAnalysis"/> 寫入 Stage 4 Redis Hash。
 /// </remarks>
 public class CopilotRiskAnalysisTask : ITask
 {
-    private readonly ICopilotRiskAnalyzer _analyzer;
+    private readonly ICopilotRiskDispatcher _dispatcher;
     private readonly IRedisService _redisService;
     private readonly IOptions<RiskAnalysisOptions> _riskOptions;
     private readonly ILogger<CopilotRiskAnalysisTask> _logger;
@@ -27,24 +28,20 @@ public class CopilotRiskAnalysisTask : ITask
     /// <summary>
     /// 初始化 <see cref="CopilotRiskAnalysisTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="analyzer">Copilot 風險分析器</param>
-    /// <param name="redisService">Redis 快取服務</param>
-    /// <param name="riskOptions">風險分析設定選項</param>
-    /// <param name="logger">日誌記錄器</param>
     public CopilotRiskAnalysisTask(
-        ICopilotRiskAnalyzer analyzer,
+        ICopilotRiskDispatcher dispatcher,
         IRedisService redisService,
         IOptions<RiskAnalysisOptions> riskOptions,
         ILogger<CopilotRiskAnalysisTask> logger)
     {
-        _analyzer = analyzer;
+        _dispatcher = dispatcher;
         _redisService = redisService;
         _riskOptions = riskOptions;
         _logger = logger;
     }
 
     /// <summary>
-    /// 執行 Stage 4：讀取 Stage 2/3 資料並對每個有 diff 的專案執行 Copilot 風險分析
+    /// 執行 Stage 4：讀取 Stage 1/2 資料，對每個有 Commit 的專案啟動雙層 SubAgent 風險分析
     /// </summary>
     public async Task ExecuteAsync()
     {
@@ -56,56 +53,55 @@ public class CopilotRiskAnalysisTask : ITask
         }
         _logger.LogInformation("開始 Stage 4: Copilot 風險分析, RunId={RunId}", runId);
 
+        var stage1Data = await _redisService.HashGetAllAsync(RiskAnalysisRedisKeys.Stage1Hash(runId));
         var stage2Data = await _redisService.HashGetAllAsync(RiskAnalysisRedisKeys.Stage2Hash(runId));
-        var stage3Data = await _redisService.HashGetAllAsync(RiskAnalysisRedisKeys.Stage3Hash(runId));
 
         var scenarios = _riskOptions.Value.Scenarios
             .Select(s => Enum.Parse<RiskScenario>(s, ignoreCase: true))
             .ToList();
 
-        var totalFindings = 0;
-        var totalSessions = 0;
-
         foreach (var (projectPath, diffJson) in stage2Data)
         {
             var diffResult = diffJson.ToTypedObject<ProjectDiffResult>();
-            if (diffResult == null || diffResult.FileDiffs.Count == 0)
+            if (diffResult == null || diffResult.CommitSummaries.Count == 0)
             {
-                _logger.LogInformation("專案 {ProjectPath} 無 diff 資料，跳過", projectPath);
+                _logger.LogInformation("專案 {ProjectPath} 無 CommitSummary 資料，跳過", projectPath);
                 continue;
             }
 
-            ProjectStructure? structure = null;
-            if (stage3Data.TryGetValue(projectPath, out var structureJson))
-                structure = structureJson.ToTypedObject<ProjectStructure>();
-
-            var (findings, sessionCount) = await _analyzer.AnalyzeAsync(
-                projectPath,
-                diffResult.FileDiffs,
-                structure,
-                scenarios,
-                changedBy: string.Empty);
-
-            var analysis = new ProjectRiskAnalysis
+            if (!stage1Data.TryGetValue(projectPath, out var cloneJson))
             {
-                ProjectPath = projectPath,
-                Findings = findings,
-                SessionCount = sessionCount
-            };
+                _logger.LogWarning("專案 {ProjectPath} 無 Stage 1 clone 記錄，跳過", projectPath);
+                continue;
+            }
 
-            await _redisService.HashSetAsync(
-                RiskAnalysisRedisKeys.Stage4Hash(runId),
+            var cloneResult = cloneJson.ToTypedObject<CloneStageResult>();
+            if (cloneResult?.Status != "Success" || string.IsNullOrEmpty(cloneResult.LocalPath))
+            {
+                _logger.LogWarning("專案 {ProjectPath} clone 狀態非 Success，跳過", projectPath);
+                continue;
+            }
+
+            _logger.LogInformation("開始分析專案 {ProjectPath}，共 {CommitCount} 個 commit",
+                projectPath, diffResult.CommitSummaries.Count);
+
+            await _dispatcher.DispatchAsync(
+                runId,
                 projectPath,
-                analysis.ToJson());
-
-            totalFindings += findings.Count;
-            totalSessions += sessionCount;
-
-            _logger.LogInformation("專案 {ProjectPath} 分析完成: {FindingCount} 個風險, {SessionCount} 個 session",
-                projectPath, findings.Count, sessionCount);
+                diffResult.CommitSummaries,
+                cloneResult.LocalPath,
+                scenarios);
         }
 
-        _logger.LogInformation("Stage 4 完成: {TotalFindings} 個風險, {TotalSessions} 個 session, RunId={RunId}",
-            totalFindings, totalSessions, runId);
+        _logger.LogInformation("Stage 4 完成, RunId={RunId}", runId);
+    }
+
+    /// <summary>
+    /// Stage 1 clone 結果的反序列化模型
+    /// </summary>
+    private sealed record CloneStageResult
+    {
+        public string LocalPath { get; init; } = "";
+        public string Status { get; init; } = "";
     }
 }
