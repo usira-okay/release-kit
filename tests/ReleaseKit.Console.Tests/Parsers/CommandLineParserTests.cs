@@ -126,7 +126,6 @@ public class CommandLineParserTests
     [Theory]
     [InlineData("clone-repositories", TaskType.CloneRepositories)]
     [InlineData("analyze-pr-diffs", TaskType.AnalyzePRDiffs)]
-    [InlineData("static-project-analysis", TaskType.StaticProjectAnalysis)]
     [InlineData("copilot-risk-analysis", TaskType.CopilotRiskAnalysis)]
     [InlineData("cross-project-correlation", TaskType.CrossProjectCorrelation)]
     [InlineData("generate-risk-report", TaskType.GenerateRiskReport)]
