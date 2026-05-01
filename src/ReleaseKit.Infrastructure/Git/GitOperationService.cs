@@ -227,9 +227,16 @@ public class GitOperationService : IGitOperationService
                 _ => ChangeType.Modified
             };
 
-            var filePath = status[0] is 'R' or 'C'
-                ? parts.ElementAtOrDefault(2)?.Trim()
-                : parts[1].Trim();
+            string filePath;
+            if (status[0] is 'R' or 'C')
+            {
+                if (parts.Length < 3) continue;
+                filePath = parts[2].Trim();
+            }
+            else
+            {
+                filePath = parts[1].Trim();
+            }
 
             if (string.IsNullOrEmpty(filePath)) continue;
             results.Add((changeType, filePath));
@@ -310,8 +317,11 @@ internal sealed class GitCommandRunner : IGitCommandRunner
         var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
         var waitForExitTask = process.WaitForExitAsync(cancellationToken);
 
-        await Task.WhenAll(outputTask, errorTask, waitForExitTask);
+        await Task.WhenAll(outputTask, errorTask, waitForExitTask).ConfigureAwait(false);
 
-        return new GitCommandResult(process.ExitCode, outputTask.Result, errorTask.Result);
+        return new GitCommandResult(
+            process.ExitCode,
+            await outputTask.ConfigureAwait(false),
+            await errorTask.ConfigureAwait(false));
     }
 }

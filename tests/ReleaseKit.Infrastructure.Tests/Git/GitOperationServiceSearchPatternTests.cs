@@ -117,6 +117,7 @@ public class GitOperationServiceSearchPatternTests
         public static TemporaryGitRepository Create()
         {
             var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"test-repo-{Guid.NewGuid():N}");
+            // SearchPatternAsync 僅檢查 .git 目錄後交由 fake runner，不需要初始化真實 Git 倉庫。
             Directory.CreateDirectory(System.IO.Path.Combine(path, ".git"));
             return new TemporaryGitRepository(path);
         }
