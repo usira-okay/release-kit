@@ -73,10 +73,5 @@ public enum TaskType
     /// <summary>
     /// 分析 PR Diff 資訊
     /// </summary>
-    AnalyzePRDiffs,
-
-    /// <summary>
-    /// 情境專家型 Copilot 風險分析
-    /// </summary>
-    CopilotScenarioAnalysis
+    AnalyzePRDiffs
 }

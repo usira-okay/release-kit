@@ -9,7 +9,6 @@ using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Copilot;
-using ReleaseKit.Infrastructure.Copilot.ScenarioAnalysis;
 using ReleaseKit.Infrastructure.Git;
 using ReleaseKit.Infrastructure.GoogleSheets;
 
@@ -252,15 +251,6 @@ public static class ServiceCollectionExtensions
         // 風險分析任務
         services.AddTransient<CloneRepositoriesTask>();
         services.AddTransient<AnalyzePRDiffsTask>();
-
-
-        // 情境專家型風險分析
-        services.AddTransient<ICopilotScenarioDispatcher, CopilotScenarioDispatcher>();
-        services.AddTransient<CoordinatorAgentRunner>();
-        services.AddTransient<ExpertAgentRunner>();
-        services.AddTransient<SynthesisAgentRunner>();
-        services.AddTransient<ExpertToolFactory>();
-        services.AddTransient<CopilotScenarioAnalysisTask>();
         
         // 註冊任務工廠
         services.AddSingleton<Application.Tasks.TaskFactory>();
