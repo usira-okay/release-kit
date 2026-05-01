@@ -66,20 +66,20 @@ public class AnalyzePRDiffsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 載入 GitLab 與 Bitbucket 所有 PR 資料，以專案路徑為 Key 合併
+    /// 從 Redis 載入 GitLab 與 Bitbucket 過濾後的 PR 資料，以專案路徑為 Key 合併
     /// </summary>
     private async Task<Dictionary<string, List<MergeRequestOutput>>> LoadAllMergeRequestsAsync()
     {
         var result = new Dictionary<string, List<MergeRequestOutput>>();
 
-        var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests);
+        var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser);
         if (!string.IsNullOrEmpty(gitLabJson))
         {
             var gitLabFetchResult = gitLabJson.ToTypedObject<FetchResult>();
             MergeFetchResultInto(result, gitLabFetchResult);
         }
 
-        var bbJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests);
+        var bbJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser);
         if (!string.IsNullOrEmpty(bbJson))
         {
             var bbFetchResult = bbJson.ToTypedObject<FetchResult>();

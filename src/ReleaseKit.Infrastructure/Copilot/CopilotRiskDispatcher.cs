@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -204,22 +205,18 @@ public class CopilotRiskDispatcher : ICopilotRiskDispatcher
     /// </summary>
     internal List<RiskFinding> ParseFindings(string response, string projectPath)
     {
-        var json = response.Trim();
+        var json = ExtractJsonBlock(response);
 
-        if (json.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
-            json = json["```json".Length..];
-        else if (json.StartsWith("```"))
-            json = json["```".Length..];
-
-        if (json.EndsWith("```"))
-            json = json[..^"```".Length];
-
-        json = json.Trim();
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            _logger.LogWarning("無法擷取 JSON 代碼塊，專案 {ProjectPath}，原始回應: {Response}",
+                projectPath, response);
+            return [];
+        }
 
         var serializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         List<RiskFindingDto>? items;
-        // AI 回應可能包含非合法 JSON，此處需明確捕捉解析例外並記錄原始回應後回傳空結果
         try
         {
             items = JsonSerializer.Deserialize<List<RiskFindingDto>>(json, serializerOptions);
@@ -248,6 +245,20 @@ public class CopilotRiskDispatcher : ICopilotRiskDispatcher
             RecommendedAction = dto.RecommendedAction,
             ChangedBy = string.Empty
         }).ToList();
+    }
+
+    /// <summary>
+    /// 從回應中擷取 ```json...``` 代碼塊的 JSON 內容
+    /// </summary>
+    private static string ExtractJsonBlock(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return string.Empty;
+
+        var pattern = @"```(?:json)?\s*\n?(.*?)\n?```";
+        var match = Regex.Match(response, pattern, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+        return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
     }
 
     /// <summary>

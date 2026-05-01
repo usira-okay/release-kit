@@ -88,12 +88,12 @@ public class AnalyzePRDiffsTaskTests
 
     private void SetupGitLabPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
         _redisServiceMock
-            .Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+            .Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(ToFetchResultJson(data, SourceControlPlatform.GitLab));
 
     private void SetupBitbucketPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
         _redisServiceMock
-            .Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
+            .Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(ToFetchResultJson(data, SourceControlPlatform.Bitbucket));
 
     /// <summary>
