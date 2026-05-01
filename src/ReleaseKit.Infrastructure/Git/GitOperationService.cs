@@ -321,7 +321,7 @@ internal sealed class GitCommandRunner : IGitCommandRunner
 
         return new GitCommandResult(
             process.ExitCode,
-            await outputTask.ConfigureAwait(false),
-            await errorTask.ConfigureAwait(false));
+            outputTask.Result,
+            errorTask.Result);
     }
 }
