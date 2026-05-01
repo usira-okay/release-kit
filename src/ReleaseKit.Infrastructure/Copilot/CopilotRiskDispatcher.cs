@@ -64,10 +64,14 @@ public class CopilotRiskDispatcher : ICopilotRiskDispatcher
             return;
         }
 
+        // 1 代表 Dispatcher session 本身，每次 dispatch_project_analysis 被呼叫再加 1（Analyzer session）
+        var totalSessionCount = 1;
+
         // 定義 dispatch_project_analysis 工具：SubAgent 1 呼叫此工具來派發 SubAgent 2
         var dispatchProjectAnalysis = AIFunctionFactory.Create(
             async ([Description("要分析的 CommitSha 清單")] List<string> commitShas) =>
             {
+                totalSessionCount++;
                 return await RunAnalyzerAgentAsync(
                     runId, projectPath, commitShas, localPath, scenarios, clientOptions, ct);
             },
@@ -95,7 +99,8 @@ public class CopilotRiskDispatcher : ICopilotRiskDispatcher
 
         await dispatcherSession.SendAndWaitAsync(new MessageOptions { Prompt = userPrompt }, timeout: timeout);
 
-        _logger.LogInformation("專案 {ProjectPath} Dispatcher SubAgent 完成", projectPath);
+        _logger.LogInformation("專案 {ProjectPath} 完成，共建立 {SessionCount} 個 Copilot SDK session",
+            projectPath, totalSessionCount);
     }
 
     /// <summary>
