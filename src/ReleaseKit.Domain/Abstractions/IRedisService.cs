@@ -61,4 +61,11 @@ public interface IRedisService
     /// <param name="hashKey">Hash 鍵值</param>
     /// <param name="field">Hash 欄位名稱</param>
     Task<bool> HashExistsAsync(string hashKey, string field);
+
+    /// <summary>
+    /// 取得 Hash 所有欄位與值
+    /// </summary>
+    /// <param name="hashKey">Hash 鍵值</param>
+    /// <returns>欄位名稱與內容的字典，若不存在則回傳空字典</returns>
+    Task<IReadOnlyDictionary<string, string>> HashGetAllAsync(string hashKey);
 }

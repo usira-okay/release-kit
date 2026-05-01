@@ -63,6 +63,12 @@ public sealed record GitLabMergeRequestResponse
     public string WebUrl { get; init; } = string.Empty;
 
     /// <summary>
+    /// 合併 Commit SHA
+    /// </summary>
+    [JsonPropertyName("merge_commit_sha")]
+    public string? MergeCommitSha { get; init; }
+
+    /// <summary>
     /// 作者資訊
     /// </summary>
     [JsonPropertyName("author")]

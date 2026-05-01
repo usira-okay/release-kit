@@ -134,6 +134,16 @@ public sealed record MergeRequest
     public required string ProjectPath { get; init; }
 
     /// <summary>
+    /// Merge Commit SHA（合併後的 commit hash）
+    /// </summary>
+    /// <remarks>
+    /// 對應 GitLab 的 merge_commit_sha 欄位或 Bitbucket 的 merge_commit.hash 欄位。
+    /// 用於在 clone 下來的 repo 中取得具體的異動 diff。
+    /// 若 PR/MR 尚未合併，此值為 null。
+    /// </remarks>
+    public string? MergeCommitSha { get; init; }
+
+    /// <summary>
     /// Work Item ID
     /// </summary>
     /// <remarks>

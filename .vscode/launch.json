@@ -19,6 +19,8 @@
                 // "consolidate-release-data"
                 // "update-googlesheet"
                 // "enhance-titles"
+                // "clone-repositories"
+                // "analyze-pr-diffs"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

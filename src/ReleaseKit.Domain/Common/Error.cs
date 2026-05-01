@@ -149,4 +149,41 @@ public sealed record Error(string Code, string Message)
         public static Error Unauthorized =>
             new("AzureDevOps.Unauthorized", "Azure DevOps API 驗證失敗，請檢查 Personal Access Token");
     }
+
+    /// <summary>
+    /// Git 操作相關錯誤
+    /// </summary>
+    public static class Git
+    {
+        /// <summary>
+        /// Clone 失敗錯誤
+        /// </summary>
+        /// <param name="repoUrl">倉庫 URL</param>
+        /// <param name="message">詳細錯誤訊息</param>
+        public static Error CloneFailed(string repoUrl, string message) =>
+            new("Git.CloneFailed", $"Clone '{repoUrl}' 失敗：{message}");
+
+        /// <summary>
+        /// Pull 失敗錯誤
+        /// </summary>
+        /// <param name="localPath">本地路徑</param>
+        /// <param name="message">詳細錯誤訊息</param>
+        public static Error PullFailed(string localPath, string message) =>
+            new("Git.PullFailed", $"Pull '{localPath}' 失敗：{message}");
+
+        /// <summary>
+        /// Diff 取得失敗錯誤
+        /// </summary>
+        /// <param name="commitSha">Commit SHA</param>
+        /// <param name="message">詳細錯誤訊息</param>
+        public static Error DiffFailed(string commitSha, string message) =>
+            new("Git.DiffFailed", $"取得 commit '{commitSha}' 的 diff 失敗：{message}");
+
+        /// <summary>
+        /// 搜尋失敗錯誤
+        /// </summary>
+        /// <param name="message">詳細錯誤訊息</param>
+        public static Error SearchFailed(string message) =>
+            new("Git.SearchFailed", $"搜尋失敗：{message}");
+    }
 }

@@ -198,7 +198,8 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
                     AuthorName = mr.AuthorName,
                     PrId = mr.PrId,
                     PRUrl = mr.PRUrl,
-                    WorkItemId = mr.WorkItemId
+                    WorkItemId = mr.WorkItemId,
+                    MergeCommitSha = mr.MergeCommitSha
                 }).ToList()
             };
         }

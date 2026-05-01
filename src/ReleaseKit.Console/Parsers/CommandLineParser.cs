@@ -21,6 +21,9 @@ public class CommandLineParser
         { "consolidate-release-data", TaskType.ConsolidateReleaseData },
         { "enhance-titles", TaskType.EnhanceTitles },
         { "get-release-setting", TaskType.GetReleaseSetting },
+        { "clone-repositories", TaskType.CloneRepositories },
+        { "analyze-pr-diffs", TaskType.AnalyzePRDiffs },
+
     };
 
     /// <summary>

@@ -114,6 +114,17 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
+    /// 取得 Hash 所有欄位與值
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, string>> HashGetAllAsync(string hashKey)
+    {
+        var fullKey = GetFullKey(hashKey);
+        var entries = await _database.HashGetAllAsync(fullKey);
+        _logger.LogInformation("Redis HGETALL: {Key}, Count: {Count}", fullKey, entries.Length);
+        return entries.ToDictionary(e => e.Name.ToString(), e => e.Value.ToString());
+    }
+
+    /// <summary>
     /// 取得完整的快取鍵值（加上 Instance Name）
     /// </summary>
     private string GetFullKey(string key)

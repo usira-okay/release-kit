@@ -123,6 +123,17 @@ public class CommandLineParserTests
         Assert.Contains("invalid-task", result.ErrorMessage);
     }
 
+    [Theory]
+    [InlineData("clone-repositories", TaskType.CloneRepositories)]
+    [InlineData("analyze-pr-diffs", TaskType.AnalyzePRDiffs)]
+    public void Parse_風險分析任務名稱_應回傳對應TaskType(string taskName, TaskType expectedType)
+    {
+        var parser = new CommandLineParser();
+        var result = parser.Parse(new[] { taskName });
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expectedType, result.TaskType.Value);
+    }
+
     [Fact]
     public void Parse_WithInvalidTaskName_ShouldShowValidTasks()
     {

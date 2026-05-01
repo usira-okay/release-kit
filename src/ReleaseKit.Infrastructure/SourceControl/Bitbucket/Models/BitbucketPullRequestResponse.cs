@@ -63,4 +63,10 @@ public sealed record BitbucketPullRequestResponse
     /// </summary>
     [JsonPropertyName("links")]
     public BitbucketLinksResponse Links { get; init; } = new();
+
+    /// <summary>
+    /// 合併 Commit 資訊
+    /// </summary>
+    [JsonPropertyName("merge_commit")]
+    public BitbucketMergeCommitResponse? MergeCommit { get; init; }
 }

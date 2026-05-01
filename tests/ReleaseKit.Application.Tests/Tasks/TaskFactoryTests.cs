@@ -41,6 +41,8 @@ public class TaskFactoryTests
         services.AddSingleton(new Mock<ILogger<ConsolidateReleaseDataTask>>().Object);
         services.AddSingleton(new Mock<ILogger<UpdateGoogleSheetsTask>>().Object);
         services.AddSingleton(new Mock<ILogger<GetReleaseSettingTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<CloneRepositoriesTask>>().Object);
+        services.AddSingleton(new Mock<ILogger<AnalyzePRDiffsTask>>().Object);
         
         // 註冊 INow mock
         var mockNow = new Mock<INow>();
@@ -63,6 +65,12 @@ public class TaskFactoryTests
         mockRedisService.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         services.AddSingleton(mockRedisService.Object);
 
+        // 註冊風險分析服務 mocks
+        services.AddSingleton(new Mock<IGitOperationService>().Object);
+
+        // 註冊 RiskAnalysisOptions
+        services.AddSingleton(Options.Create(new RiskAnalysisOptions()));
+
         // 註冊 IGoogleSheetService mock
         var mockGoogleSheetService = new Mock<IGoogleSheetService>();
         services.AddSingleton(mockGoogleSheetService.Object);
@@ -81,6 +89,8 @@ public class TaskFactoryTests
         services.AddTransient<FilterBitbucketPullRequestsByUserTask>();
         services.AddTransient<ConsolidateReleaseDataTask>();
         services.AddTransient<GetReleaseSettingTask>();
+        services.AddTransient<CloneRepositoriesTask>();
+        services.AddTransient<AnalyzePRDiffsTask>();
 
         _serviceProvider = services.BuildServiceProvider();
         _factory = new AppTaskFactory(_serviceProvider);
@@ -202,6 +212,28 @@ public class TaskFactoryTests
         // Assert
         Assert.NotNull(task);
         Assert.IsType<GetReleaseSettingTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithCloneRepositories_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.CloneRepositories);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<CloneRepositoriesTask>(task);
+    }
+
+    [Fact]
+    public void CreateTask_WithAnalyzePRDiffs_ShouldReturnCorrectTaskType()
+    {
+        // Act
+        var task = _factory.CreateTask(TaskType.AnalyzePRDiffs);
+
+        // Assert
+        Assert.NotNull(task);
+        Assert.IsType<AnalyzePRDiffsTask>(task);
     }
 
     [Fact]

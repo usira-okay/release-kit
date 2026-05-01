@@ -99,6 +99,55 @@ public class MergeRequestTests
     }
 
     [Fact]
+    public void MergeCommitSha_預設為null()
+    {
+        // Arrange & Act
+        var mergeRequest = new MergeRequest
+        {
+            Title = "feat: 測試",
+            SourceBranch = "feature/test",
+            TargetBranch = "main",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            State = "merged",
+            AuthorUserId = "123",
+            AuthorName = "test",
+            PrId = "1",
+            PRUrl = "https://example.com/pr/1",
+            Platform = SourceControlPlatform.GitLab,
+            ProjectPath = "test/project"
+        };
+
+        // Assert
+        Assert.Null(mergeRequest.MergeCommitSha);
+    }
+
+    [Fact]
+    public void MergeCommitSha_可設定值()
+    {
+        // Arrange & Act
+        var mergeRequest = new MergeRequest
+        {
+            Title = "feat: 測試",
+            SourceBranch = "feature/test",
+            TargetBranch = "main",
+            CreatedAt = DateTimeOffset.UtcNow,
+            MergedAt = DateTimeOffset.UtcNow,
+            State = "merged",
+            AuthorUserId = "123",
+            AuthorName = "test",
+            PrId = "1",
+            PRUrl = "https://example.com/pr/1",
+            Platform = SourceControlPlatform.GitLab,
+            ProjectPath = "test/project",
+            MergeCommitSha = "abc123def456"
+        };
+
+        // Assert
+        Assert.Equal("abc123def456", mergeRequest.MergeCommitSha);
+    }
+
+    [Fact]
     public void Platform_ShouldSupportBitbucket()
     {
         // Arrange & Act
