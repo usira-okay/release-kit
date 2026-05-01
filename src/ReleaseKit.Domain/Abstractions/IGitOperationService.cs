@@ -26,4 +26,18 @@ public interface IGitOperationService
     /// 取得指定 Commit 的完整 diff 內容（unified diff 格式）
     /// </summary>
     Task<Result<string>> GetCommitRawDiffAsync(string repoPath, string commitSha, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 使用 git grep 搜尋程式碼庫中符合模式的內容
+    /// </summary>
+    /// <param name="repoPath">本地 repo 路徑</param>
+    /// <param name="pattern">搜尋模式（正規表示式）</param>
+    /// <param name="fileGlob">檔案 glob 篩選（如 "*.cs"），null 表示搜尋所有檔案</param>
+    /// <param name="cancellationToken">取消標記</param>
+    /// <returns>搜尋結果（每行格式：檔案:行號:內容）</returns>
+    Task<Result<string>> SearchPatternAsync(
+        string repoPath,
+        string pattern,
+        string? fileGlob = null,
+        CancellationToken cancellationToken = default);
 }

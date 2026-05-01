@@ -115,6 +115,16 @@ public class GitOperationService : IGitOperationService
         return Result<string>.Success(diffResult.Value ?? string.Empty);
     }
 
+    /// <inheritdoc />
+    public Task<Result<string>> SearchPatternAsync(
+        string repoPath,
+        string pattern,
+        string? fileGlob = null,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// 執行 git 命令
     /// </summary>
