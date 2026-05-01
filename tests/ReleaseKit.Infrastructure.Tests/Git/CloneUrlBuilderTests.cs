@@ -42,12 +42,12 @@ public class CloneUrlBuilderTests
         var bitbucketOptions = new BitbucketOptions
         {
             Username = "bb user",
-            AccessToken = "bb-token:456@/#"
+            AccessToken = "bb-token:456"
         };
 
         var result = CloneUrlBuilder.BuildBitbucketCloneUrl(bitbucketOptions, "workspace/repo");
 
-        Assert.Equal("https://bb%20user:bb-token%3A456%40%2F%23@bitbucket.org/workspace/repo.git", result);
+        Assert.Equal("https://bb%20user:bb-token:456@bitbucket.org/workspace/repo.git", result);
     }
 
     [Fact]

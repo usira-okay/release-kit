@@ -42,7 +42,6 @@ public static class CloneUrlBuilder
         }
 
         var encodedUsername = Uri.EscapeDataString(options.Username);
-        var encodedAccessToken = Uri.EscapeDataString(options.AccessToken);
-        return $"https://{encodedUsername}:{encodedAccessToken}@bitbucket.org/{projectPath}.git";
+        return $"https://{encodedUsername}:{options.AccessToken}@bitbucket.org/{projectPath}.git";
     }
 }
