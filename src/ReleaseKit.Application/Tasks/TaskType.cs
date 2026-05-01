@@ -88,5 +88,10 @@ public enum TaskType
     /// <summary>
     /// 產生風險報告
     /// </summary>
-    GenerateRiskReport
+    GenerateRiskReport,
+
+    /// <summary>
+    /// 情境專家型 Copilot 風險分析
+    /// </summary>
+    CopilotScenarioAnalysis
 }

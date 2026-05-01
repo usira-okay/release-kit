@@ -42,6 +42,7 @@ public class TaskFactory
             TaskType.CopilotRiskAnalysis => _serviceProvider.GetRequiredService<CopilotRiskAnalysisTask>(),
             TaskType.CrossProjectCorrelation => _serviceProvider.GetRequiredService<CrossProjectCorrelationTask>(),
             TaskType.GenerateRiskReport => _serviceProvider.GetRequiredService<GenerateRiskReportTask>(),
+            TaskType.CopilotScenarioAnalysis => _serviceProvider.GetRequiredService<CopilotScenarioAnalysisTask>(),
             _ => throw new ArgumentException($"不支援的任務類型: {taskType}", nameof(taskType))
         };
     }
