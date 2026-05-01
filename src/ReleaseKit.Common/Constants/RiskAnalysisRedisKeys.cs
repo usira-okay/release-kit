@@ -21,32 +21,7 @@ public static class RiskAnalysisRedisKeys
     public static string Stage2Hash(string runId) => $"{Prefix}:{runId}:Stage2";
 
     /// <summary>
-    /// 取得 Stage 3（靜態分析）的 Redis Hash Key
-    /// </summary>
-    public static string Stage3Hash(string runId) => $"{Prefix}:{runId}:Stage3";
-
-    /// <summary>
-    /// 取得 Stage 4（Copilot 分析）的 Redis Hash Key
-    /// </summary>
-    public static string Stage4Hash(string runId) => $"{Prefix}:{runId}:Stage4";
-
-    /// <summary>
     /// 取得當前 Run ID 的 Redis Key
     /// </summary>
     public const string CurrentRunIdKey = "RiskAnalysis:CurrentRunId";
-
-    /// <summary>
-    /// 取得 Stage 4 Scenario Coordinator 的 Redis Hash Key
-    /// </summary>
-    public static string Stage4ScenarioCoordinatorHash(string runId) => $"{Prefix}:{runId}:Stage4Scenario:Coordinator";
-
-    /// <summary>
-    /// 取得 Stage 4 Scenario Expert 的 Redis Hash Key
-    /// </summary>
-    public static string Stage4ScenarioExpertHash(string runId) => $"{Prefix}:{runId}:Stage4Scenario:Expert";
-
-    /// <summary>
-    /// 取得 Stage 4 Scenario Synthesis 的 Redis Hash Key
-    /// </summary>
-    public static string Stage4ScenarioSynthesisHash(string runId) => $"{Prefix}:{runId}:Stage4Scenario:Synthesis";
 }
