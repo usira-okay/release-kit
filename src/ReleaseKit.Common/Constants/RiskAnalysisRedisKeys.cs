@@ -54,4 +54,19 @@ public static class RiskAnalysisRedisKeys
     /// Stage 6 報告結果的欄位名稱
     /// </summary>
     public const string ReportField = "Report";
+
+    /// <summary>
+    /// 取得 Stage 4 Scenario Coordinator 的 Redis Hash Key
+    /// </summary>
+    public static string Stage4ScenarioCoordinatorHash(string runId) => $"{Prefix}:{runId}:Stage4Scenario:Coordinator";
+
+    /// <summary>
+    /// 取得 Stage 4 Scenario Expert 的 Redis Hash Key
+    /// </summary>
+    public static string Stage4ScenarioExpertHash(string runId) => $"{Prefix}:{runId}:Stage4Scenario:Expert";
+
+    /// <summary>
+    /// 取得 Stage 4 Scenario Synthesis 的 Redis Hash Key
+    /// </summary>
+    public static string Stage4ScenarioSynthesisHash(string runId) => $"{Prefix}:{runId}:Stage4Scenario:Synthesis";
 }
