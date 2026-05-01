@@ -116,13 +116,32 @@ public class GitOperationService : IGitOperationService
     }
 
     /// <inheritdoc />
-    public Task<Result<string>> SearchPatternAsync(
+    public async Task<Result<string>> SearchPatternAsync(
         string repoPath,
         string pattern,
         string? fileGlob = null,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (!Directory.Exists(Path.Combine(repoPath, ".git")))
+        {
+            return Result<string>.Failure(
+                Error.Git.SearchFailed($"'{repoPath}' 不是有效的 Git 倉庫"));
+        }
+
+        var arguments = fileGlob != null
+            ? $"grep -n -E \"{pattern}\" -- \"{fileGlob}\""
+            : $"grep -n -E \"{pattern}\"";
+
+        // git grep exit code 1 = 無符合結果，屬正常情境
+        var result = await RunGitCommandAsync(arguments, repoPath, [1], cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Result<string>.Failure(
+                Error.Git.SearchFailed(result.Error!.Message));
+        }
+
+        return Result<string>.Success(result.Value ?? string.Empty);
     }
 
     /// <summary>
@@ -152,6 +171,46 @@ public class GitOperationService : IGitOperationService
         await process.WaitForExitAsync(cancellationToken);
 
         if (process.ExitCode != 0)
+        {
+            _logger.LogError("git {Arguments} 失敗 (exit code {ExitCode}): {Error}",
+                SanitizeUrl(arguments), process.ExitCode, error);
+            return Result<string>.Failure(new Error("Git.CommandFailed", error.Trim()));
+        }
+
+        return Result<string>.Success(output);
+    }
+
+    /// <summary>
+    /// 執行 git 命令（允許指定可接受的 exit code）
+    /// </summary>
+    private async Task<Result<string>> RunGitCommandAsync(
+        string arguments,
+        string workingDirectory,
+        IReadOnlyList<int> acceptableExitCodes,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = arguments,
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            return Result<string>.Failure(new Error("Git.ProcessFailed", "無法啟動 git 程序"));
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+
+        if (process.ExitCode != 0 && !acceptableExitCodes.Contains(process.ExitCode))
         {
             _logger.LogError("git {Arguments} 失敗 (exit code {ExitCode}): {Error}",
                 SanitizeUrl(arguments), process.ExitCode, error);

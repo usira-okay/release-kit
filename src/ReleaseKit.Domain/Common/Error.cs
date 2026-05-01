@@ -178,5 +178,12 @@ public sealed record Error(string Code, string Message)
         /// <param name="message">詳細錯誤訊息</param>
         public static Error DiffFailed(string commitSha, string message) =>
             new("Git.DiffFailed", $"取得 commit '{commitSha}' 的 diff 失敗：{message}");
+
+        /// <summary>
+        /// 搜尋失敗錯誤
+        /// </summary>
+        /// <param name="message">詳細錯誤訊息</param>
+        public static Error SearchFailed(string message) =>
+            new("Git.SearchFailed", $"搜尋失敗：{message}");
     }
 }
