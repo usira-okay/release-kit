@@ -11,11 +11,12 @@ namespace ReleaseKit.Infrastructure.Tests.Git;
 public class GitOperationServiceSearchPatternTests
 {
     private readonly GitOperationService _sut;
+    private readonly FakeGitCommandRunner _gitRunner = new();
 
     public GitOperationServiceSearchPatternTests()
     {
         var logger = new Mock<ILogger<GitOperationService>>();
-        _sut = new GitOperationService(logger.Object);
+        _sut = new GitOperationService(logger.Object, _gitRunner);
     }
 
     [Fact]
@@ -43,13 +44,12 @@ public class GitOperationServiceSearchPatternTests
     [Fact]
     public async Task SearchPatternAsync_有效倉庫但無符合結果_應回傳空字串()
     {
-        // Arrange — 使用當前專案 repo
-        var repoPath = GetCurrentRepoRoot();
+        // Arrange
+        using var repo = TemporaryGitRepository.Create();
+        _gitRunner.NextResult = new GitCommandResult(1, string.Empty, string.Empty);
 
-        // Act — 搜尋一個不可能存在的模式
-        // 使用一個不太可能在任何程式碼中出現的特殊字串
-        var impossiblePattern = $"{Guid.NewGuid():N}_PATTERN_THAT_NEVER_EXISTS";
-        var result = await _sut.SearchPatternAsync(repoPath, impossiblePattern);
+        // Act
+        var result = await _sut.SearchPatternAsync(repo.Path, "pattern-without-match");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -59,22 +59,74 @@ public class GitOperationServiceSearchPatternTests
     [Fact]
     public async Task SearchPatternAsync_有效倉庫有符合結果_應回傳搜尋內容()
     {
-        // Arrange — 使用當前專案 repo
-        var repoPath = GetCurrentRepoRoot();
+        // Arrange
+        using var repo = TemporaryGitRepository.Create();
+        _gitRunner.NextResult = new GitCommandResult(0, "src/File.cs:1:IGitOperationService", string.Empty);
 
-        // Act — 搜尋 "IGitOperationService"，這在 Domain 層一定存在
-        var result = await _sut.SearchPatternAsync(repoPath, "IGitOperationService", "*.cs");
+        // Act
+        var result = await _sut.SearchPatternAsync(repo.Path, "IGitOperationService", "*.cs");
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Contain("IGitOperationService");
+        var call = _gitRunner.Calls.Should().ContainSingle().Subject;
+        call.Arguments.Should().Equal("grep", "-n", "-E", "-e", "IGitOperationService", "--", "*.cs");
+        call.WorkingDirectory.Should().Be(repo.Path);
     }
 
-    private static string GetCurrentRepoRoot()
+    [Fact]
+    public async Task SearchPatternAsync_含特殊字元Pattern_應以獨立參數傳遞()
     {
-        var dir = Directory.GetCurrentDirectory();
-        while (dir != null && !Directory.Exists(Path.Combine(dir, ".git")))
-            dir = Directory.GetParent(dir)?.FullName;
-        return dir ?? throw new InvalidOperationException("找不到 Git 倉庫根目錄");
+        // Arrange
+        using var repo = TemporaryGitRepository.Create();
+        const string pattern = "a\"b\\\\c";
+
+        // Act
+        var result = await _sut.SearchPatternAsync(repo.Path, pattern, "src/*.cs");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var call = _gitRunner.Calls.Should().ContainSingle().Subject;
+        call.Arguments.Should().Equal("grep", "-n", "-E", "-e", pattern, "--", "src/*.cs");
+    }
+
+    private sealed class FakeGitCommandRunner : IGitCommandRunner
+    {
+        public List<(IReadOnlyList<string> Arguments, string WorkingDirectory)> Calls { get; } = new();
+        public GitCommandResult? NextResult { get; set; } = new(0, string.Empty, string.Empty);
+
+        public Task<GitCommandResult?> RunAsync(
+            IReadOnlyList<string> arguments,
+            string workingDirectory,
+            CancellationToken cancellationToken)
+        {
+            Calls.Add((arguments.ToList(), workingDirectory));
+            return Task.FromResult(NextResult);
+        }
+    }
+
+    private sealed class TemporaryGitRepository : IDisposable
+    {
+        private TemporaryGitRepository(string path)
+        {
+            Path = path;
+        }
+
+        public string Path { get; }
+
+        public static TemporaryGitRepository Create()
+        {
+            var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"test-repo-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(System.IO.Path.Combine(path, ".git"));
+            return new TemporaryGitRepository(path);
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(Path))
+            {
+                Directory.Delete(Path, true);
+            }
+        }
     }
 }

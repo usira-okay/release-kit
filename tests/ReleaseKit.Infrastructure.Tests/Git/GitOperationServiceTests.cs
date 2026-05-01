@@ -11,44 +11,58 @@ namespace ReleaseKit.Infrastructure.Tests.Git;
 public class GitOperationServiceTests
 {
     private readonly Mock<ILogger<GitOperationService>> _loggerMock = new();
+    private readonly FakeGitCommandRunner _gitRunner = new();
     private readonly GitOperationService _service;
 
     public GitOperationServiceTests()
     {
-        _service = new GitOperationService(_loggerMock.Object);
+        _service = new GitOperationService(_loggerMock.Object, _gitRunner);
     }
 
     [Fact]
-    public async Task CloneOrPullAsync_目錄不存在時應執行Clone()
+    public async Task CloneOrPullAsync_目錄不存在時應使用獨立參數執行Clone()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"test-clone-{Guid.NewGuid():N}");
 
-        var result = await _service.CloneOrPullAsync(
-            "https://invalid-url.example.com/nonexistent.git",
-            tempDir);
+        try
+        {
+            var result = await _service.CloneOrPullAsync(
+                "https://example.com/owner/repo.git",
+                tempDir);
 
-        // Expected: failure (URL doesn't exist)
-        Assert.True(result.IsFailure);
-        Assert.Contains("Clone", result.Error!.Code);
-
-        if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+            Assert.True(result.IsSuccess);
+            var call = Assert.Single(_gitRunner.Calls);
+            Assert.Equal(["clone", "https://example.com/owner/repo.git", tempDir], call.Arguments);
+            Assert.Equal(Path.GetDirectoryName(tempDir), call.WorkingDirectory);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
-    public async Task CloneOrPullAsync_目錄已存在且為Git倉庫時應執行Pull()
+    public async Task CloneOrPullAsync_目錄已存在且為Git倉庫時應使用獨立參數執行Pull()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"test-pull-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempDir);
-        Directory.CreateDirectory(Path.Combine(tempDir, ".git"));
 
-        var result = await _service.CloneOrPullAsync(
-            "https://invalid-url.example.com/nonexistent.git",
-            tempDir);
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(tempDir, ".git"));
 
-        // Expected: failure (not a real git repo)
-        Assert.True(result.IsFailure);
+            var result = await _service.CloneOrPullAsync(
+                "https://example.com/owner/repo.git",
+                tempDir);
 
-        Directory.Delete(tempDir, true);
+            Assert.True(result.IsSuccess);
+            var call = Assert.Single(_gitRunner.Calls);
+            Assert.Equal(["pull"], call.Arguments);
+            Assert.Equal(tempDir, call.WorkingDirectory);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
@@ -120,6 +134,30 @@ public class GitOperationServiceTests
     }
 
     [Fact]
+    public void ParseNameStatusToFileDiffs_重新命名檔案_應使用新路徑()
+    {
+        var nameStatus = "R100\tsrc/OldName.cs\tsrc/NewName.cs\n";
+
+        var result = GitOperationService.ParseNameStatusToFileDiffs(nameStatus, "sha-rename");
+
+        Assert.Single(result);
+        Assert.Equal("src/NewName.cs", result[0].FilePath);
+        Assert.Equal(ChangeType.Modified, result[0].ChangeType);
+    }
+
+    [Fact]
+    public void ParseNameStatusToFileDiffs_複製檔案_應使用新路徑()
+    {
+        var nameStatus = "C100\tsrc/Original.cs\tsrc/Copied.cs\n";
+
+        var result = GitOperationService.ParseNameStatusToFileDiffs(nameStatus, "sha-copy");
+
+        Assert.Single(result);
+        Assert.Equal("src/Copied.cs", result[0].FilePath);
+        Assert.Equal(ChangeType.Modified, result[0].ChangeType);
+    }
+
+    [Fact]
     public void ParseShortStat_標準輸出應正確解析新增與刪除行數()
     {
         var shortStat = " 5 files changed, 120 insertions(+), 45 deletions(-)";
@@ -148,5 +186,19 @@ public class GitOperationServiceTests
 
         Assert.Equal(0, linesAdded);
         Assert.Equal(0, linesRemoved);
+    }
+
+    private sealed class FakeGitCommandRunner : IGitCommandRunner
+    {
+        public List<(IReadOnlyList<string> Arguments, string WorkingDirectory)> Calls { get; } = new();
+
+        public Task<GitCommandResult?> RunAsync(
+            IReadOnlyList<string> arguments,
+            string workingDirectory,
+            CancellationToken cancellationToken)
+        {
+            Calls.Add((arguments.ToList(), workingDirectory));
+            return Task.FromResult<GitCommandResult?>(new GitCommandResult(0, string.Empty, string.Empty));
+        }
     }
 }

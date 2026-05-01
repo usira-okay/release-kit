@@ -36,7 +36,13 @@ public static class CloneUrlBuilder
     /// <returns>Bitbucket Clone URL</returns>
     public static string BuildBitbucketCloneUrl(BitbucketOptions options, string projectPath)
     {
+        if (string.IsNullOrWhiteSpace(options.Username))
+        {
+            throw new InvalidOperationException("缺少必要的組態鍵: Bitbucket:Username");
+        }
+
         var encodedUsername = Uri.EscapeDataString(options.Username);
-        return $"https://{encodedUsername}:{options.AccessToken}@bitbucket.org/{projectPath}.git";
+        var encodedAccessToken = Uri.EscapeDataString(options.AccessToken);
+        return $"https://{encodedUsername}:{encodedAccessToken}@bitbucket.org/{projectPath}.git";
     }
 }

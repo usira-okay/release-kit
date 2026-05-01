@@ -25,6 +25,7 @@ public class BitbucketOptionsTests
                 ["Bitbucket:ApiUrl"] = "https://api.bitbucket.org/2.0",
                 ["Bitbucket:Email"] = "user@example.com",
                 ["Bitbucket:AccessToken"] = "test-app-password",
+                ["Bitbucket:Username"] = "bb-user",
                 ["Bitbucket:Projects:0:ProjectPath"] = "workspace/repo1",
                 ["Bitbucket:Projects:0:TargetBranch"] = "main",
                 ["Bitbucket:Projects:0:FetchMode"] = "DateTimeRange",
@@ -50,6 +51,7 @@ public class BitbucketOptionsTests
         options.ApiUrl.Should().Be("https://api.bitbucket.org/2.0");
         options.Email.Should().Be("user@example.com");
         options.AccessToken.Should().Be("test-app-password");
+        options.Username.Should().Be("bb-user");
         options.Projects.Should().HaveCount(2);
         options.Projects[0].ProjectPath.Should().Be("workspace/repo1");
         options.Projects[0].TargetBranch.Should().Be("main");

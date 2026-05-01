@@ -58,6 +58,7 @@ public class CloneRepositoriesTaskTests
         {
             ApiUrl = "https://api.bitbucket.org/2.0",
             Email = "user@example.com",
+            Username = "bb-user",
             AccessToken = "bb-token",
             Projects = new List<BitbucketProjectOptions>
             {
@@ -137,6 +138,30 @@ public class CloneRepositoriesTaskTests
         _gitServiceMock.Verify(x =>
             x.CloneOrPullAsync(expectedUrl, expectedLocalPath, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Bitbucket專案未設定Username_應拋出明確錯誤()
+    {
+        // Arrange
+        var bitbucketOptions = new BitbucketOptions
+        {
+            ApiUrl = "https://api.bitbucket.org/2.0",
+            Email = "user@example.com",
+            AccessToken = "bb-token",
+            Projects = new List<BitbucketProjectOptions>
+            {
+                new() { ProjectPath = "workspace/repo-b", TargetBranch = "main" }
+            }
+        };
+        var task = CreateTask(bitbucketOptions: bitbucketOptions);
+
+        // Act
+        var act = () => task.ExecuteAsync();
+
+        // Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(act);
+        Assert.Equal("缺少必要的組態鍵: Bitbucket:Username", exception.Message);
     }
 
     [Fact]

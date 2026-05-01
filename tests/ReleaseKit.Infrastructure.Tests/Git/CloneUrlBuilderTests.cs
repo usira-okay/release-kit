@@ -41,12 +41,26 @@ public class CloneUrlBuilderTests
     {
         var bitbucketOptions = new BitbucketOptions
         {
-            Username = "bb-user",
-            AccessToken = "bb-token-456"
+            Username = "bb user",
+            AccessToken = "bb-token:456@/#"
         };
 
         var result = CloneUrlBuilder.BuildBitbucketCloneUrl(bitbucketOptions, "workspace/repo");
 
-        Assert.Equal("https://bb-user:bb-token-456@bitbucket.org/workspace/repo.git", result);
+        Assert.Equal("https://bb%20user:bb-token%3A456%40%2F%23@bitbucket.org/workspace/repo.git", result);
+    }
+
+    [Fact]
+    public void BuildBitbucketCloneUrl_未設定Username_應拋出明確錯誤()
+    {
+        var bitbucketOptions = new BitbucketOptions
+        {
+            AccessToken = "bb-token"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => CloneUrlBuilder.BuildBitbucketCloneUrl(bitbucketOptions, "workspace/repo"));
+
+        Assert.Equal("缺少必要的組態鍵: Bitbucket:Username", exception.Message);
     }
 }

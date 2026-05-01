@@ -14,13 +14,20 @@ namespace ReleaseKit.Infrastructure.Git;
 public class GitOperationService : IGitOperationService
 {
     private readonly ILogger<GitOperationService> _logger;
+    private readonly IGitCommandRunner _gitRunner;
 
     /// <summary>
     /// 初始化 GitOperationService
     /// </summary>
     public GitOperationService(ILogger<GitOperationService> logger)
+        : this(logger, new GitCommandRunner())
+    {
+    }
+
+    internal GitOperationService(ILogger<GitOperationService> logger, IGitCommandRunner gitRunner)
     {
         _logger = logger;
+        _gitRunner = gitRunner;
     }
 
     /// <inheritdoc />
@@ -29,7 +36,7 @@ public class GitOperationService : IGitOperationService
         if (Directory.Exists(Path.Combine(localPath, ".git")))
         {
             _logger.LogInformation("目錄已存在，執行 git pull: {LocalPath}", localPath);
-            var pullResult = await RunGitCommandAsync("pull", localPath, cancellationToken);
+            var pullResult = await RunGitCommandAsync(["pull"], localPath, cancellationToken);
             if (!pullResult.IsSuccess)
             {
                 return Result<string>.Failure(Error.Git.PullFailed(localPath, pullResult.Error!.Message));
@@ -41,7 +48,7 @@ public class GitOperationService : IGitOperationService
         var parentDir = Path.GetDirectoryName(localPath) ?? localPath;
         Directory.CreateDirectory(parentDir);
 
-        var cloneResult = await RunGitCommandAsync($"clone {repoUrl} {localPath}", parentDir, cancellationToken);
+        var cloneResult = await RunGitCommandAsync(["clone", repoUrl, localPath], parentDir, cancellationToken);
         if (!cloneResult.IsSuccess)
         {
             return Result<string>.Failure(Error.Git.CloneFailed(SanitizeUrl(repoUrl), cloneResult.Error!.Message));
@@ -61,7 +68,7 @@ public class GitOperationService : IGitOperationService
 
         // 使用 {commitSha}^1 對比第一個 parent，可正確處理 merge commit
         var nameStatusResult = await RunGitCommandAsync(
-            $"diff {commitSha}^1 {commitSha} --name-status",
+            ["diff", $"{commitSha}^1", commitSha, "--name-status"],
             repoPath, cancellationToken);
 
         if (!nameStatusResult.IsSuccess)
@@ -71,7 +78,7 @@ public class GitOperationService : IGitOperationService
         }
 
         var shortStatResult = await RunGitCommandAsync(
-            $"diff {commitSha}^1 {commitSha} --shortstat",
+            ["diff", $"{commitSha}^1", commitSha, "--shortstat"],
             repoPath, cancellationToken);
 
         if (!shortStatResult.IsSuccess)
@@ -103,7 +110,7 @@ public class GitOperationService : IGitOperationService
         }
 
         var diffResult = await RunGitCommandAsync(
-            $"diff {commitSha}^1 {commitSha} --unified=3",
+            ["diff", $"{commitSha}^1", commitSha, "--unified=3"],
             repoPath, cancellationToken);
 
         if (!diffResult.IsSuccess)
@@ -128,9 +135,12 @@ public class GitOperationService : IGitOperationService
                 Error.Git.SearchFailed($"'{repoPath}' 不是有效的 Git 倉庫"));
         }
 
-        var arguments = fileGlob != null
-            ? $"grep -n -E \"{pattern}\" -- \"{fileGlob}\""
-            : $"grep -n -E \"{pattern}\"";
+        var arguments = new List<string> { "grep", "-n", "-E", "-e", pattern };
+        if (fileGlob != null)
+        {
+            arguments.Add("--");
+            arguments.Add(fileGlob);
+        }
 
         // git grep exit code 1 = 無符合結果，屬正常情境
         var result = await RunGitCommandAsync(arguments, repoPath, [1], cancellationToken);
@@ -147,77 +157,35 @@ public class GitOperationService : IGitOperationService
     /// <summary>
     /// 執行 git 命令
     /// </summary>
-    private async Task<Result<string>> RunGitCommandAsync(string arguments, string workingDirectory, CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "git",
-            Arguments = arguments,
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = Process.Start(startInfo);
-        if (process == null)
-        {
-            return Result<string>.Failure(new Error("Git.ProcessFailed", "無法啟動 git 程序"));
-        }
-
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-
-        if (process.ExitCode != 0)
-        {
-            _logger.LogError("git {Arguments} 失敗 (exit code {ExitCode}): {Error}",
-                SanitizeUrl(arguments), process.ExitCode, error);
-            return Result<string>.Failure(new Error("Git.CommandFailed", error.Trim()));
-        }
-
-        return Result<string>.Success(output);
-    }
+    private Task<Result<string>> RunGitCommandAsync(
+        IReadOnlyList<string> arguments,
+        string workingDirectory,
+        CancellationToken cancellationToken)
+        => RunGitCommandAsync(arguments, workingDirectory, [], cancellationToken);
 
     /// <summary>
     /// 執行 git 命令（允許指定可接受的 exit code）
     /// </summary>
     private async Task<Result<string>> RunGitCommandAsync(
-        string arguments,
+        IReadOnlyList<string> arguments,
         string workingDirectory,
         IReadOnlyList<int> acceptableExitCodes,
         CancellationToken cancellationToken)
     {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "git",
-            Arguments = arguments,
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = Process.Start(startInfo);
-        if (process == null)
+        var result = await _gitRunner.RunAsync(arguments, workingDirectory, cancellationToken);
+        if (result == null)
         {
             return Result<string>.Failure(new Error("Git.ProcessFailed", "無法啟動 git 程序"));
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-
-        if (process.ExitCode != 0 && !acceptableExitCodes.Contains(process.ExitCode))
+        if (result.ExitCode != 0 && !acceptableExitCodes.Contains(result.ExitCode))
         {
             _logger.LogError("git {Arguments} 失敗 (exit code {ExitCode}): {Error}",
-                SanitizeUrl(arguments), process.ExitCode, error);
-            return Result<string>.Failure(new Error("Git.CommandFailed", error.Trim()));
+                SanitizeUrl(string.Join(' ', arguments)), result.ExitCode, result.Error);
+            return Result<string>.Failure(new Error("Git.CommandFailed", result.Error.Trim()));
         }
 
-        return Result<string>.Success(output);
+        return Result<string>.Success(result.Output);
     }
 
     /// <summary>
@@ -241,19 +209,30 @@ public class GitOperationService : IGitOperationService
     private static List<(ChangeType ChangeType, string FilePath)> ParseNameStatus(string output)
     {
         var results = new List<(ChangeType, string)>();
-        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var rawLine in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            var parts = line.Split('\t', 2);
+            var line = rawLine.Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+
+            var parts = line.Split('\t');
             if (parts.Length < 2) continue;
 
-            var changeType = parts[0].Trim() switch
+            var status = parts[0].Trim();
+            if (string.IsNullOrEmpty(status)) continue;
+
+            var changeType = status[0] switch
             {
-                "A" => ChangeType.Added,
-                "D" => ChangeType.Deleted,
+                'A' => ChangeType.Added,
+                'D' => ChangeType.Deleted,
                 _ => ChangeType.Modified
             };
 
-            results.Add((changeType, parts[1].Trim()));
+            var filePath = status[0] is 'R' or 'C'
+                ? parts.ElementAtOrDefault(2)?.Trim()
+                : parts[1].Trim();
+
+            if (string.IsNullOrEmpty(filePath)) continue;
+            results.Add((changeType, filePath));
         }
         return results;
     }
@@ -286,5 +265,53 @@ public class GitOperationService : IGitOperationService
     private static string SanitizeUrl(string urlOrArgs)
     {
         return Regex.Replace(urlOrArgs, @"://[^@]+@", "://***@");
+    }
+}
+
+internal interface IGitCommandRunner
+{
+    Task<GitCommandResult?> RunAsync(
+        IReadOnlyList<string> arguments,
+        string workingDirectory,
+        CancellationToken cancellationToken);
+}
+
+internal sealed record GitCommandResult(int ExitCode, string Output, string Error);
+
+internal sealed class GitCommandRunner : IGitCommandRunner
+{
+    public async Task<GitCommandResult?> RunAsync(
+        IReadOnlyList<string> arguments,
+        string workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            return null;
+        }
+
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        var waitForExitTask = process.WaitForExitAsync(cancellationToken);
+
+        await Task.WhenAll(outputTask, errorTask, waitForExitTask);
+
+        return new GitCommandResult(process.ExitCode, outputTask.Result, errorTask.Result);
     }
 }
