@@ -20,11 +20,7 @@
                 // "update-googlesheet"
                 // "enhance-titles"
                 // "clone-repositories"
-                "analyze-pr-diffs"
-                // "static-project-analysis"
-                // "copilot-risk-analysis"
-                // "cross-project-correlation"
-                // "generate-risk-report"
+                // "analyze-pr-diffs"
             ],
             "cwd": "${workspaceFolder}/src/ReleaseKit.Console",
             "stopAtEntry": false,

@@ -12,7 +12,7 @@ using ReleaseKit.Infrastructure.Copilot;
 using ReleaseKit.Infrastructure.Copilot.ScenarioAnalysis;
 using ReleaseKit.Infrastructure.Git;
 using ReleaseKit.Infrastructure.GoogleSheets;
-using ReleaseKit.Infrastructure.Reporting;
+
 using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.Time;
 using StackExchange.Redis;
@@ -223,8 +223,7 @@ public static class ServiceCollectionExtensions
         // 風險分析服務
         services.Configure<RiskAnalysisOptions>(configuration.GetSection("RiskAnalysis"));
         services.AddTransient<IGitOperationService, GitOperationService>();
-        services.AddTransient<ICopilotRiskDispatcher, CopilotRiskDispatcher>();
-        services.AddTransient<IMarkdownReportGenerator, MarkdownReportGenerator>();
+
         
         // 註冊 Source Control Repositories
         services.AddKeyedTransient<ReleaseKit.Domain.Abstractions.ISourceControlRepository, 
@@ -253,9 +252,7 @@ public static class ServiceCollectionExtensions
         // 風險分析任務
         services.AddTransient<CloneRepositoriesTask>();
         services.AddTransient<AnalyzePRDiffsTask>();
-        services.AddTransient<CopilotRiskAnalysisTask>();
-        services.AddTransient<CrossProjectCorrelationTask>();
-        services.AddTransient<GenerateRiskReportTask>();
+
 
         // 情境專家型風險分析
         services.AddTransient<ICopilotScenarioDispatcher, CopilotScenarioDispatcher>();

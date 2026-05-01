@@ -33,9 +33,4 @@ public class RiskAnalysisOptions
         "ConfigEnvChange",
         "DataSemanticChange"
     };
-
-    /// <summary>
-    /// 風險報告輸出路徑（預設為當前目錄）
-    /// </summary>
-    public string ReportOutputPath { get; init; } = ".";
 }

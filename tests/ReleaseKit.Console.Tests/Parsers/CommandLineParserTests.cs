@@ -126,9 +126,6 @@ public class CommandLineParserTests
     [Theory]
     [InlineData("clone-repositories", TaskType.CloneRepositories)]
     [InlineData("analyze-pr-diffs", TaskType.AnalyzePRDiffs)]
-    [InlineData("copilot-risk-analysis", TaskType.CopilotRiskAnalysis)]
-    [InlineData("cross-project-correlation", TaskType.CrossProjectCorrelation)]
-    [InlineData("generate-risk-report", TaskType.GenerateRiskReport)]
     public void Parse_風險分析任務名稱_應回傳對應TaskType(string taskName, TaskType expectedType)
     {
         var parser = new CommandLineParser();

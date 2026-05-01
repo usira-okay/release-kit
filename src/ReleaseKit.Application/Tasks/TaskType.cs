@@ -76,21 +76,6 @@ public enum TaskType
     AnalyzePRDiffs,
 
     /// <summary>
-    /// Copilot SDK 風險分析
-    /// </summary>
-    CopilotRiskAnalysis,
-
-    /// <summary>
-    /// 跨專案交叉比對
-    /// </summary>
-    CrossProjectCorrelation,
-
-    /// <summary>
-    /// 產生風險報告
-    /// </summary>
-    GenerateRiskReport,
-
-    /// <summary>
     /// 情境專家型 Copilot 風險分析
     /// </summary>
     CopilotScenarioAnalysis

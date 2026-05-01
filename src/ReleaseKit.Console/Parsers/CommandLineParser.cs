@@ -23,9 +23,7 @@ public class CommandLineParser
         { "get-release-setting", TaskType.GetReleaseSetting },
         { "clone-repositories", TaskType.CloneRepositories },
         { "analyze-pr-diffs", TaskType.AnalyzePRDiffs },
-        { "copilot-risk-analysis", TaskType.CopilotRiskAnalysis },
-        { "cross-project-correlation", TaskType.CrossProjectCorrelation },
-        { "generate-risk-report", TaskType.GenerateRiskReport },
+
     };
 
     /// <summary>

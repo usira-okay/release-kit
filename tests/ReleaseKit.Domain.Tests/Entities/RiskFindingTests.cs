@@ -42,26 +42,4 @@ public class RiskFindingTests
         Assert.Empty(analysis.Findings);
         Assert.Equal(2, analysis.SessionCount);
     }
-
-    [Fact]
-    public void CrossProjectCorrelation_應正確建立含相依圖()
-    {
-        var correlation = new CrossProjectCorrelation
-        {
-            DependencyEdges = new List<DependencyEdge>
-            {
-                new()
-                {
-                    SourceProject = "backend-api",
-                    TargetProject = "frontend-app",
-                    DependencyType = DependencyType.HttpCall,
-                    Target = "/api/v1/users"
-                }
-            },
-            CorrelatedFindings = new List<CorrelatedRiskFinding>(),
-            NotificationTargets = new List<NotificationTarget>()
-        };
-
-        Assert.Single(correlation.DependencyEdges);
-    }
 }
