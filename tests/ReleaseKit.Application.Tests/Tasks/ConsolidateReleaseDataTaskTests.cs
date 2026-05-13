@@ -418,18 +418,15 @@ public class ConsolidateReleaseDataTaskTests
     /// T022: 測試當 Bitbucket 與 GitLab ByUser PR 資料 Key 均不存在時，正常結束不拋例外
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithNoPrDataKeys_ShouldReturnNormally()
+    public async Task ExecuteAsync_WithNoPrDataKeys_ShouldThrowInvalidOperationException()
     {
         // Arrange
         SetupPrData(null, null);
 
-        var workItems = CreateUserStoryResult(CreateWorkItem(100, "pr-1"));
-        SetupUserStoryData(workItems);
-
         var task = CreateTask();
 
-        // Act & Assert - 正常結束不拋例外
-        await task.ExecuteAsync();
+        // Act & Assert - 兩個平台 PR 資料均不存在時應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // 不應寫入 Redis
         _redisServiceMock.Verify(
@@ -464,13 +461,13 @@ public class ConsolidateReleaseDataTaskTests
             Times.Never);
     }
 
-    // ===== T025: 當 UserStories Work Item 資料 Key 不存在時正常結束 =====
+    // ===== T025: 當 UserStories Work Item 資料 Key 不存在時拋出例外 =====
 
     /// <summary>
-    /// T025: 測試當 UserStories Work Item 資料 Key 不存在時，正常結束不拋例外
+    /// T025: 測試當 UserStories Work Item 資料 Key 不存在時，拋出 InvalidOperationException
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithNoWorkItemDataKey_ShouldReturnNormally()
+    public async Task ExecuteAsync_WithNoWorkItemDataKey_ShouldThrowInvalidOperationException()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -481,8 +478,8 @@ public class ConsolidateReleaseDataTaskTests
 
         var task = CreateTask();
 
-        // Act & Assert - 正常結束不拋例外
-        await task.ExecuteAsync();
+        // Act & Assert - UserStories 資料不存在時應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // 不應寫入 Redis
         _redisServiceMock.Verify(

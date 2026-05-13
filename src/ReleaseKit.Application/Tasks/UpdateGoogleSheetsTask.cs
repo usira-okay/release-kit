@@ -119,6 +119,13 @@ public class UpdateGoogleSheetsTask : ITask
         var consolidatedJson = await _redisService.HashGetAsync(
             RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
 
+        if (consolidatedJson is null)
+        {
+            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無整合資料，請先執行 ConsolidateReleaseData 指令",
+                RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+            throw new InvalidOperationException($"Redis Hash {RedisKeys.ReleaseDataHash} Field {RedisKeys.Fields.Consolidated} 中無整合資料");
+        }
+
         if (string.IsNullOrEmpty(consolidatedJson))
         {
             _logger.LogInformation("Redis 中沒有整合資料，結束同步");

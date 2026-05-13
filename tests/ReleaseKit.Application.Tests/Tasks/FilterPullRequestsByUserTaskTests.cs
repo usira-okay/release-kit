@@ -434,16 +434,16 @@ public class FilterPullRequestsByUserTaskTests
     }
     
     /// <summary>
-    /// T011: 無 PR 資料測試 - Redis 中不存在 PR 資料時，驗證記錄警告日誌且不寫入新 Redis Key
+    /// T011: 無 PR 資料測試 - Redis 中不存在 PR 資料時，驗證記錄錯誤日誌且拋出 InvalidOperationException
     /// </summary>
     [Fact]
-    public async Task FilterGitLabPullRequestsByUser_ShouldLogWarningAndNotWriteRedis_WhenNoPRData()
+    public async Task FilterGitLabPullRequestsByUser_ShouldThrowAndNotWriteRedis_WhenNoPRData()
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
         var redisServiceMock = new Mock<IRedisService>();
         
-        // Redis 中無 PR 資料
+        // Redis 中無 PR 資料（欄位不存在）
         redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync((string?)null);
         
@@ -460,11 +460,10 @@ public class FilterPullRequestsByUserTaskTests
             redisServiceMock.Object,
             userMappingOptions);
         
-        // Act
-        await task.ExecuteAsync();
+        // Act & Assert - 應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
         
-        // Assert
-        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
+        // Assert - 不應寫入 Redis
         redisServiceMock.Verify(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
     

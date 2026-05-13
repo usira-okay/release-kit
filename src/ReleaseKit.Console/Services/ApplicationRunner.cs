@@ -50,10 +50,20 @@ public class ApplicationRunner
         _logger.LogInformation("準備執行任務: {TaskType}", taskType);
 
         // 使用工廠模式建立任務並執行
-        var task = _taskFactory.CreateTask(taskType);
-        await task.ExecuteAsync();
-        
-        _logger.LogInformation("任務執行完成");
-        await Log.CloseAndFlushAsync();
+        try
+        {
+            var task = _taskFactory.CreateTask(taskType);
+            await task.ExecuteAsync();
+            _logger.LogInformation("任務執行完成");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "任務執行失敗: {ErrorMessage}", ex.Message);
+            Environment.ExitCode = 1;
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+        }
     }
 }

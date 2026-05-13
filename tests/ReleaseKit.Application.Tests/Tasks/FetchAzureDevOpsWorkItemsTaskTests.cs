@@ -368,17 +368,17 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithBothKeysMissing_ShouldExitGracefullyWithoutAPICalls()
+    public async Task ExecuteAsync_WithBothKeysMissing_ShouldThrowInvalidOperationException()
     {
         // Arrange
         SetupRedis(gitLabData: null, bitbucketData: null); // Both keys missing
 
         var task = CreateTask();
 
-        // Act
-        await task.ExecuteAsync();
+        // Act & Assert - 應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
-        // Assert
+        // Assert - 不應呼叫 Azure DevOps API 及寫入 Redis
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
         _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
     }

@@ -77,8 +77,21 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     {
         Logger.LogInformation("開始過濾 {Platform} PR 資料，依使用者清單過濾", PlatformName);
 
+        // 清除目標 Redis 資料
+        if (await RedisService.HashExistsAsync(TargetRedisHashKey, TargetRedisHashField))
+        {
+            Logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", TargetRedisHashKey, TargetRedisHashField);
+            await RedisService.HashDeleteAsync(TargetRedisHashKey, TargetRedisHashField);
+        }
+
         // 1. 從 Redis 讀取 PR 資料
         var sourceJson = await RedisService.HashGetAsync(SourceRedisHashKey, SourceRedisHashField);
+        if (sourceJson is null)
+        {
+            Logger.LogError("Redis Hash {HashKey} Field {Field} 中無 PR 資料，請先執行前置指令", SourceRedisHashKey, SourceRedisHashField);
+            throw new InvalidOperationException($"Redis Hash {SourceRedisHashKey} Field {SourceRedisHashField} 中無 PR 資料");
+        }
+
         if (string.IsNullOrWhiteSpace(sourceJson))
         {
             Logger.LogWarning("Redis Hash {HashKey} Field {Field} 中無 PR 資料，略過過濾", SourceRedisHashKey, SourceRedisHashField);

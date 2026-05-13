@@ -46,6 +46,13 @@ public class ConsolidateReleaseDataTask : ITask
     {
         _logger.LogInformation("開始整合 Release 資料");
 
+        // 清除舊的整合 Release 資料
+        if (await _redisService.HashExistsAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        {
+            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+            await _redisService.HashDeleteAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+        }
+
         // 1. 從 Redis 讀取 PR 資料
         var prLookup = await LoadPullRequestsAsync();
         if (prLookup == null)
@@ -89,6 +96,13 @@ public class ConsolidateReleaseDataTask : ITask
     {
         var bitbucketJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser);
         var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser);
+
+        // 若兩個平台的 PR 資料均不存在（欄位不存在），拋出例外
+        if (bitbucketJson is null && gitLabJson is null)
+        {
+            _logger.LogError("Bitbucket 與 GitLab 的 PR 資料均不存在於 Redis，請先執行 FilterPullRequestsByUser 指令");
+            throw new InvalidOperationException("Bitbucket 與 GitLab 的 PR 資料均不存在於 Redis");
+        }
 
         var bitbucketResult = bitbucketJson?.ToTypedObject<FetchResult>();
         var gitLabResult = gitLabJson?.ToTypedObject<FetchResult>();
@@ -148,7 +162,16 @@ public class ConsolidateReleaseDataTask : ITask
     private async Task<UserStoryFetchResult> LoadUserStoriesAsync()
     {
         var json = await _redisService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
-        var result = json?.ToTypedObject<UserStoryFetchResult>();
+
+        // 若欄位不存在，拋出例外
+        if (json is null)
+        {
+            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無 Work Item 資料，請先執行 GetUserStory 指令",
+                RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
+            throw new InvalidOperationException($"Redis Hash {RedisKeys.AzureDevOpsHash} Field {RedisKeys.Fields.WorkItemsUserStories} 中無 Work Item 資料");
+        }
+
+        var result = json.ToTypedObject<UserStoryFetchResult>();
 
         // US3: 驗證 Work Item 資料是否存在
         if (result == null || result.WorkItems.Count == 0)

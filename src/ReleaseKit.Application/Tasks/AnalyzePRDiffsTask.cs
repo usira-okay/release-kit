@@ -42,8 +42,8 @@ public class AnalyzePRDiffsTask : ITask
         var runId = await _redisService.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey);
         if (string.IsNullOrEmpty(runId))
         {
-            _logger.LogWarning("找不到 RunId，請先執行 Stage 1");
-            return;
+            _logger.LogError("找不到 RunId，請先執行 CloneRepositories 指令");
+            throw new InvalidOperationException("Redis 中無 RunId 資料，請先執行 CloneRepositories 指令");
         }
 
         _logger.LogInformation("開始 Stage 2: 分析 PR Diffs, RunId={RunId}", runId);

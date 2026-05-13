@@ -43,6 +43,13 @@ public class EnhanceTitlesWithCopilotTask : ITask
     {
         _logger.LogInformation("開始增強 Release 標題");
 
+        // 清除舊的增強標題資料
+        if (await _redisService.HashExistsAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles))
+        {
+            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles);
+            await _redisService.HashDeleteAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles);
+        }
+
         // 1. 從 Redis 讀取整合資料
         var consolidatedResult = await LoadConsolidatedDataAsync();
         if (consolidatedResult == null)
@@ -80,9 +87,16 @@ public class EnhanceTitlesWithCopilotTask : ITask
     private async Task<ConsolidatedReleaseResult?> LoadConsolidatedDataAsync()
     {
         var json = await _redisService.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+        if (json is null)
+        {
+            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無整合 Release 資料，請先執行 ConsolidateReleaseData 指令",
+                RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+            throw new InvalidOperationException($"Redis Hash {RedisKeys.ReleaseDataHash} Field {RedisKeys.Fields.Consolidated} 中無整合 Release 資料");
+        }
+
         if (string.IsNullOrEmpty(json))
         {
-            _logger.LogInformation("Redis 中無整合 Release 資料，跳過增強標題");
+            _logger.LogInformation("整合 Release 資料為空，跳過增強標題");
             return null;
         }
 

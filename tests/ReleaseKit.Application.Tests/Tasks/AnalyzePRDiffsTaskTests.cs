@@ -116,14 +116,14 @@ public class AnalyzePRDiffsTaskTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_找不到RunId時_應提早結束不分析()
+    public async Task ExecuteAsync_找不到RunId時_應拋出InvalidOperationException()
     {
         // Arrange
         SetupRunId(null);
         var task = CreateTask();
 
-        // Act
-        await task.ExecuteAsync();
+        // Act & Assert - RunId 不存在時應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // Assert
         _gitServiceMock.Verify(
