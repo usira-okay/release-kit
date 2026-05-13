@@ -114,19 +114,19 @@ public class EnhanceTitlesWithCopilotTaskTests
     // ===== 無資料情境 =====
 
     /// <summary>
-    /// 當 Redis 中無整合資料時，應跳過處理且不寫入 Redis
+    /// 當 Redis 中整合資料欄位不存在時，應拋出 InvalidOperationException
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithNoConsolidatedData_ShouldSkipAndNotWriteRedis()
+    public async Task ExecuteAsync_WithNoConsolidatedData_ShouldThrowInvalidOperationException()
     {
         // Arrange
         SetupConsolidatedData(null);
         var task = CreateTask();
 
-        // Act
-        await task.ExecuteAsync();
+        // Act & Assert - 整合資料欄位不存在時應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
-        // Assert
+        // Assert - 不應寫入 Redis
         _redisServiceMock.Verify(
             x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Never);

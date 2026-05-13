@@ -1187,10 +1187,10 @@ public class UpdateGoogleSheetsTaskTests
     // ===== T025: Redis 無整合資料時正常結束 =====
 
     /// <summary>
-    /// T025: 測試 Redis 無整合資料（null）時正常結束
+    /// T025: 測試 Redis 無整合資料（null）時拋出 InvalidOperationException
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_NullRedisData_ShouldReturnNormally()
+    public async Task ExecuteAsync_NullRedisData_ShouldThrowInvalidOperationException()
     {
         // Arrange
         _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
@@ -1198,8 +1198,8 @@ public class UpdateGoogleSheetsTaskTests
 
         var task = CreateTask();
 
-        // Act & Assert - should not throw
-        await task.ExecuteAsync();
+        // Act & Assert - 整合資料欄位不存在時應拋出 InvalidOperationException
+        await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // No Sheet operations
         _googleSheetServiceMock.Verify(

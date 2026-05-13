@@ -53,7 +53,6 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             _logger.LogWarning("無可用的 PR 資料，任務結束");
             return;
         }
-
         // 從 PR 中收集所有 Work Item ID
         var workItemIds = ExtractWorkItemIdsFromPRs(allPullRequests);
         
@@ -104,12 +103,15 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             (HashKey: RedisKeys.BitbucketHash, Field: RedisKeys.Fields.PullRequestsByUser, Platform: "Bitbucket")
         };
 
+        var anySourceFound = false;
+
         // 迴圈處理所有平台
         foreach (var (hashKey, field, platform) in redisKeys)
         {
             var json = await _redisService.HashGetAsync(hashKey, field);
             if (json is not null)
             {
+                anySourceFound = true;
                 var result = json.ToTypedObject<FetchResult>();
                 if (result is not null)
                 {
@@ -127,6 +129,12 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             {
                 _logger.LogWarning("Redis Hash {HashKey} Field {Field} 不存在或為空", hashKey, field);
             }
+        }
+
+        if (!anySourceFound)
+        {
+            _logger.LogError("所有平台的 PR 資料均不存在於 Redis，請先執行 FilterPullRequestsByUser 指令");
+            throw new InvalidOperationException("所有平台的 PR 資料均不存在於 Redis");
         }
 
         return allPullRequests;

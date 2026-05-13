@@ -38,6 +38,13 @@ public class GetUserStoryTask : ITask
     {
         _logger.LogInformation("開始取得 User Story 層級的 Work Item");
 
+        // 清除舊的 User Story 資料
+        if (await _redisService.HashExistsAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories))
+        {
+            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
+            await _redisService.HashDeleteAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
+        }
+
         // 1. 從 Redis 讀取原始 Work Item 資料
         var workItemData = await LoadWorkItemsFromRedisAsync();
         if (workItemData == null || workItemData.WorkItems.Count == 0)
@@ -93,6 +100,13 @@ public class GetUserStoryTask : ITask
     private async Task<WorkItemFetchResult?> LoadWorkItemsFromRedisAsync()
     {
         var json = await _redisService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
+        if (json is null)
+        {
+            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無 Work Item 資料，請先執行 FetchAzureDevOpsWorkItems 指令",
+                RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
+            throw new InvalidOperationException($"Redis Hash {RedisKeys.AzureDevOpsHash} Field {RedisKeys.Fields.WorkItems} 中無 Work Item 資料");
+        }
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
