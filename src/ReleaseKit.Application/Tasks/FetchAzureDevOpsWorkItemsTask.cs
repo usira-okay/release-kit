@@ -26,7 +26,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// 網路連線異常或 Azure DevOps 服務不穩定等問題，需要盡早通知操作人員處理，
     /// 以避免 Release Notes 資料不完整。
     /// </remarks>
-    private const double HighFailureRateThreshold = 0.5;
+    private const double HighFailureRateWarningThreshold = 0.5;
 
     /// <summary>
     /// 建構子
@@ -83,15 +83,15 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         var failureCount = workItemOutputs.Count(w => !w.IsSuccess);
 
         // 檢查失敗比例是否過高
-        var total = successCount + failureCount;
-        if (total > 0)
+        var totalWorkItemCount = successCount + failureCount;
+        if (totalWorkItemCount > 0)
         {
-            var failureRate = (double)failureCount / total;
-            if (failureRate >= HighFailureRateThreshold)
+            var failureRate = (double)failureCount / totalWorkItemCount;
+            if (failureRate >= HighFailureRateWarningThreshold)
             {
                 _logger.LogWarning(
                     "Azure DevOps 拉取失敗比例過高：{FailureRate:P0}（失敗 {FailureCount}/{Total} 個），請確認 API Token 是否有效或網路連線是否正常",
-                    failureRate, failureCount, total);
+                    failureRate, failureCount, totalWorkItemCount);
             }
         }
 
