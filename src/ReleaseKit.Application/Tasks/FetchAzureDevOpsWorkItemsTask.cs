@@ -19,6 +19,16 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
 
     /// <summary>
+    /// 拉取失敗比例警告閾值（50%）：失敗數佔總查詢數的比例達到此值時，記錄警告日誌提醒操作人員。
+    /// </summary>
+    /// <remarks>
+    /// 當 Azure DevOps Work Item 查詢失敗率過高時，通常代表 API Token 失效、
+    /// 網路連線異常或 Azure DevOps 服務不穩定等問題，需要盡早通知操作人員處理，
+    /// 以避免 Release Notes 資料不完整。
+    /// </remarks>
+    private const double HighFailureRateThreshold = 0.5;
+
+    /// <summary>
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
@@ -71,6 +81,19 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         // 統計結果
         var successCount = workItemOutputs.Count(w => w.IsSuccess);
         var failureCount = workItemOutputs.Count(w => !w.IsSuccess);
+
+        // 檢查失敗比例是否過高
+        var total = successCount + failureCount;
+        if (total > 0)
+        {
+            var failureRate = (double)failureCount / total;
+            if (failureRate >= HighFailureRateThreshold)
+            {
+                _logger.LogWarning(
+                    "Azure DevOps 拉取失敗比例過高：{FailureRate:P0}（失敗 {FailureCount}/{Total} 個），請確認 API Token 是否有效或網路連線是否正常",
+                    failureRate, failureCount, total);
+            }
+        }
 
         // 組裝結果
         var result = new WorkItemFetchResult

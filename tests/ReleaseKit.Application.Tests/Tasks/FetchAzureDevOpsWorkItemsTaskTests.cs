@@ -440,6 +440,106 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         });
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WhenFailureRateExceedsThreshold_ShouldLogWarning()
+    {
+        // Arrange - 10 個 Work Item，6 個失敗（60% 失敗率，超過 50% 閾值）
+        var prs = Enumerable.Range(1, 10).Select(i =>
+            CreateMergeRequest($"PR {i}", $"feature/VSTS{i:D3}-pr{i}", "main")).ToList();
+
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = prs
+                }
+            }
+        };
+        SetupRedis(gitLabData: fetchResult);
+
+        // 前 4 個成功，後 6 個失敗
+        for (var i = 1; i <= 4; i++)
+        {
+            var workItem = CreateWorkItem(i, $"Work Item {i}", "Bug", "Active");
+            _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(i))
+                .ReturnsAsync(Result<WorkItem>.Success(workItem));
+        }
+        for (var i = 5; i <= 10; i++)
+        {
+            _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(i))
+                .ReturnsAsync(Result<WorkItem>.Failure(Error.AzureDevOps.WorkItemNotFound(i)));
+        }
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 應記錄「拉取失敗比例過高」警告日誌
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("拉取失敗比例過高")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenFailureRateBelowThreshold_ShouldNotLogHighFailureRateWarning()
+    {
+        // Arrange - 10 個 Work Item，4 個失敗（40% 失敗率，低於 50% 閾值）
+        var prs = Enumerable.Range(1, 10).Select(i =>
+            CreateMergeRequest($"PR {i}", $"feature/VSTS{i:D3}-pr{i}", "main")).ToList();
+
+        var fetchResult = new FetchResult
+        {
+            Results = new List<ProjectResult>
+            {
+                new ProjectResult
+                {
+                    ProjectPath = "group/project1",
+                    Platform = SourceControlPlatform.GitLab,
+                    PullRequests = prs
+                }
+            }
+        };
+        SetupRedis(gitLabData: fetchResult);
+
+        // 前 6 個成功，後 4 個失敗
+        for (var i = 1; i <= 6; i++)
+        {
+            var workItem = CreateWorkItem(i, $"Work Item {i}", "Bug", "Active");
+            _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(i))
+                .ReturnsAsync(Result<WorkItem>.Success(workItem));
+        }
+        for (var i = 7; i <= 10; i++)
+        {
+            _azureDevOpsRepositoryMock.Setup(x => x.GetWorkItemAsync(i))
+                .ReturnsAsync(Result<WorkItem>.Failure(Error.AzureDevOps.WorkItemNotFound(i)));
+        }
+
+        var task = CreateTask();
+
+        // Act
+        await task.ExecuteAsync();
+
+        // Assert - 不應記錄「拉取失敗比例過高」警告日誌
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("拉取失敗比例過高")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
     // Helper methods
     private FetchAzureDevOpsWorkItemsTask CreateTask()
     {
