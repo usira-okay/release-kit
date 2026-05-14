@@ -615,13 +615,13 @@ public class ConsolidateReleaseDataTaskTests
         Assert.Equal("PR Title Fallback", result.Projects["project"][0].Title);
     }
 
-    // ===== T031: Azure DevOps 拉取失敗超過一半時終止作業，不寫入 Redis =====
+    // ===== T031: Azure DevOps 拉取失敗超過一半時仍應正常整合並寫入 Redis =====
 
     /// <summary>
-    /// T031: 測試當 Azure DevOps 拉取失敗數量超過一半時，應終止整合作業且不寫入 Redis
+    /// T031: 測試當 Azure DevOps 拉取失敗數量超過一半時，仍應正常執行整合並寫入 Redis
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WhenMoreThanHalfFetchFailed_ShouldNotWriteToRedis()
+    public async Task ExecuteAsync_WhenMoreThanHalfFetchFailed_ShouldStillWriteToRedis()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -650,10 +650,10 @@ public class ConsolidateReleaseDataTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert：不應寫入整合結果至 Redis
+        // Assert：仍應寫入整合結果至 Redis
         _redisServiceMock.Verify(
             x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
-            Times.Never);
+            Times.Once);
     }
 
     // ===== T032: Azure DevOps 拉取失敗未超過一半時正常整合 =====
@@ -697,13 +697,13 @@ public class ConsolidateReleaseDataTaskTests
             Times.Once);
     }
 
-    // ===== T033: Azure DevOps 拉取全部失敗時終止作業 =====
+    // ===== T033: Azure DevOps 拉取全部失敗時仍應正常整合並寫入 Redis =====
 
     /// <summary>
-    /// T033: 測試當 Azure DevOps 拉取全部失敗時，應終止整合作業且不寫入 Redis
+    /// T033: 測試當 Azure DevOps 拉取全部失敗時，仍應正常執行整合並寫入 Redis
     /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WhenAllFetchFailed_ShouldNotWriteToRedis()
+    public async Task ExecuteAsync_WhenAllFetchFailed_ShouldStillWriteToRedis()
     {
         // Arrange
         var gitLabResult = CreateFetchResult(
@@ -739,9 +739,9 @@ public class ConsolidateReleaseDataTaskTests
         // Act
         await task.ExecuteAsync();
 
-        // Assert：不應寫入整合結果至 Redis
+        // Assert：仍應寫入整合結果至 Redis
         _redisServiceMock.Verify(
             x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
-            Times.Never);
+            Times.Once);
     }
 }
