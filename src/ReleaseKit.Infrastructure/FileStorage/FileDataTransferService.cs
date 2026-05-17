@@ -8,7 +8,7 @@ namespace ReleaseKit.Infrastructure.FileStorage;
 /// <summary>
 /// 使用實體檔案保存資料傳遞內容的服務實作
 /// </summary>
-public class FileDataTransferService : IRedisService
+public class FileDataTransferService : IDataTransferService
 {
     private const string FileExtension = ".json";
     private readonly string _valueDirectoryPath;
@@ -63,11 +63,9 @@ public class FileDataTransferService : IRedisService
             return null;
         }
 
-        var entry = await ReadValueEntryAsync(path);
-        if (entry.ExpiresAtUtc.HasValue && entry.ExpiresAtUtc.Value <= _now.UtcNow)
+        var entry = await GetValidValueEntryAsync(path, "GET");
+        if (entry is null)
         {
-            File.Delete(path);
-            _logger.LogInformation("檔案 GET 發現已過期資料，已刪除: {Path}", path);
             return null;
         }
 
@@ -103,11 +101,9 @@ public class FileDataTransferService : IRedisService
             return false;
         }
 
-        var entry = await ReadValueEntryAsync(path);
-        if (entry.ExpiresAtUtc.HasValue && entry.ExpiresAtUtc.Value <= _now.UtcNow)
+        var entry = await GetValidValueEntryAsync(path, "EXISTS");
+        if (entry is null)
         {
-            File.Delete(path);
-            _logger.LogInformation("檔案 EXISTS 發現已過期資料，已刪除: {Path}", path);
             return false;
         }
 
@@ -209,6 +205,19 @@ public class FileDataTransferService : IRedisService
             ?? throw new InvalidOperationException($"無法解析檔案內容: {path}");
     }
 
+    private async Task<FileValueEntry?> GetValidValueEntryAsync(string path, string operationName)
+    {
+        var entry = await ReadValueEntryAsync(path);
+        if (entry.ExpiresAtUtc.HasValue && entry.ExpiresAtUtc.Value <= _now.UtcNow)
+        {
+            File.Delete(path);
+            _logger.LogInformation("檔案 {Operation} 發現已過期資料，已刪除: {Path}", operationName, path);
+            return null;
+        }
+
+        return entry;
+    }
+
     private string GetValueFilePath(string key)
     {
         return Path.Combine(_valueDirectoryPath, $"{EncodeToken(key)}{FileExtension}");
@@ -234,11 +243,13 @@ public class FileDataTransferService : IRedisService
 
     private static string DecodeToken(string value)
     {
+        const int Base64BlockSize = 4;
         var normalizedValue = value
             .Replace('-', '+')
             .Replace('_', '/');
 
-        normalizedValue = normalizedValue.PadRight(normalizedValue.Length + (4 - normalizedValue.Length % 4) % 4, '=');
+        var paddingLength = (Base64BlockSize - normalizedValue.Length % Base64BlockSize) % Base64BlockSize;
+        normalizedValue = normalizedValue.PadRight(normalizedValue.Length + paddingLength, '=');
         return Encoding.UTF8.GetString(Convert.FromBase64String(normalizedValue));
     }
 

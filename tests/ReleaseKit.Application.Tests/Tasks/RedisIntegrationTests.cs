@@ -32,7 +32,7 @@ public class RedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定有舊資料存在
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(true);
         redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
@@ -77,7 +77,7 @@ public class RedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定沒有舊資料
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -160,7 +160,7 @@ public class RedisIntegrationTests
             .ReturnsAsync(Result<IReadOnlyList<MergeRequest>>.Success(mockMergeRequests));
         
         // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()))
@@ -203,7 +203,7 @@ public class RedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定有舊資料存在
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync(true);
         redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
@@ -288,7 +288,7 @@ public class RedisIntegrationTests
             .ReturnsAsync(Result<IReadOnlyList<MergeRequest>>.Success(mockMergeRequests));
         
         // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()))
@@ -326,7 +326,7 @@ public class RedisIntegrationTests
         
         var loggerMock = new Mock<ILogger<FetchGitLabPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
@@ -363,7 +363,7 @@ public class RedisIntegrationTests
         
         var loggerMock = new Mock<ILogger<FetchBitbucketPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);

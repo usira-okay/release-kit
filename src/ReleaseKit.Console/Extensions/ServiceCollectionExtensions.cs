@@ -32,7 +32,7 @@ public static class ServiceCollectionExtensions
         Directory.CreateDirectory(normalizedBasePath);
 
         // 註冊實體檔案資料傳遞服務
-        services.AddSingleton<IRedisService>(sp =>
+        services.AddSingleton<IDataTransferService>(sp =>
         {
             var now = sp.GetRequiredService<INow>();
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FileDataTransferService>>();

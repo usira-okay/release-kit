@@ -21,7 +21,7 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
 {
     private readonly ISourceControlRepository _repository;
     private readonly ILogger _logger;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly FetchModeOptions _fetchModeOptions;
 
     /// <summary>
@@ -40,7 +40,7 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     protected BaseFetchPullRequestsTask(
         ISourceControlRepository repository,
         ILogger logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         TOptions platformOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
     {

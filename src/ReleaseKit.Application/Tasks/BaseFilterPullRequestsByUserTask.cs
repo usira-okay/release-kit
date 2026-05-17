@@ -22,7 +22,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     /// <summary>
     /// Redis 服務
     /// </summary>
-    protected readonly IRedisService RedisService;
+    protected readonly IDataTransferService RedisService;
 
     /// <summary>
     /// 使用者 ID 與 DisplayName 的對應字典
@@ -37,7 +37,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     /// <param name="userIdToDisplayName">使用者 ID 與 DisplayName 的對應字典</param>
     protected BaseFilterPullRequestsByUserTask(
         ILogger logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IReadOnlyDictionary<string, string> userIdToDisplayName)
     {
         Logger = logger;

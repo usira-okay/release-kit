@@ -13,14 +13,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class GetReleaseSettingTaskTests
 {
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<INow> _nowMock;
     private readonly Mock<ILogger<GetReleaseSettingTask>> _loggerMock;
     private string? _capturedJson;
 
     public GetReleaseSettingTaskTests()
     {
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _nowMock = new Mock<INow>();
         _loggerMock = new Mock<ILogger<GetReleaseSettingTask>>();
 

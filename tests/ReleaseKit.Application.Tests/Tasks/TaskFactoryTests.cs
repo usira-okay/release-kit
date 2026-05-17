@@ -59,8 +59,8 @@ public class TaskFactoryTests
         var mockAzureDevOpsRepository = new Mock<IAzureDevOpsRepository>();
         services.AddSingleton(mockAzureDevOpsRepository.Object);
         
-        // 註冊 IRedisService mock
-        var mockRedisService = new Mock<IRedisService>();
+        // 註冊 IDataTransferService mock
+        var mockRedisService = new Mock<IDataTransferService>();
         mockRedisService.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
         mockRedisService.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         services.AddSingleton(mockRedisService.Object);

@@ -16,7 +16,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </remarks>
 public class EnhanceTitlesWithCopilotTask : ITask
 {
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly ITitleEnhancer _titleEnhancer;
     private readonly ILogger<EnhanceTitlesWithCopilotTask> _logger;
 
@@ -27,7 +27,7 @@ public class EnhanceTitlesWithCopilotTask : ITask
     /// <param name="titleEnhancer">標題增強服務</param>
     /// <param name="logger">日誌記錄器</param>
     public EnhanceTitlesWithCopilotTask(
-        IRedisService redisService,
+        IDataTransferService redisService,
         ITitleEnhancer titleEnhancer,
         ILogger<EnhanceTitlesWithCopilotTask> logger)
     {

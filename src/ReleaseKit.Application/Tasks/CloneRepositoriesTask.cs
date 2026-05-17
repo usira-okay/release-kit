@@ -14,7 +14,7 @@ namespace ReleaseKit.Application.Tasks;
 public class CloneRepositoriesTask : ITask
 {
     private readonly IGitOperationService _gitService;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly INow _now;
     private readonly IOptions<GitLabOptions> _gitLabOptions;
     private readonly IOptions<BitbucketOptions> _bitbucketOptions;
@@ -38,7 +38,7 @@ public class CloneRepositoriesTask : ITask
     /// <param name="logger">日誌記錄器</param>
     public CloneRepositoriesTask(
         IGitOperationService gitService,
-        IRedisService redisService,
+        IDataTransferService redisService,
         INow now,
         IOptions<GitLabOptions> gitLabOptions,
         IOptions<BitbucketOptions> bitbucketOptions,

@@ -14,7 +14,7 @@ namespace ReleaseKit.Application.Tasks;
 public class FetchAzureDevOpsWorkItemsTask : ITask
 {
     private readonly ILogger<FetchAzureDevOpsWorkItemsTask> _logger;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
     private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
 
@@ -26,7 +26,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <param name="azureDevOpsRepository">Azure DevOps Repository</param>
     public FetchAzureDevOpsWorkItemsTask(
         ILogger<FetchAzureDevOpsWorkItemsTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IAzureDevOpsRepository azureDevOpsRepository)
     {
         _logger = logger;

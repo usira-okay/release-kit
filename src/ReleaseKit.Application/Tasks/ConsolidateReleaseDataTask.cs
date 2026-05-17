@@ -19,7 +19,7 @@ namespace ReleaseKit.Application.Tasks;
 public class ConsolidateReleaseDataTask : ITask
 {
     private const string UnknownProjectName = "unknown";
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly IOptions<ConsolidateReleaseDataOptions> _options;
     private readonly ILogger<ConsolidateReleaseDataTask> _logger;
 
@@ -30,7 +30,7 @@ public class ConsolidateReleaseDataTask : ITask
     /// <param name="options">整合任務配置選項</param>
     /// <param name="logger">日誌記錄器</param>
     public ConsolidateReleaseDataTask(
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<ConsolidateReleaseDataOptions> options,
         ILogger<ConsolidateReleaseDataTask> logger)
     {

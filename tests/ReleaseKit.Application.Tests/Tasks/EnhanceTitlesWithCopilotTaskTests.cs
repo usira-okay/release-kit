@@ -13,14 +13,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class EnhanceTitlesWithCopilotTaskTests
 {
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<ITitleEnhancer> _titleEnhancerMock;
     private readonly Mock<ILogger<EnhanceTitlesWithCopilotTask>> _loggerMock;
     private string? _capturedRedisJson;
 
     public EnhanceTitlesWithCopilotTaskTests()
     {
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _titleEnhancerMock = new Mock<ITitleEnhancer>();
         _loggerMock = new Mock<ILogger<EnhanceTitlesWithCopilotTask>>();
 

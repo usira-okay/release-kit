@@ -18,7 +18,7 @@ namespace ReleaseKit.Application.Tasks;
 public class AnalyzePRDiffsTask : ITask
 {
     private readonly IGitOperationService _gitService;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly ILogger<AnalyzePRDiffsTask> _logger;
 
     /// <summary>
@@ -26,7 +26,7 @@ public class AnalyzePRDiffsTask : ITask
     /// </summary>
     public AnalyzePRDiffsTask(
         IGitOperationService gitService,
-        IRedisService redisService,
+        IDataTransferService redisService,
         ILogger<AnalyzePRDiffsTask> logger)
     {
         _gitService = gitService;

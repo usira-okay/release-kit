@@ -24,7 +24,7 @@ public class FetchBitbucketPullRequestsTask : BaseFetchPullRequestsTask<Bitbucke
     public FetchBitbucketPullRequestsTask(
         IServiceProvider serviceProvider,
         ILogger<FetchBitbucketPullRequestsTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<BitbucketOptions> bitbucketOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
         : base(

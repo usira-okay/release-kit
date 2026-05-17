@@ -28,7 +28,7 @@ public class FetchBitbucketReleaseBranchTaskTests
         var repositoryMock = new Mock<ISourceControlRepository>();
 
         // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
@@ -80,7 +80,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定 project1 有 release branch
         repositoryMock
@@ -135,7 +135,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定專案沒有 release branch（回傳空清單）
         repositoryMock
@@ -185,7 +185,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定專案有多個 release branch，應取最新的（字母排序最大）
         repositoryMock
@@ -240,7 +240,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定 GetBranchesAsync 失敗
         repositoryMock
@@ -290,7 +290,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定所有專案都有相同的最新 release branch
         var sameBranch = "release/20260210";
@@ -345,7 +345,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // project-old: 有舊版本 release branch
         repositoryMock
@@ -415,7 +415,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定不同的 release branch
         repositoryMock
@@ -472,7 +472,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // project-with-branch: 有 release branch
         repositoryMock
@@ -528,7 +528,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         repositoryMock
             .Setup(x => x.GetBranchesAsync("workspace/project-old", "release/", It.IsAny<CancellationToken>()))
@@ -592,7 +592,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 標準 release/yyyyMMdd 格式
         repositoryMock
@@ -672,7 +672,7 @@ public class FetchBitbucketReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 不同大小寫的 release/yyyyMMdd 格式
         repositoryMock

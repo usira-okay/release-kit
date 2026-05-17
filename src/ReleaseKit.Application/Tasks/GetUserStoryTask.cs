@@ -18,14 +18,14 @@ namespace ReleaseKit.Application.Tasks;
 public class GetUserStoryTask : ITask
 {
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly ILogger<GetUserStoryTask> _logger;
     private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
     private const int DefaultMaxDepth = 10;
 
     public GetUserStoryTask(
         IAzureDevOpsRepository azureDevOpsRepository,
-        IRedisService redisService,
+        IDataTransferService redisService,
         ILogger<GetUserStoryTask> logger)
     {
         _azureDevOpsRepository = azureDevOpsRepository;

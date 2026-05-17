@@ -22,7 +22,7 @@ public class FetchBitbucketReleaseBranchTask : BaseFetchReleaseBranchTask<Bitbuc
     public FetchBitbucketReleaseBranchTask(
         IServiceProvider serviceProvider,
         ILogger<FetchBitbucketReleaseBranchTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<BitbucketOptions> bitbucketOptions)
         : base(
             serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("Bitbucket"),

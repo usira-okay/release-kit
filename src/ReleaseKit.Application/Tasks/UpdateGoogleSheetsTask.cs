@@ -13,7 +13,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 public class UpdateGoogleSheetsTask : ITask
 {
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly IGoogleSheetService _googleSheetService;
     private readonly GoogleSheetOptions _options;
     private readonly ILogger<UpdateGoogleSheetsTask> _logger;
@@ -26,7 +26,7 @@ public class UpdateGoogleSheetsTask : ITask
     /// <param name="options">Google Sheet 設定選項</param>
     /// <param name="logger">日誌記錄器</param>
     public UpdateGoogleSheetsTask(
-        IRedisService redisService,
+        IDataTransferService redisService,
         IGoogleSheetService googleSheetService,
         IOptions<GoogleSheetOptions> options,
         ILogger<UpdateGoogleSheetsTask> logger)

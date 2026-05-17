@@ -16,7 +16,7 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class CloneRepositoriesTaskTests
 {
     private readonly Mock<IGitOperationService> _gitServiceMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<INow> _nowMock;
     private readonly Mock<ILogger<CloneRepositoriesTask>> _loggerMock;
 
@@ -30,7 +30,7 @@ public class CloneRepositoriesTaskTests
     public CloneRepositoriesTaskTests()
     {
         _gitServiceMock = new Mock<IGitOperationService>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _nowMock = new Mock<INow>();
         _loggerMock = new Mock<ILogger<CloneRepositoriesTask>>();
 

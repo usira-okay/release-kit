@@ -23,7 +23,7 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
     /// <param name="userMappingOptions">使用者對應設定</param>
     public FilterBitbucketPullRequestsByUserTask(
         ILogger<FilterBitbucketPullRequestsByUserTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<UserMappingOptions> userMappingOptions)
         : base(
             logger,

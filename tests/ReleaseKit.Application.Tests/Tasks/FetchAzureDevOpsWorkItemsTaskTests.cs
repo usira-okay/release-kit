@@ -18,13 +18,13 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class FetchAzureDevOpsWorkItemsTaskTests
 {
     private readonly Mock<ILogger<FetchAzureDevOpsWorkItemsTask>> _loggerMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<IAzureDevOpsRepository> _azureDevOpsRepositoryMock;
 
     public FetchAzureDevOpsWorkItemsTaskTests()
     {
         _loggerMock = new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _azureDevOpsRepositoryMock = new Mock<IAzureDevOpsRepository>();
     }
 
@@ -526,7 +526,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         
         // Get captured JSON from the last call
         _redisServiceMock.Invocations
-            .Where(i => i.Method.Name == nameof(IRedisService.HashSetAsync))
+            .Where(i => i.Method.Name == nameof(IDataTransferService.HashSetAsync))
             .Select(i => i.Arguments[2] as string)
             .Where(json => json != null)
             .ToList()

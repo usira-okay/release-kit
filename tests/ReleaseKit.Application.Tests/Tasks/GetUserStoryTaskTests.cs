@@ -16,14 +16,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class GetUserStoryTaskTests
 {
     private readonly Mock<ILogger<GetUserStoryTask>> _loggerMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<IAzureDevOpsRepository> _azureDevOpsRepositoryMock;
     private string? _capturedRedisJson;
 
     public GetUserStoryTaskTests()
     {
         _loggerMock = new Mock<ILogger<GetUserStoryTask>>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _azureDevOpsRepositoryMock = new Mock<IAzureDevOpsRepository>();
         
         // Setup Redis write capture

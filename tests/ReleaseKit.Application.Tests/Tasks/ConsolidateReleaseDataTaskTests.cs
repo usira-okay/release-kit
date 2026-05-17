@@ -17,14 +17,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class ConsolidateReleaseDataTaskTests
 {
     private readonly Mock<ILogger<ConsolidateReleaseDataTask>> _loggerMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly ConsolidateReleaseDataOptions _options;
     private string? _capturedRedisJson;
 
     public ConsolidateReleaseDataTaskTests()
     {
         _loggerMock = new Mock<ILogger<ConsolidateReleaseDataTask>>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _options = new ConsolidateReleaseDataOptions
         {
             TeamMapping = new List<TeamMappingOptions>

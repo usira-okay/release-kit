@@ -23,7 +23,7 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
     /// <param name="userMappingOptions">使用者對應設定</param>
     public FilterGitLabPullRequestsByUserTask(
         ILogger<FilterGitLabPullRequestsByUserTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<UserMappingOptions> userMappingOptions)
         : base(
             logger,

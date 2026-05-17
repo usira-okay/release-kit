@@ -31,7 +31,7 @@ public class ReleaseBranchRedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定有舊資料存在
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(true);
         redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
@@ -74,7 +74,7 @@ public class ReleaseBranchRedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定沒有舊資料
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -127,7 +127,7 @@ public class ReleaseBranchRedisIntegrationTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
         
         // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -166,7 +166,7 @@ public class ReleaseBranchRedisIntegrationTests
         
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
@@ -220,7 +220,7 @@ public class ReleaseBranchRedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定有舊資料存在
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(true);
         redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
@@ -263,7 +263,7 @@ public class ReleaseBranchRedisIntegrationTests
         var repositoryMock = new Mock<ISourceControlRepository>();
         
         // Mock Redis service - 設定沒有舊資料
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -316,7 +316,7 @@ public class ReleaseBranchRedisIntegrationTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260210" }.AsReadOnly()));
         
         // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
         redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -355,7 +355,7 @@ public class ReleaseBranchRedisIntegrationTests
         
         var loggerMock = new Mock<ILogger<FetchBitbucketReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);

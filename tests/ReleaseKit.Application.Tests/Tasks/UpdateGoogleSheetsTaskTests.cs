@@ -16,14 +16,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class UpdateGoogleSheetsTaskTests
 {
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<IGoogleSheetService> _googleSheetServiceMock;
     private readonly Mock<ILogger<UpdateGoogleSheetsTask>> _loggerMock;
     private readonly GoogleSheetOptions _defaultOptions;
 
     public UpdateGoogleSheetsTaskTests()
     {
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _googleSheetServiceMock = new Mock<IGoogleSheetService>();
         _loggerMock = new Mock<ILogger<UpdateGoogleSheetsTask>>();
 

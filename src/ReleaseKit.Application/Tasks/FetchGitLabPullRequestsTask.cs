@@ -24,7 +24,7 @@ public class FetchGitLabPullRequestsTask : BaseFetchPullRequestsTask<GitLabOptio
     public FetchGitLabPullRequestsTask(
         IServiceProvider serviceProvider,
         ILogger<FetchGitLabPullRequestsTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<GitLabOptions> gitLabOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
         : base(

@@ -17,7 +17,7 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class AnalyzePRDiffsTaskTests
 {
     private readonly Mock<IGitOperationService> _gitServiceMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _redisServiceMock;
     private readonly Mock<ILogger<AnalyzePRDiffsTask>> _loggerMock;
 
     private const string RunId = "20240315103045";
@@ -28,7 +28,7 @@ public class AnalyzePRDiffsTaskTests
     public AnalyzePRDiffsTaskTests()
     {
         _gitServiceMock = new Mock<IGitOperationService>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _redisServiceMock = new Mock<IDataTransferService>();
         _loggerMock = new Mock<ILogger<AnalyzePRDiffsTask>>();
 
         _redisServiceMock

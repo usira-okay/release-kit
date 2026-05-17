@@ -3,7 +3,7 @@ namespace ReleaseKit.Domain.Abstractions;
 /// <summary>
 /// 資料傳遞儲存服務介面
 /// </summary>
-public interface IRedisService
+public interface IDataTransferService
 {
     /// <summary>
     /// 設定儲存值

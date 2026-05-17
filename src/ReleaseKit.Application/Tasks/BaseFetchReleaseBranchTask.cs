@@ -16,7 +16,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
 {
     private readonly ISourceControlRepository _repository;
     private readonly ILogger _logger;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
 
     /// <summary>
     /// 平台配置選項
@@ -33,7 +33,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
     protected BaseFetchReleaseBranchTask(
         ISourceControlRepository repository,
         ILogger logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         TOptions platformOptions)
     {
         _repository = repository;

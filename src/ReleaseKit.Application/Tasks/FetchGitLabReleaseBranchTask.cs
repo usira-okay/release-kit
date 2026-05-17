@@ -22,7 +22,7 @@ public class FetchGitLabReleaseBranchTask : BaseFetchReleaseBranchTask<GitLabOpt
     public FetchGitLabReleaseBranchTask(
         IServiceProvider serviceProvider,
         ILogger<FetchGitLabReleaseBranchTask> logger,
-        IRedisService redisService,
+        IDataTransferService redisService,
         IOptions<GitLabOptions> gitLabOptions)
         : base(
             serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("GitLab"),

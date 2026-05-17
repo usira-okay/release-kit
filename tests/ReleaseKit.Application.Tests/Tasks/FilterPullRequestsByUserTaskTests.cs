@@ -24,7 +24,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // 準備 Redis 中的 PR 資料
         var fetchResult = new FetchResult
@@ -125,7 +125,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // 準備多個專案的 PR 資料
         var fetchResult = new FetchResult
@@ -203,7 +203,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -273,7 +273,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // 準備 Redis 中的 PR 資料
         var fetchResult = new FetchResult
@@ -371,7 +371,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -441,7 +441,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // Redis 中無 PR 資料（欄位不存在）
         redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
@@ -475,7 +475,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -523,7 +523,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -595,7 +595,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {

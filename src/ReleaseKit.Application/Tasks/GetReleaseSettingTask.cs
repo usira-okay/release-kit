@@ -16,7 +16,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </remarks>
 public class GetReleaseSettingTask : ITask
 {
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _redisService;
     private readonly INow _now;
     private readonly ILogger<GetReleaseSettingTask> _logger;
 
@@ -41,7 +41,7 @@ public class GetReleaseSettingTask : ITask
     private const string NotFoundKey = "NotFound";
 
     public GetReleaseSettingTask(
-        IRedisService redisService,
+        IDataTransferService redisService,
         INow now,
         ILogger<GetReleaseSettingTask> logger)
     {
