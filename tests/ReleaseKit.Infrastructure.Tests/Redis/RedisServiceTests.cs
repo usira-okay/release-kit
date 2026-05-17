@@ -10,21 +10,21 @@ namespace ReleaseKit.Infrastructure.Tests.Redis;
 /// </summary>
 public class RedisServiceTests
 {
-    private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer;
+    private readonly Mock<IConnectionMultiplexer> _mockRedisConnection;
     private readonly Mock<IDatabase> _mockDatabase;
     private readonly Mock<ILogger<RedisService>> _mockLogger;
     private readonly RedisService _redisService;
 
     public RedisServiceTests()
     {
-        _mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
+        _mockRedisConnection = new Mock<IConnectionMultiplexer>();
         _mockDatabase = new Mock<IDatabase>();
         _mockLogger = new Mock<ILogger<RedisService>>();
 
-        _mockConnectionMultiplexer.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+        _mockRedisConnection.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_mockDatabase.Object);
 
-        _redisService = new RedisService(_mockConnectionMultiplexer.Object, _mockLogger.Object, "Test:");
+        _redisService = new RedisService(_mockRedisConnection.Object, _mockLogger.Object, "Test:");
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class RedisServiceTests
     }
 
     [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenConnectionMultiplexerIsNull()
+    public void Constructor_ShouldThrowArgumentNullException_WhenRedisConnectionIsNull()
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -194,7 +194,7 @@ public class RedisServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new RedisService(_mockConnectionMultiplexer.Object, null!));
+            new RedisService(_mockRedisConnection.Object, null!));
     }
 
     [Fact]

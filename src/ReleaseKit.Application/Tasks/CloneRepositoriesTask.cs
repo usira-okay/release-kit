@@ -14,7 +14,7 @@ namespace ReleaseKit.Application.Tasks;
 public class CloneRepositoriesTask : ITask
 {
     private readonly IGitOperationService _gitService;
-    private readonly IDataTransferService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly INow _now;
     private readonly IOptions<GitLabOptions> _gitLabOptions;
     private readonly IOptions<BitbucketOptions> _bitbucketOptions;
@@ -30,7 +30,7 @@ public class CloneRepositoriesTask : ITask
     /// 初始化 <see cref="CloneRepositoriesTask"/> 類別的新執行個體
     /// </summary>
     /// <param name="gitService">Git 操作服務</param>
-    /// <param name="redisService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="now">時間服務</param>
     /// <param name="gitLabOptions">GitLab 設定選項</param>
     /// <param name="bitbucketOptions">Bitbucket 設定選項</param>
@@ -38,7 +38,7 @@ public class CloneRepositoriesTask : ITask
     /// <param name="logger">日誌記錄器</param>
     public CloneRepositoriesTask(
         IGitOperationService gitService,
-        IDataTransferService redisService,
+        IDataTransferService dataTransferService,
         INow now,
         IOptions<GitLabOptions> gitLabOptions,
         IOptions<BitbucketOptions> bitbucketOptions,
@@ -46,7 +46,7 @@ public class CloneRepositoriesTask : ITask
         ILogger<CloneRepositoriesTask> logger)
     {
         _gitService = gitService;
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _now = now;
         _gitLabOptions = gitLabOptions;
         _bitbucketOptions = bitbucketOptions;
@@ -62,7 +62,7 @@ public class CloneRepositoriesTask : ITask
         var runId = _now.UtcNow.ToString("yyyyMMddHHmmss");
         _logger.LogInformation("開始 Stage 1: Clone Repositories, RunId={RunId}", runId);
 
-        await _redisService.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, runId);
+        await _dataTransferService.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, runId);
 
         var cloneTasks = new List<(string ProjectPath, string CloneUrl)>();
 
@@ -108,7 +108,7 @@ public class CloneRepositoriesTask : ITask
             var status = result.IsSuccess ? "Success" : $"Failed: {result.Error!.Message}";
             var stageData = new { LocalPath = localPath, Status = status };
 
-            await _redisService.HashSetAsync(
+            await _dataTransferService.HashSetAsync(
                 RiskAnalysisRedisKeys.Stage1Hash(runId),
                 projectPath,
                 stageData.ToJson());

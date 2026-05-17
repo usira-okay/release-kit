@@ -16,7 +16,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
 {
     private readonly ISourceControlRepository _repository;
     private readonly ILogger _logger;
-    private readonly IDataTransferService _redisService;
+    private readonly IDataTransferService _dataTransferService;
 
     /// <summary>
     /// 平台配置選項
@@ -28,17 +28,17 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
     /// </summary>
     /// <param name="repository">原始碼控制倉儲</param>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="platformOptions">平台配置選項</param>
     protected BaseFetchReleaseBranchTask(
         ISourceControlRepository repository,
         ILogger logger,
-        IDataTransferService redisService,
+        IDataTransferService dataTransferService,
         TOptions platformOptions)
     {
         _repository = repository;
         _logger = logger;
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         PlatformOptions = platformOptions;
     }
 
@@ -70,10 +70,10 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
         _logger.LogInformation("開始執行 {Platform} Release Branch 拉取任務", PlatformName);
 
         // 檢查並清除 Redis 中的舊資料
-        if (await _redisService.HashExistsAsync(RedisHashKey, RedisHashField))
+        if (await _dataTransferService.HashExistsAsync(RedisHashKey, RedisHashField))
         {
             _logger.LogInformation("清除 Redis 中的舊資料，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
-            await _redisService.HashDeleteAsync(RedisHashKey, RedisHashField);
+            await _dataTransferService.HashDeleteAsync(RedisHashKey, RedisHashField);
         }
 
         // 儲存結果：key = release branch 名稱，value = 專案路徑清單
@@ -155,7 +155,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
         Console.WriteLine(json);
 
         // 存入 Redis
-        await _redisService.HashSetAsync(RedisHashKey, RedisHashField, json);
+        await _dataTransferService.HashSetAsync(RedisHashKey, RedisHashField, json);
 
         _logger.LogInformation(
             "完成 {Platform} Release Branch 拉取任務，總專案數: {Total}，成功: {Success}，失敗/無分支: {Failure}",

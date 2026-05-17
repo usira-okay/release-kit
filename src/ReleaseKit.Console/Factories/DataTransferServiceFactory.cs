@@ -61,9 +61,9 @@ public class DataTransferServiceFactory
 
         var logger = _loggerFactory.CreateLogger<RedisService>();
         var connectionLogger = _loggerFactory.CreateLogger<RedisConnectionFactory>();
-        var connectionMultiplexer = _redisConnectionFactory.Create(redisConnectionString, connectionLogger);
+        var redisConnection = _redisConnectionFactory.Create(redisConnectionString, connectionLogger);
 
-        return new RedisService(connectionMultiplexer, logger, redisInstanceName);
+        return new RedisService(redisConnection, logger, redisInstanceName);
     }
 
     private IDataTransferService CreateFileSystemService()

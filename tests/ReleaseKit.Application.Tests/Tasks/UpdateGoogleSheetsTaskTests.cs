@@ -16,14 +16,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class UpdateGoogleSheetsTaskTests
 {
-    private readonly Mock<IDataTransferService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<IGoogleSheetService> _googleSheetServiceMock;
     private readonly Mock<ILogger<UpdateGoogleSheetsTask>> _loggerMock;
     private readonly GoogleSheetOptions _defaultOptions;
 
     public UpdateGoogleSheetsTaskTests()
     {
-        _redisServiceMock = new Mock<IDataTransferService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _googleSheetServiceMock = new Mock<IGoogleSheetService>();
         _loggerMock = new Mock<ILogger<UpdateGoogleSheetsTask>>();
 
@@ -48,7 +48,7 @@ public class UpdateGoogleSheetsTaskTests
     private UpdateGoogleSheetsTask CreateTask(GoogleSheetOptions? options = null)
     {
         return new UpdateGoogleSheetsTask(
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             _googleSheetServiceMock.Object,
             Options.Create(options ?? _defaultOptions),
             _loggerMock.Object);
@@ -56,13 +56,13 @@ public class UpdateGoogleSheetsTaskTests
 
     private void SetupRedisConsolidatedData(ConsolidatedReleaseResult? result)
     {
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        _dataTransferServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
             .ReturnsAsync(result?.ToJson());
     }
 
     private void SetupRedisEnhancedTitlesData(ConsolidatedReleaseResult? result)
     {
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles))
+        _dataTransferServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles))
             .ReturnsAsync(result?.ToJson());
     }
 
@@ -178,11 +178,11 @@ public class UpdateGoogleSheetsTaskTests
         await task.ExecuteAsync();
 
         // Assert: EnhancedTitles 被讀取
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles),
             Times.Once);
         // Assert: Consolidated 不被讀取
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated),
             Times.Never);
     }
@@ -211,11 +211,11 @@ public class UpdateGoogleSheetsTaskTests
         await task.ExecuteAsync();
 
         // Assert: EnhancedTitles 被讀取（但無資料）
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles),
             Times.Once);
         // Assert: 退回讀取 Consolidated
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated),
             Times.Once);
     }
@@ -244,7 +244,7 @@ public class UpdateGoogleSheetsTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated),
             Times.Once);
     }
@@ -1035,7 +1035,7 @@ public class UpdateGoogleSheetsTaskTests
 
         var callOrder = new List<string>();
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(It.IsAny<string>(), It.IsAny<string>()))
+        _dataTransferServiceMock.Setup(x => x.HashGetAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Callback(() => callOrder.Add("Redis.Read"))
             .ReturnsAsync(result.ToJson());
 
@@ -1193,7 +1193,7 @@ public class UpdateGoogleSheetsTaskTests
     public async Task ExecuteAsync_NullRedisData_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        _dataTransferServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -1214,7 +1214,7 @@ public class UpdateGoogleSheetsTaskTests
     public async Task ExecuteAsync_EmptyRedisData_ShouldReturnNormally()
     {
         // Arrange
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        _dataTransferServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
             .ReturnsAsync(string.Empty);
 
         var task = CreateTask();

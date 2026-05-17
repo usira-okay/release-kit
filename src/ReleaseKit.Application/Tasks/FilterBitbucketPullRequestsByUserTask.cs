@@ -19,15 +19,15 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="userMappingOptions">使用者對應設定</param>
     public FilterBitbucketPullRequestsByUserTask(
         ILogger<FilterBitbucketPullRequestsByUserTask> logger,
-        IDataTransferService redisService,
+        IDataTransferService dataTransferService,
         IOptions<UserMappingOptions> userMappingOptions)
         : base(
             logger,
-            redisService,
+            dataTransferService,
             ExtractBitbucketUserIdToDisplayName(userMappingOptions.Value))
     {
     }

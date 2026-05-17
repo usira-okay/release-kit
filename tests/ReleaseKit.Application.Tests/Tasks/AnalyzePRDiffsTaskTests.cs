@@ -17,7 +17,7 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class AnalyzePRDiffsTaskTests
 {
     private readonly Mock<IGitOperationService> _gitServiceMock;
-    private readonly Mock<IDataTransferService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<ILogger<AnalyzePRDiffsTask>> _loggerMock;
 
     private const string RunId = "20240315103045";
@@ -28,16 +28,16 @@ public class AnalyzePRDiffsTaskTests
     public AnalyzePRDiffsTaskTests()
     {
         _gitServiceMock = new Mock<IGitOperationService>();
-        _redisServiceMock = new Mock<IDataTransferService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _loggerMock = new Mock<ILogger<AnalyzePRDiffsTask>>();
 
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
     }
 
     private AnalyzePRDiffsTask CreateTask() =>
-        new(_gitServiceMock.Object, _redisServiceMock.Object, _loggerMock.Object);
+        new(_gitServiceMock.Object, _dataTransferServiceMock.Object, _loggerMock.Object);
 
     private static MergeRequestOutput BuildMergeRequestOutput(string? mergeCommitSha = CommitSha) =>
         new()
@@ -77,22 +77,22 @@ public class AnalyzePRDiffsTaskTests
         };
 
     private void SetupRunId(string? runId = RunId) =>
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey))
             .ReturnsAsync(runId);
 
     private void SetupStage1(string projectPath, string localPath, string status = "Success") =>
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), projectPath))
             .ReturnsAsync(new { LocalPath = localPath, Status = status }.ToJson());
 
     private void SetupGitLabPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(ToFetchResultJson(data, SourceControlPlatform.GitLab));
 
     private void SetupBitbucketPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(ToFetchResultJson(data, SourceControlPlatform.Bitbucket));
 
@@ -129,7 +129,7 @@ public class AnalyzePRDiffsTaskTests
         _gitServiceMock.Verify(
             x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
@@ -153,7 +153,7 @@ public class AnalyzePRDiffsTaskTests
         _gitServiceMock.Verify(
             x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
@@ -165,7 +165,7 @@ public class AnalyzePRDiffsTaskTests
         SetupRunId();
         // 空 PR 資料
         SetupGitLabPrs(new Dictionary<string, List<MergeRequestOutput>>());
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
             .ReturnsAsync((string?)null);
 
@@ -200,7 +200,7 @@ public class AnalyzePRDiffsTaskTests
             x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         // 仍寫入空 diff 結果
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
             Times.Once);
     }
@@ -227,7 +227,7 @@ public class AnalyzePRDiffsTaskTests
         _gitServiceMock.Verify(
             x => x.GetCommitStatAsync(LocalPath, CommitSha, It.IsAny<CancellationToken>()),
             Times.Once);
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(
                 RiskAnalysisRedisKeys.Stage2Hash(RunId),
                 ProjectPath,
@@ -254,7 +254,7 @@ public class AnalyzePRDiffsTaskTests
         await task.ExecuteAsync();
 
         // Assert — 仍寫入空 diff 結果
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
             Times.Once);
     }
@@ -324,7 +324,7 @@ public class AnalyzePRDiffsTaskTests
             }
         });
         SetupStage1(ProjectPath, LocalPath);
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), bbProject))
             .ReturnsAsync(new { LocalPath = bbLocal, Status = "Success" }.ToJson());
         _gitServiceMock
@@ -336,10 +336,10 @@ public class AnalyzePRDiffsTaskTests
         await task.ExecuteAsync();
 
         // Assert — 兩個專案都寫入 Stage 2
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
             Times.Once);
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), bbProject, It.IsAny<string>()),
             Times.Once);
     }
@@ -354,7 +354,7 @@ public class AnalyzePRDiffsTaskTests
             [ProjectPath] = new() { BuildMergeRequestOutput() }
         });
         // Stage1 中無此專案的記錄
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), ProjectPath))
             .ReturnsAsync((string?)null);
         var task = CreateTask();
@@ -366,7 +366,7 @@ public class AnalyzePRDiffsTaskTests
         _gitServiceMock.Verify(
             x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _redisServiceMock.Verify(
+        _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }

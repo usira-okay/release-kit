@@ -19,22 +19,22 @@ namespace ReleaseKit.Application.Tasks;
 public class ConsolidateReleaseDataTask : ITask
 {
     private const string UnknownProjectName = "unknown";
-    private readonly IDataTransferService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly IOptions<ConsolidateReleaseDataOptions> _options;
     private readonly ILogger<ConsolidateReleaseDataTask> _logger;
 
     /// <summary>
     /// 初始化 <see cref="ConsolidateReleaseDataTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="options">整合任務配置選項</param>
     /// <param name="logger">日誌記錄器</param>
     public ConsolidateReleaseDataTask(
-        IDataTransferService redisService,
+        IDataTransferService dataTransferService,
         IOptions<ConsolidateReleaseDataOptions> options,
         ILogger<ConsolidateReleaseDataTask> logger)
     {
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _options = options;
         _logger = logger;
     }
@@ -47,10 +47,10 @@ public class ConsolidateReleaseDataTask : ITask
         _logger.LogInformation("開始整合 Release 資料");
 
         // 清除舊的整合 Release 資料
-        if (await _redisService.HashExistsAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        if (await _dataTransferService.HashExistsAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
         {
             _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
-            await _redisService.HashDeleteAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+            await _dataTransferService.HashDeleteAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
         }
 
         // 1. 從 Redis 讀取 PR 資料
@@ -72,7 +72,7 @@ public class ConsolidateReleaseDataTask : ITask
 
         // 5. 序列化並寫入 Redis
         var json = consolidated.ToJson();
-        await _redisService.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, json);
+        await _dataTransferService.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, json);
 
         _logger.LogInformation("整合 Release 資料完成，共 {ProjectCount} 個專案",
             consolidated.Projects.Count);
@@ -83,8 +83,8 @@ public class ConsolidateReleaseDataTask : ITask
     /// </summary>
     private async Task<Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>>?> LoadPullRequestsAsync()
     {
-        var bitbucketJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser);
-        var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser);
+        var bitbucketJson = await _dataTransferService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser);
+        var gitLabJson = await _dataTransferService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser);
 
         // 若兩個平台的 PR 資料均不存在（欄位不存在），拋出例外
         if (bitbucketJson is null && gitLabJson is null)
@@ -150,7 +150,7 @@ public class ConsolidateReleaseDataTask : ITask
     /// </summary>
     private async Task<UserStoryFetchResult> LoadUserStoriesAsync()
     {
-        var json = await _redisService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
+        var json = await _dataTransferService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
 
         // 若欄位不存在，拋出例外
         if (json is null)

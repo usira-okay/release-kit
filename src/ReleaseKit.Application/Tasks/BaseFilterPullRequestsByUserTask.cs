@@ -20,9 +20,9 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     protected readonly ILogger Logger;
 
     /// <summary>
-    /// Redis 服務
+    /// 資料傳遞服務
     /// </summary>
-    protected readonly IDataTransferService RedisService;
+    protected readonly IDataTransferService DataTransferService;
 
     /// <summary>
     /// 使用者 ID 與 DisplayName 的對應字典
@@ -33,15 +33,15 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="userIdToDisplayName">使用者 ID 與 DisplayName 的對應字典</param>
     protected BaseFilterPullRequestsByUserTask(
         ILogger logger,
-        IDataTransferService redisService,
+        IDataTransferService dataTransferService,
         IReadOnlyDictionary<string, string> userIdToDisplayName)
     {
         Logger = logger;
-        RedisService = redisService;
+        DataTransferService = dataTransferService;
         UserIdToDisplayName = userIdToDisplayName;
     }
 
@@ -78,14 +78,14 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         Logger.LogInformation("開始過濾 {Platform} PR 資料，依使用者清單過濾", PlatformName);
 
         // 清除目標 Redis 資料
-        if (await RedisService.HashExistsAsync(TargetRedisHashKey, TargetRedisHashField))
+        if (await DataTransferService.HashExistsAsync(TargetRedisHashKey, TargetRedisHashField))
         {
             Logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", TargetRedisHashKey, TargetRedisHashField);
-            await RedisService.HashDeleteAsync(TargetRedisHashKey, TargetRedisHashField);
+            await DataTransferService.HashDeleteAsync(TargetRedisHashKey, TargetRedisHashField);
         }
 
         // 1. 從 Redis 讀取 PR 資料
-        var sourceJson = await RedisService.HashGetAsync(SourceRedisHashKey, SourceRedisHashField);
+        var sourceJson = await DataTransferService.HashGetAsync(SourceRedisHashKey, SourceRedisHashField);
         if (sourceJson is null)
         {
             Logger.LogError("Redis Hash {HashKey} Field {Field} 中無 PR 資料，請先執行前置指令", SourceRedisHashKey, SourceRedisHashField);
@@ -145,7 +145,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
 
         // 5. 寫入目標 Redis Hash
         var targetJson = filteredFetchResult.ToJson();
-        await RedisService.HashSetAsync(TargetRedisHashKey, TargetRedisHashField, targetJson);
+        await DataTransferService.HashSetAsync(TargetRedisHashKey, TargetRedisHashField, targetJson);
 
         Logger.LogInformation("過濾完成，結果已寫入 Redis Hash {HashKey} Field {Field}", TargetRedisHashKey, TargetRedisHashField);
 

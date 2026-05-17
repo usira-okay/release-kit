@@ -16,7 +16,7 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class CloneRepositoriesTaskTests
 {
     private readonly Mock<IGitOperationService> _gitServiceMock;
-    private readonly Mock<IDataTransferService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<INow> _nowMock;
     private readonly Mock<ILogger<CloneRepositoriesTask>> _loggerMock;
 
@@ -30,17 +30,17 @@ public class CloneRepositoriesTaskTests
     public CloneRepositoriesTaskTests()
     {
         _gitServiceMock = new Mock<IGitOperationService>();
-        _redisServiceMock = new Mock<IDataTransferService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _nowMock = new Mock<INow>();
         _loggerMock = new Mock<ILogger<CloneRepositoriesTask>>();
 
         _nowMock.Setup(x => x.UtcNow).Returns(FixedTime);
 
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
             .ReturnsAsync(true);
 
-        _redisServiceMock
+        _dataTransferServiceMock
             .Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
 
@@ -83,7 +83,7 @@ public class CloneRepositoriesTaskTests
     {
         return new CloneRepositoriesTask(
             _gitServiceMock.Object,
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             _nowMock.Object,
             Options.Create(gitLabOptions ?? _gitLabOptions),
             Options.Create(bitbucketOptions ?? _bitbucketOptions),
@@ -101,7 +101,7 @@ public class CloneRepositoriesTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(x =>
+        _dataTransferServiceMock.Verify(x =>
             x.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, ExpectedRunId, null),
             Times.Once);
     }
@@ -174,7 +174,7 @@ public class CloneRepositoriesTaskTests
         await task.ExecuteAsync();
 
         // Assert - GitLab project result stored
-        _redisServiceMock.Verify(x =>
+        _dataTransferServiceMock.Verify(x =>
             x.HashSetAsync(
                 RiskAnalysisRedisKeys.Stage1Hash(ExpectedRunId),
                 "group/project-a",
@@ -197,7 +197,7 @@ public class CloneRepositoriesTaskTests
         await task.ExecuteAsync();
 
         // Assert - 仍寫入失敗狀態（不拋出例外）
-        _redisServiceMock.Verify(x =>
+        _dataTransferServiceMock.Verify(x =>
             x.HashSetAsync(
                 RiskAnalysisRedisKeys.Stage1Hash(ExpectedRunId),
                 It.IsAny<string>(),
@@ -244,7 +244,7 @@ public class CloneRepositoriesTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(x =>
+        _dataTransferServiceMock.Verify(x =>
             x.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, ExpectedRunId, null),
             Times.Once);
         _gitServiceMock.Verify(x =>
