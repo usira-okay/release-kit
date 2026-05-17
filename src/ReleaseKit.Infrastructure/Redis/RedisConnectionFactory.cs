@@ -18,10 +18,10 @@ public class RedisConnectionFactory : IRedisConnectionFactory
         var configOptions = ConfigurationOptions.Parse(connectionString);
         configOptions.AbortOnConnectFail = false;
 
-        return ConnectWithRetry(configOptions, logger);
+        return ConnectWithRetryAsync(configOptions, logger).GetAwaiter().GetResult();
     }
 
-    private static IConnectionMultiplexer ConnectWithRetry(
+    private static async Task<IConnectionMultiplexer> ConnectWithRetryAsync(
         ConfigurationOptions configOptions,
         ILogger logger,
         int maxRetries = 5,
@@ -39,10 +39,10 @@ public class RedisConnectionFactory : IRedisConnectionFactory
                     delay.TotalMilliseconds,
                     attempt,
                     maxRetries);
-                Thread.Sleep(delay);
+                await Task.Delay(delay);
             }
 
-            var connection = ConnectionMultiplexer.Connect(configOptions);
+            var connection = await ConnectionMultiplexer.ConnectAsync(configOptions);
             if (connection.IsConnected)
             {
                 logger.LogInformation("Redis 連線成功 (嘗試 {Attempt}/{TotalAttempts})", attempt + 1, maxRetries + 1);
