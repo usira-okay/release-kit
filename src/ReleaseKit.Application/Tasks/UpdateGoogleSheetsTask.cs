@@ -13,7 +13,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 public class UpdateGoogleSheetsTask : ITask
 {
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly IGoogleSheetService _googleSheetService;
     private readonly GoogleSheetOptions _options;
     private readonly ILogger<UpdateGoogleSheetsTask> _logger;
@@ -21,17 +21,17 @@ public class UpdateGoogleSheetsTask : ITask
     /// <summary>
     /// 初始化 <see cref="UpdateGoogleSheetsTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">Redis 服務</param>
     /// <param name="googleSheetService">Google Sheet 服務</param>
     /// <param name="options">Google Sheet 設定選項</param>
     /// <param name="logger">日誌記錄器</param>
     public UpdateGoogleSheetsTask(
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IGoogleSheetService googleSheetService,
         IOptions<GoogleSheetOptions> options,
         ILogger<UpdateGoogleSheetsTask> logger)
     {
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _googleSheetService = googleSheetService;
         _options = options.Value;
         _logger = logger;
@@ -100,8 +100,8 @@ public class UpdateGoogleSheetsTask : ITask
     /// </summary>
     private async Task<ConsolidatedReleaseResult?> ReadConsolidatedDataAsync()
     {
-        var enhancedJson = await _redisService.HashGetAsync(
-            RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles);
+        var enhancedJson = await _dataTransferService.GetFieldAsync(
+            DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles);
 
         if (!string.IsNullOrEmpty(enhancedJson))
         {
@@ -116,14 +116,14 @@ public class UpdateGoogleSheetsTask : ITask
         _logger.LogInformation("enhance-titles 無資料，退回使用 consolidate-release-data 的整合資料");
 
 
-        var consolidatedJson = await _redisService.HashGetAsync(
-            RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+        var consolidatedJson = await _dataTransferService.GetFieldAsync(
+            DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
 
         if (consolidatedJson is null)
         {
             _logger.LogError("Redis Hash {HashKey} Field {Field} 中無整合資料，請先執行 ConsolidateReleaseData 指令",
-                RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
-            throw new InvalidOperationException($"Redis Hash {RedisKeys.ReleaseDataHash} Field {RedisKeys.Fields.Consolidated} 中無整合資料");
+                DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
+            throw new InvalidOperationException($"Redis Hash {DataTransferKeys.ReleaseDataHash} Field {DataTransferKeys.Fields.Consolidated} 中無整合資料");
         }
 
         if (string.IsNullOrEmpty(consolidatedJson))

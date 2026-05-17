@@ -12,19 +12,19 @@ public class RedisServiceTests
 {
     private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer;
     private readonly Mock<IDatabase> _mockDatabase;
-    private readonly Mock<ILogger<RedisService>> _mockLogger;
-    private readonly RedisService _redisService;
+    private readonly Mock<ILogger<RedisDataTransferService>> _mockLogger;
+    private readonly RedisDataTransferService _dataTransferService;
 
     public RedisServiceTests()
     {
         _mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
         _mockDatabase = new Mock<IDatabase>();
-        _mockLogger = new Mock<ILogger<RedisService>>();
+        _mockLogger = new Mock<ILogger<RedisDataTransferService>>();
 
         _mockConnectionMultiplexer.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_mockDatabase.Object);
 
-        _redisService = new RedisService(_mockConnectionMultiplexer.Object, _mockLogger.Object, "Test:");
+        _dataTransferService = new RedisDataTransferService(_mockConnectionMultiplexer.Object, _mockLogger.Object, "Test:");
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class RedisServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.SetAsync(key, value);
+        var result = await _dataTransferService.SetValueAsync(key, value);
 
         // Assert
         Assert.True(result);
@@ -68,7 +68,7 @@ public class RedisServiceTests
             .ReturnsAsync(new RedisValue(expectedValue));
 
         // Act
-        var result = await _redisService.GetAsync(key);
+        var result = await _dataTransferService.GetValueAsync(key);
 
         // Assert
         Assert.Equal(expectedValue, result);
@@ -88,7 +88,7 @@ public class RedisServiceTests
             .ReturnsAsync(RedisValue.Null);
 
         // Act
-        var result = await _redisService.GetAsync(key);
+        var result = await _dataTransferService.GetValueAsync(key);
 
         // Assert
         Assert.Null(result);
@@ -105,7 +105,7 @@ public class RedisServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.DeleteAsync(key);
+        var result = await _dataTransferService.DeleteValueAsync(key);
 
         // Assert
         Assert.True(result);
@@ -125,7 +125,7 @@ public class RedisServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.ExistsAsync(key);
+        var result = await _dataTransferService.ExistsValueAsync(key);
 
         // Assert
         Assert.True(result);
@@ -145,7 +145,7 @@ public class RedisServiceTests
             .ReturnsAsync(false);
 
         // Act
-        var result = await _redisService.ExistsAsync(key);
+        var result = await _dataTransferService.ExistsValueAsync(key);
 
         // Assert
         Assert.False(result);
@@ -168,7 +168,7 @@ public class RedisServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.SetAsync(key, value, expiry);
+        var result = await _dataTransferService.SetValueAsync(key, value, expiry);
 
         // Assert
         Assert.True(result);
@@ -186,7 +186,7 @@ public class RedisServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new RedisService(null!, _mockLogger.Object));
+            new RedisDataTransferService(null!, _mockLogger.Object));
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class RedisServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new RedisService(_mockConnectionMultiplexer.Object, null!));
+            new RedisDataTransferService(_mockConnectionMultiplexer.Object, null!));
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class RedisServiceTests
         var hashKey = "test-hash";
         var field = "test-field";
         var value = "test-value";
-        _mockDatabase.Setup(x => x.HashSetAsync(
+        _mockDatabase.Setup(x => x.SetFieldAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.Is<RedisValue>(v => v.ToString() == value),
@@ -213,11 +213,11 @@ public class RedisServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.HashSetAsync(hashKey, field, value);
+        var result = await _dataTransferService.SetFieldAsync(hashKey, field, value);
 
         // Assert
         Assert.True(result);
-        _mockDatabase.Verify(x => x.HashSetAsync(
+        _mockDatabase.Verify(x => x.SetFieldAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.Is<RedisValue>(v => v.ToString() == value),
@@ -232,14 +232,14 @@ public class RedisServiceTests
         var hashKey = "test-hash";
         var field = "test-field";
         var expectedValue = "test-value";
-        _mockDatabase.Setup(x => x.HashGetAsync(
+        _mockDatabase.Setup(x => x.GetFieldAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(new RedisValue(expectedValue));
 
         // Act
-        var result = await _redisService.HashGetAsync(hashKey, field);
+        var result = await _dataTransferService.GetFieldAsync(hashKey, field);
 
         // Assert
         Assert.Equal(expectedValue, result);
@@ -251,14 +251,14 @@ public class RedisServiceTests
         // Arrange
         var hashKey = "test-hash";
         var field = "non-existent-field";
-        _mockDatabase.Setup(x => x.HashGetAsync(
+        _mockDatabase.Setup(x => x.GetFieldAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(RedisValue.Null);
 
         // Act
-        var result = await _redisService.HashGetAsync(hashKey, field);
+        var result = await _dataTransferService.GetFieldAsync(hashKey, field);
 
         // Assert
         Assert.Null(result);
@@ -270,18 +270,18 @@ public class RedisServiceTests
         // Arrange
         var hashKey = "test-hash";
         var field = "test-field";
-        _mockDatabase.Setup(x => x.HashDeleteAsync(
+        _mockDatabase.Setup(x => x.DeleteFieldAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.HashDeleteAsync(hashKey, field);
+        var result = await _dataTransferService.DeleteFieldAsync(hashKey, field);
 
         // Assert
         Assert.True(result);
-        _mockDatabase.Verify(x => x.HashDeleteAsync(
+        _mockDatabase.Verify(x => x.DeleteFieldAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()), Times.Once);
@@ -293,14 +293,14 @@ public class RedisServiceTests
         // Arrange
         var hashKey = "test-hash";
         var field = "test-field";
-        _mockDatabase.Setup(x => x.HashExistsAsync(
+        _mockDatabase.Setup(x => x.FieldExistsAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
         // Act
-        var result = await _redisService.HashExistsAsync(hashKey, field);
+        var result = await _dataTransferService.FieldExistsAsync(hashKey, field);
 
         // Assert
         Assert.True(result);
@@ -312,14 +312,14 @@ public class RedisServiceTests
         // Arrange
         var hashKey = "test-hash";
         var field = "non-existent-field";
-        _mockDatabase.Setup(x => x.HashExistsAsync(
+        _mockDatabase.Setup(x => x.FieldExistsAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(false);
 
         // Act
-        var result = await _redisService.HashExistsAsync(hashKey, field);
+        var result = await _dataTransferService.FieldExistsAsync(hashKey, field);
 
         // Assert
         Assert.False(result);

@@ -24,7 +24,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // 準備 Redis 中的 PR 資料
         var fetchResult = new FetchResult
@@ -75,9 +75,9 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         // 準備使用者對應設定
@@ -96,7 +96,7 @@ public class FilterPullRequestsByUserTaskTests
             userMappingOptions);
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
@@ -104,8 +104,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
+        redisServiceMock.Verify(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.SetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
         
         // 驗證寫入的資料僅包含匹配的 PR
         Assert.NotNull(capturedJson);
@@ -125,7 +125,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // 準備多個專案的 PR 資料
         var fetchResult = new FetchResult
@@ -155,9 +155,9 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -175,7 +175,7 @@ public class FilterPullRequestsByUserTaskTests
             userMappingOptions);
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
@@ -183,7 +183,7 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
+        redisServiceMock.Verify(x => x.SetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
         
         Assert.NotNull(capturedJson);
         var result = capturedJson.ToTypedObject<FetchResult>();
@@ -203,7 +203,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -221,14 +221,14 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         string? capturedHashKey = null;
         string? capturedField = null;
         string? capturedJson = null;
         
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) =>
             {
                 capturedHashKey = hashKey;
@@ -254,8 +254,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        Assert.Equal(RedisKeys.GitLabHash, capturedHashKey);
-        Assert.Equal(RedisKeys.Fields.PullRequestsByUser, capturedField);
+        Assert.Equal(DataTransferKeys.GitLabHash, capturedHashKey);
+        Assert.Equal(DataTransferKeys.Fields.PullRequestsByUser, capturedField);
         Assert.NotNull(capturedJson);
         
         var result = capturedJson.ToTypedObject<FetchResult>();
@@ -273,7 +273,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // 準備 Redis 中的 PR 資料
         var fetchResult = new FetchResult
@@ -324,7 +324,7 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -342,7 +342,7 @@ public class FilterPullRequestsByUserTaskTests
             userMappingOptions);
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
@@ -350,8 +350,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
+        redisServiceMock.Verify(x => x.GetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.SetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()), Times.Once);
         
         // 驗證寫入的資料僅包含匹配的 PR
         Assert.NotNull(capturedJson);
@@ -371,7 +371,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterBitbucketPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -389,14 +389,14 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         string? capturedHashKey = null;
         string? capturedField = null;
         string? capturedJson = null;
         
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) =>
             {
                 capturedHashKey = hashKey;
@@ -422,8 +422,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        Assert.Equal(RedisKeys.BitbucketHash, capturedHashKey);
-        Assert.Equal(RedisKeys.Fields.PullRequestsByUser, capturedField);
+        Assert.Equal(DataTransferKeys.BitbucketHash, capturedHashKey);
+        Assert.Equal(DataTransferKeys.Fields.PullRequestsByUser, capturedField);
         Assert.NotNull(capturedJson);
         
         var result = capturedJson.ToTypedObject<FetchResult>();
@@ -441,10 +441,10 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         // Redis 中無 PR 資料（欄位不存在）
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync((string?)null);
         
         var userMappingOptions = Options.Create(new UserMappingOptions
@@ -464,7 +464,7 @@ public class FilterPullRequestsByUserTaskTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
         
         // Assert - 不應寫入 Redis
-        redisServiceMock.Verify(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        redisServiceMock.Verify(x => x.SetFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
     
     /// <summary>
@@ -475,7 +475,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -493,7 +493,7 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         // 空的使用者清單
@@ -511,8 +511,8 @@ public class FilterPullRequestsByUserTaskTests
         await task.ExecuteAsync();
         
         // Assert
-        redisServiceMock.Verify(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        redisServiceMock.Verify(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests), Times.Once);
+        redisServiceMock.Verify(x => x.SetFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
     
     /// <summary>
@@ -523,7 +523,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -548,11 +548,11 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         
@@ -595,7 +595,7 @@ public class FilterPullRequestsByUserTaskTests
     {
         // Arrange
         var loggerMock = new Mock<ILogger<FilterGitLabPullRequestsByUserTask>>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
         
         var fetchResult = new FetchResult
         {
@@ -615,11 +615,11 @@ public class FilterPullRequestsByUserTaskTests
             }
         };
         
-        redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        redisServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(fetchResult.ToJson());
         
         string? capturedJson = null;
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.SetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
         

@@ -9,6 +9,7 @@ using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Copilot;
+using ReleaseKit.Infrastructure.DataTransfer;
 using ReleaseKit.Infrastructure.Git;
 using ReleaseKit.Infrastructure.GoogleSheets;
 
@@ -24,31 +25,49 @@ namespace ReleaseKit.Console.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 註冊 Redis 相關服務
+    /// 註冊指令間資料交換服務
     /// </summary>
-    public static IServiceCollection AddRedisServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddDataTransferServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var redisConnectionString = configuration["Redis:ConnectionString"] 
-            ?? throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
-        var redisInstanceName = configuration["Redis:InstanceName"] 
-            ?? throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
+        var providerValue = configuration["DataTransfer:Provider"]
+            ?? throw new InvalidOperationException("缺少必要的組態鍵: DataTransfer:Provider");
 
-        // 註冊 IConnectionMultiplexer，使用指數級重試機制
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        if (!Enum.TryParse<DataTransferProvider>(providerValue, ignoreCase: true, out var provider))
         {
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IConnectionMultiplexer>>();
-            var configOptions = ConfigurationOptions.Parse(redisConnectionString);
-            configOptions.AbortOnConnectFail = false; // 允許應用程式啟動即使 Redis 尚未就緒
+            throw new InvalidOperationException("DataTransfer:Provider 僅支援 Redis 或 FileSystem");
+        }
 
-            return ConnectionMultiplexerExtensions.ConnectWithRetry(configOptions, logger);
-        });
-
-        // 註冊 Redis 服務
-        services.AddSingleton<IRedisService>(sp =>
+        if (provider == DataTransferProvider.Redis)
         {
-            var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
-            return new RedisService(connectionMultiplexer, logger, redisInstanceName);
+            var dataTransferRedisConnectionString = configuration["Redis:ConnectionString"]
+                ?? throw new InvalidOperationException("缺少必要的組態鍵: Redis:ConnectionString");
+            var dataTransferRedisInstanceName = configuration["Redis:InstanceName"]
+                ?? throw new InvalidOperationException("缺少必要的組態鍵: Redis:InstanceName");
+
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IConnectionMultiplexer>>();
+                var configOptions = ConfigurationOptions.Parse(dataTransferRedisConnectionString);
+                configOptions.AbortOnConnectFail = false;
+                return ConnectionMultiplexerExtensions.ConnectWithRetry(configOptions, logger);
+            });
+
+            services.AddSingleton<IDataTransferService>(sp =>
+            {
+                var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+                var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisDataTransferService>>();
+                return new RedisDataTransferService(connectionMultiplexer, logger, dataTransferRedisInstanceName);
+            });
+            return services;
+        }
+
+        var fileDirectory = configuration["DataTransfer:FileDirectory"]
+            ?? throw new InvalidOperationException("缺少必要的組態鍵: DataTransfer:FileDirectory");
+
+        services.AddSingleton<IDataTransferService>(sp =>
+        {
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FileSystemDataTransferService>>();
+            return new FileSystemDataTransferService(fileDirectory, logger);
         });
 
         return services;
@@ -61,6 +80,7 @@ public static class ServiceCollectionExtensions
     {
         // 註冊 FetchMode 配置（Root Level）
         services.Configure<ReleaseKit.Common.Configuration.FetchModeOptions>(configuration);
+        services.Configure<DataTransferOptions>(configuration.GetSection("DataTransfer"));
 
         // 註冊 GoogleSheet 配置
         services.Configure<ReleaseKit.Common.Configuration.GoogleSheetOptions>(configuration.GetSection("GoogleSheet"));

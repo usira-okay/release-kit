@@ -19,30 +19,30 @@ public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTa
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">Redis 服務</param>
     /// <param name="userMappingOptions">使用者對應設定</param>
     public FilterGitLabPullRequestsByUserTask(
         ILogger<FilterGitLabPullRequestsByUserTask> logger,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IOptions<UserMappingOptions> userMappingOptions)
         : base(
             logger,
-            redisService,
+            dataTransferService,
             ExtractGitLabUserIdToDisplayName(userMappingOptions.Value))
     {
     }
 
     /// <inheritdoc />
-    protected override string SourceRedisHashKey => RedisKeys.GitLabHash;
+    protected override string SourceDataTransferGroupKey => DataTransferKeys.GitLabHash;
 
     /// <inheritdoc />
-    protected override string SourceRedisHashField => RedisKeys.Fields.PullRequests;
+    protected override string SourceDataTransferFieldKey => DataTransferKeys.Fields.PullRequests;
 
     /// <inheritdoc />
-    protected override string TargetRedisHashKey => RedisKeys.GitLabHash;
+    protected override string TargetDataTransferGroupKey => DataTransferKeys.GitLabHash;
 
     /// <inheritdoc />
-    protected override string TargetRedisHashField => RedisKeys.Fields.PullRequestsByUser;
+    protected override string TargetDataTransferFieldKey => DataTransferKeys.Fields.PullRequestsByUser;
 
     /// <inheritdoc />
     protected override string PlatformName => "GitLab";

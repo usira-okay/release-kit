@@ -16,7 +16,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </remarks>
 public class GetReleaseSettingTask : ITask
 {
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly INow _now;
     private readonly ILogger<GetReleaseSettingTask> _logger;
 
@@ -41,11 +41,11 @@ public class GetReleaseSettingTask : ITask
     private const string NotFoundKey = "NotFound";
 
     public GetReleaseSettingTask(
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         INow now,
         ILogger<GetReleaseSettingTask> logger)
     {
-        _redisService = redisService ?? throw new ArgumentNullException(nameof(redisService));
+        _dataTransferService = dataTransferService ?? throw new ArgumentNullException(nameof(dataTransferService));
         _now = now ?? throw new ArgumentNullException(nameof(now));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -59,11 +59,11 @@ public class GetReleaseSettingTask : ITask
 
         // 讀取 GitLab release branch 資料
         var gitLabBranchData = await ReadReleaseBranchDataAsync(
-            RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches, "GitLab");
+            DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches, "GitLab");
 
         // 讀取 Bitbucket release branch 資料
         var bitbucketBranchData = await ReadReleaseBranchDataAsync(
-            RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches, "Bitbucket");
+            DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches, "Bitbucket");
 
         // 產生設定
         var output = new ReleaseSettingOutput
@@ -77,27 +77,27 @@ public class GetReleaseSettingTask : ITask
         Console.WriteLine(json);
 
         // 清除舊資料並寫入 Redis
-        if (await _redisService.ExistsAsync(RedisKeys.ReleaseSetting))
+        if (await _dataTransferService.ExistsValueAsync(DataTransferKeys.ReleaseSetting))
         {
-            var deleted = await _redisService.DeleteAsync(RedisKeys.ReleaseSetting);
+            var deleted = await _dataTransferService.DeleteValueAsync(DataTransferKeys.ReleaseSetting);
             if (deleted)
             {
                 _logger.LogInformation("已清除 Redis 中的舊 Release Setting 資料");
             }
             else
             {
-                _logger.LogWarning("Redis 中的舊 Release Setting 資料刪除失敗，Key: {Key}", RedisKeys.ReleaseSetting);
+                _logger.LogWarning("Redis 中的舊 Release Setting 資料刪除失敗，Key: {Key}", DataTransferKeys.ReleaseSetting);
             }
         }
 
-        var isWritten = await _redisService.SetAsync(RedisKeys.ReleaseSetting, json);
+        var isWritten = await _dataTransferService.SetValueAsync(DataTransferKeys.ReleaseSetting, json);
         if (!isWritten)
         {
-            _logger.LogWarning("Release Setting 寫入 Redis 失敗，Key: {Key}", RedisKeys.ReleaseSetting);
-            throw new InvalidOperationException($"寫入 Redis 失敗，Key: {RedisKeys.ReleaseSetting}");
+            _logger.LogWarning("Release Setting 寫入 Redis 失敗，Key: {Key}", DataTransferKeys.ReleaseSetting);
+            throw new InvalidOperationException($"寫入 Redis 失敗，Key: {DataTransferKeys.ReleaseSetting}");
         }
 
-        _logger.LogInformation("Release Setting 已寫入 Redis，Key: {Key}", RedisKeys.ReleaseSetting);
+        _logger.LogInformation("Release Setting 已寫入 Redis，Key: {Key}", DataTransferKeys.ReleaseSetting);
 
         _logger.LogInformation(
             "Release Setting 產生完成，GitLab 專案數: {GitLabCount}，Bitbucket 專案數: {BitbucketCount}",
@@ -111,7 +111,7 @@ public class GetReleaseSettingTask : ITask
     private async Task<Dictionary<string, List<string>>?> ReadReleaseBranchDataAsync(
         string hashKey, string field, string platformName)
     {
-        var json = await _redisService.HashGetAsync(hashKey, field);
+        var json = await _dataTransferService.GetFieldAsync(hashKey, field);
         if (string.IsNullOrWhiteSpace(json))
         {
             _logger.LogInformation("{Platform} 無前置 release branch 資料，將產生空設定", platformName);

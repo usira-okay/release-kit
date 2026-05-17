@@ -18,7 +18,7 @@ namespace ReleaseKit.Application.Tasks;
 public class AnalyzePRDiffsTask : ITask
 {
     private readonly IGitOperationService _gitService;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly ILogger<AnalyzePRDiffsTask> _logger;
 
     /// <summary>
@@ -26,11 +26,11 @@ public class AnalyzePRDiffsTask : ITask
     /// </summary>
     public AnalyzePRDiffsTask(
         IGitOperationService gitService,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         ILogger<AnalyzePRDiffsTask> logger)
     {
         _gitService = gitService;
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _logger = logger;
     }
 
@@ -39,7 +39,7 @@ public class AnalyzePRDiffsTask : ITask
     /// </summary>
     public async Task ExecuteAsync()
     {
-        var runId = await _redisService.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey);
+        var runId = await _dataTransferService.GetValueAsync(RiskAnalysisDataTransferKeys.CurrentRunIdKey);
         if (string.IsNullOrEmpty(runId))
         {
             _logger.LogError("找不到 RunId，請先執行 CloneRepositories 指令");
@@ -52,7 +52,7 @@ public class AnalyzePRDiffsTask : ITask
 
         foreach (var (projectPath, mergeRequests) in allMergeRequests)
         {
-            var cloneJson = await _redisService.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(runId), projectPath);
+            var cloneJson = await _dataTransferService.GetFieldAsync(RiskAnalysisDataTransferKeys.Stage1Hash(runId), projectPath);
             if (string.IsNullOrEmpty(cloneJson))
             {
                 _logger.LogWarning("專案 {ProjectPath} 無 Stage 1 clone 記錄，跳過", projectPath);
@@ -72,14 +72,14 @@ public class AnalyzePRDiffsTask : ITask
     {
         var result = new Dictionary<string, List<MergeRequestOutput>>();
 
-        var gitLabJson = await _redisService.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser);
+        var gitLabJson = await _dataTransferService.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser);
         if (!string.IsNullOrEmpty(gitLabJson))
         {
             var gitLabFetchResult = gitLabJson.ToTypedObject<FetchResult>();
             MergeFetchResultInto(result, gitLabFetchResult);
         }
 
-        var bbJson = await _redisService.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser);
+        var bbJson = await _dataTransferService.GetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequestsByUser);
         if (!string.IsNullOrEmpty(bbJson))
         {
             var bbFetchResult = bbJson.ToTypedObject<FetchResult>();
@@ -164,8 +164,8 @@ public class AnalyzePRDiffsTask : ITask
             CommitSummaries = commitSummaries
         };
 
-        await _redisService.HashSetAsync(
-            RiskAnalysisRedisKeys.Stage2Hash(runId),
+        await _dataTransferService.SetFieldAsync(
+            RiskAnalysisDataTransferKeys.Stage2Hash(runId),
             projectPath,
             projectDiffResult.ToJson());
 

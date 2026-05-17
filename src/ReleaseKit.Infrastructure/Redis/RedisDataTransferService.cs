@@ -5,18 +5,18 @@ using StackExchange.Redis;
 namespace ReleaseKit.Infrastructure.Redis;
 
 /// <summary>
-/// Redis 快取服務實作
+/// 以 Redis 作為指令間資料交換媒介的實作
 /// </summary>
-public class RedisService : IRedisService
+public class RedisDataTransferService : IDataTransferService
 {
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly IDatabase _database;
-    private readonly ILogger<RedisService> _logger;
+    private readonly ILogger<RedisDataTransferService> _logger;
     private readonly string _instanceName;
 
-    public RedisService(
+    public RedisDataTransferService(
         IConnectionMultiplexer connectionMultiplexer,
-        ILogger<RedisService> logger,
+        ILogger<RedisDataTransferService> logger,
         string instanceName = "")
     {
         _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
@@ -26,9 +26,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 設定快取值
+    /// 設定鍵值資料
     /// </summary>
-    public async Task<bool> SetAsync(string key, string value, TimeSpan? expiry = null)
+    public async Task<bool> SetValueAsync(string key, string value, TimeSpan? expiry = null)
     {
         var fullKey = GetFullKey(key);
         var result = await _database.StringSetAsync(fullKey, value, expiry);
@@ -37,9 +37,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 取得快取值
+    /// 取得鍵值資料
     /// </summary>
-    public async Task<string?> GetAsync(string key)
+    public async Task<string?> GetValueAsync(string key)
     {
         var fullKey = GetFullKey(key);
         var value = await _database.StringGetAsync(fullKey);
@@ -48,9 +48,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 刪除快取值
+    /// 刪除鍵值資料
     /// </summary>
-    public async Task<bool> DeleteAsync(string key)
+    public async Task<bool> DeleteValueAsync(string key)
     {
         var fullKey = GetFullKey(key);
         var result = await _database.KeyDeleteAsync(fullKey);
@@ -59,9 +59,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 檢查快取鍵值是否存在
+    /// 檢查鍵值是否存在
     /// </summary>
-    public async Task<bool> ExistsAsync(string key)
+    public async Task<bool> ExistsValueAsync(string key)
     {
         var fullKey = GetFullKey(key);
         var result = await _database.KeyExistsAsync(fullKey);
@@ -70,9 +70,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 設定 Hash 欄位值
+    /// 設定集合欄位值
     /// </summary>
-    public async Task<bool> HashSetAsync(string hashKey, string field, string value)
+    public async Task<bool> SetFieldAsync(string hashKey, string field, string value)
     {
         var fullKey = GetFullKey(hashKey);
         var result = await _database.HashSetAsync(fullKey, field, value);
@@ -81,9 +81,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 取得 Hash 欄位值
+    /// 取得集合欄位值
     /// </summary>
-    public async Task<string?> HashGetAsync(string hashKey, string field)
+    public async Task<string?> GetFieldAsync(string hashKey, string field)
     {
         var fullKey = GetFullKey(hashKey);
         var value = await _database.HashGetAsync(fullKey, field);
@@ -92,9 +92,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 刪除 Hash 欄位
+    /// 刪除集合欄位
     /// </summary>
-    public async Task<bool> HashDeleteAsync(string hashKey, string field)
+    public async Task<bool> DeleteFieldAsync(string hashKey, string field)
     {
         var fullKey = GetFullKey(hashKey);
         var result = await _database.HashDeleteAsync(fullKey, field);
@@ -103,9 +103,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 檢查 Hash 欄位是否存在
+    /// 檢查集合欄位是否存在
     /// </summary>
-    public async Task<bool> HashExistsAsync(string hashKey, string field)
+    public async Task<bool> FieldExistsAsync(string hashKey, string field)
     {
         var fullKey = GetFullKey(hashKey);
         var result = await _database.HashExistsAsync(fullKey, field);
@@ -114,9 +114,9 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 取得 Hash 所有欄位與值
+    /// 取得集合所有欄位與值
     /// </summary>
-    public async Task<IReadOnlyDictionary<string, string>> HashGetAllAsync(string hashKey)
+    public async Task<IReadOnlyDictionary<string, string>> GetAllFieldsAsync(string hashKey)
     {
         var fullKey = GetFullKey(hashKey);
         var entries = await _database.HashGetAllAsync(fullKey);
@@ -125,7 +125,7 @@ public class RedisService : IRedisService
     }
 
     /// <summary>
-    /// 取得完整的快取鍵值（加上 Instance Name）
+    /// 取得完整鍵值（加上 Instance Name）
     /// </summary>
     private string GetFullKey(string key)
     {

@@ -1,37 +1,37 @@
 namespace ReleaseKit.Common.Constants;
 
 /// <summary>
-/// Redis 鍵值常數
+/// 指令間資料交換鍵值常數
 /// </summary>
-public static class RedisKeys
+public static class DataTransferKeys
 {
     /// <summary>
-    /// GitLab 資料的 Redis Hash 鍵值
+    /// GitLab 資料的集合鍵值
     /// </summary>
     public const string GitLabHash = "GitLab";
 
     /// <summary>
-    /// Bitbucket 資料的 Redis Hash 鍵值
+    /// Bitbucket 資料的集合鍵值
     /// </summary>
     public const string BitbucketHash = "Bitbucket";
 
     /// <summary>
-    /// Azure DevOps 資料的 Redis Hash 鍵值
+    /// Azure DevOps 資料的集合鍵值
     /// </summary>
     public const string AzureDevOpsHash = "AzureDevOps";
 
     /// <summary>
-    /// 整合後的 Release 資料的 Redis Hash 鍵值
+    /// 整合後 Release 資料的集合鍵值
     /// </summary>
     public const string ReleaseDataHash = "ReleaseData";
 
     /// <summary>
-    /// Release Setting 設定的 Redis Key
+    /// Release Setting 設定的鍵值
     /// </summary>
     public const string ReleaseSetting = "ReleaseSetting";
 
     /// <summary>
-    /// Redis Hash 欄位名稱常數
+    /// 集合欄位名稱常數
     /// </summary>
     public static class Fields
     {

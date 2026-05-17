@@ -17,14 +17,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class ConsolidateReleaseDataTaskTests
 {
     private readonly Mock<ILogger<ConsolidateReleaseDataTask>> _loggerMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly ConsolidateReleaseDataOptions _options;
     private string? _capturedRedisJson;
 
     public ConsolidateReleaseDataTaskTests()
     {
         _loggerMock = new Mock<ILogger<ConsolidateReleaseDataTask>>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _options = new ConsolidateReleaseDataOptions
         {
             TeamMapping = new List<TeamMappingOptions>
@@ -35,7 +35,7 @@ public class ConsolidateReleaseDataTaskTests
         };
 
         // Setup Redis write capture
-        _redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()))
+        _dataTransferServiceMock.Setup(x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => _capturedRedisJson = json)
             .ReturnsAsync(true);
     }
@@ -43,22 +43,22 @@ public class ConsolidateReleaseDataTaskTests
     private ConsolidateReleaseDataTask CreateTask(ConsolidateReleaseDataOptions? options = null)
     {
         return new ConsolidateReleaseDataTask(
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             Options.Create(options ?? _options),
             _loggerMock.Object);
     }
 
     private void SetupPrData(FetchResult? bitbucketResult, FetchResult? gitLabResult)
     {
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+        _dataTransferServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(bitbucketResult?.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+        _dataTransferServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(gitLabResult?.ToJson());
     }
 
     private void SetupUserStoryData(UserStoryFetchResult? result)
     {
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories))
+        _dataTransferServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItemsUserStories))
             .ReturnsAsync(result?.ToJson());
     }
 
@@ -373,8 +373,8 @@ public class ConsolidateReleaseDataTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Once);
 
         Assert.NotNull(_capturedRedisJson);
@@ -429,8 +429,8 @@ public class ConsolidateReleaseDataTaskTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // 不應寫入 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -456,8 +456,8 @@ public class ConsolidateReleaseDataTaskTests
         await task.ExecuteAsync();
 
         // 不應寫入 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -482,8 +482,8 @@ public class ConsolidateReleaseDataTaskTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // 不應寫入 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -508,8 +508,8 @@ public class ConsolidateReleaseDataTaskTests
         await task.ExecuteAsync();
 
         // 不應寫入 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -651,8 +651,8 @@ public class ConsolidateReleaseDataTaskTests
         await task.ExecuteAsync();
 
         // Assert：仍應寫入整合結果至 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -692,8 +692,8 @@ public class ConsolidateReleaseDataTaskTests
         await task.ExecuteAsync();
 
         // Assert：應正常寫入整合結果至 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -740,8 +740,8 @@ public class ConsolidateReleaseDataTaskTests
         await task.ExecuteAsync();
 
         // Assert：仍應寫入整合結果至 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, It.IsAny<string>()),
             Times.Once);
     }
 }

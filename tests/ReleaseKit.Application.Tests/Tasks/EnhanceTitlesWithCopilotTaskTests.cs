@@ -13,20 +13,20 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class EnhanceTitlesWithCopilotTaskTests
 {
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<ITitleEnhancer> _titleEnhancerMock;
     private readonly Mock<ILogger<EnhanceTitlesWithCopilotTask>> _loggerMock;
     private string? _capturedRedisJson;
 
     public EnhanceTitlesWithCopilotTaskTests()
     {
-        _redisServiceMock = new Mock<IRedisService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _titleEnhancerMock = new Mock<ITitleEnhancer>();
         _loggerMock = new Mock<ILogger<EnhanceTitlesWithCopilotTask>>();
 
         // 捕捉寫入 Redis 的 JSON
-        _redisServiceMock.Setup(x => x.HashSetAsync(
-                RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()))
+        _dataTransferServiceMock.Setup(x => x.SetFieldAsync(
+                DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()))
             .Callback<string, string, string>((_, _, json) => _capturedRedisJson = json)
             .ReturnsAsync(true);
     }
@@ -34,14 +34,14 @@ public class EnhanceTitlesWithCopilotTaskTests
     private EnhanceTitlesWithCopilotTask CreateTask()
     {
         return new EnhanceTitlesWithCopilotTask(
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             _titleEnhancerMock.Object,
             _loggerMock.Object);
     }
 
     private void SetupConsolidatedData(ConsolidatedReleaseResult? result)
     {
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        _dataTransferServiceMock.Setup(x => x.GetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated))
             .ReturnsAsync(result?.ToJson());
     }
 
@@ -127,8 +127,8 @@ public class EnhanceTitlesWithCopilotTaskTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
         // Assert - 不應寫入 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Never);
         _titleEnhancerMock.Verify(
             x => x.EnhanceTitlesAsync(It.IsAny<IReadOnlyList<IReadOnlyList<string>>>()),
@@ -153,8 +153,8 @@ public class EnhanceTitlesWithCopilotTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -297,8 +297,8 @@ public class EnhanceTitlesWithCopilotTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Once);
 
         Assert.NotNull(_capturedRedisJson);
