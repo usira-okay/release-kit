@@ -22,7 +22,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     /// <summary>
     /// 資料交換儲存體 服務
     /// </summary>
-    protected readonly IDataTransferService 資料交換儲存體DataTransferService;
+    protected readonly IDataTransferService _dataTransferService;
 
     /// <summary>
     /// 使用者 ID 與 DisplayName 的對應字典
@@ -41,7 +41,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         IReadOnlyDictionary<string, string> userIdToDisplayName)
     {
         Logger = logger;
-        資料交換儲存體DataTransferService = dataTransferService;
+        _dataTransferService = dataTransferService;
         UserIdToDisplayName = userIdToDisplayName;
     }
 
@@ -78,14 +78,14 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         Logger.LogInformation("開始過濾 {Platform} PR 資料，依使用者清單過濾", PlatformName);
 
         // 清除目標 資料交換儲存體 資料
-        if (await 資料交換儲存體DataTransferService.FieldExistsAsync(TargetDataTransferGroupKey, TargetDataTransferFieldKey))
+        if (await _dataTransferService.FieldExistsAsync(TargetDataTransferGroupKey, TargetDataTransferFieldKey))
         {
             Logger.LogInformation("清除 資料交換儲存體 中的舊資料，Hash: {HashKey} Field: {Field}", TargetDataTransferGroupKey, TargetDataTransferFieldKey);
-            await 資料交換儲存體DataTransferService.DeleteFieldAsync(TargetDataTransferGroupKey, TargetDataTransferFieldKey);
+            await _dataTransferService.DeleteFieldAsync(TargetDataTransferGroupKey, TargetDataTransferFieldKey);
         }
 
         // 1. 從 資料交換儲存體 讀取 PR 資料
-        var sourceJson = await 資料交換儲存體DataTransferService.GetFieldAsync(SourceDataTransferGroupKey, SourceDataTransferFieldKey);
+        var sourceJson = await _dataTransferService.GetFieldAsync(SourceDataTransferGroupKey, SourceDataTransferFieldKey);
         if (sourceJson is null)
         {
             Logger.LogError("資料交換儲存體 Hash {HashKey} Field {Field} 中無 PR 資料，請先執行前置指令", SourceDataTransferGroupKey, SourceDataTransferFieldKey);
@@ -145,7 +145,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
 
         // 5. 寫入目標 資料交換儲存體 Hash
         var targetJson = filteredFetchResult.ToJson();
-        await 資料交換儲存體DataTransferService.SetFieldAsync(TargetDataTransferGroupKey, TargetDataTransferFieldKey, targetJson);
+        await _dataTransferService.SetFieldAsync(TargetDataTransferGroupKey, TargetDataTransferFieldKey, targetJson);
 
         Logger.LogInformation("過濾完成，結果已寫入 資料交換儲存體 Hash {HashKey} Field {Field}", TargetDataTransferGroupKey, TargetDataTransferFieldKey);
 

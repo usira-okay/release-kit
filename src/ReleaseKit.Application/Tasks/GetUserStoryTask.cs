@@ -46,7 +46,7 @@ public class GetUserStoryTask : ITask
         }
 
         // 1. 從 資料交換儲存體 讀取原始 Work Item 資料
-        var workItemData = await LoadWorkItemsFrom資料交換儲存體Async();
+        var workItemData = await LoadWorkItemsFromDataTransferAsync();
         if (workItemData == null || workItemData.WorkItems.Count == 0)
         {
             _logger.LogWarning("資料交換儲存體 中無 Work Item 資料，不寫入空結果");
@@ -97,7 +97,7 @@ public class GetUserStoryTask : ITask
     /// <summary>
     /// 從 資料交換儲存體 讀取 Work Item 資料
     /// </summary>
-    private async Task<WorkItemFetchResult?> LoadWorkItemsFrom資料交換儲存體Async()
+    private async Task<WorkItemFetchResult?> LoadWorkItemsFromDataTransferAsync()
     {
         var json = await _dataTransferService.GetFieldAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems);
         if (json is null)

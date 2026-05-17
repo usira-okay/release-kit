@@ -46,7 +46,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         await _dataTransferService.DeleteFieldAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems);
 
         // 從 資料交換儲存體 讀取 PR 資料
-        var allPullRequests = await LoadPullRequestsFrom資料交換儲存體Async();
+        var allPullRequests = await LoadPullRequestsFromDataTransferAsync();
         
         if (allPullRequests.Count == 0)
         {
@@ -92,12 +92,12 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <summary>
     /// 從 資料交換儲存體 載入 PR 資料
     /// </summary>
-    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsFrom資料交換儲存體Async()
+    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsFromDataTransferAsync()
     {
         var allPullRequests = new List<(MergeRequestOutput PR, string ProjectName)>();
 
         // 定義要讀取的 資料交換儲存體 Hash
-        var redisKeys = new[]
+        var dataTransferSources = new[]
         {
             (HashKey: DataTransferKeys.GitLabHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "GitLab"),
             (HashKey: DataTransferKeys.BitbucketHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "Bitbucket")
@@ -106,7 +106,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         var anySourceFound = false;
 
         // 迴圈處理所有平台
-        foreach (var (hashKey, field, platform) in redisKeys)
+        foreach (var (hashKey, field, platform) in dataTransferSources)
         {
             var json = await _dataTransferService.GetFieldAsync(hashKey, field);
             if (json is not null)
