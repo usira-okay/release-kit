@@ -39,11 +39,11 @@ public class AnalyzePRDiffsTask : ITask
     /// </summary>
     public async Task ExecuteAsync()
     {
-        var runId = await _dataTransferService.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey);
+        var runId = await _dataTransferService.GetAsync(RiskAnalysisDataTransferKeys.CurrentRunIdKey);
         if (string.IsNullOrEmpty(runId))
         {
             _logger.LogError("找不到 RunId，請先執行 CloneRepositories 指令");
-            throw new InvalidOperationException("Redis 中無 RunId 資料，請先執行 CloneRepositories 指令");
+            throw new InvalidOperationException("資料傳遞儲存區中無 RunId 資料，請先執行 CloneRepositories 指令");
         }
 
         _logger.LogInformation("開始 Stage 2: 分析 PR Diffs, RunId={RunId}", runId);
@@ -52,7 +52,7 @@ public class AnalyzePRDiffsTask : ITask
 
         foreach (var (projectPath, mergeRequests) in allMergeRequests)
         {
-            var cloneJson = await _dataTransferService.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(runId), projectPath);
+            var cloneJson = await _dataTransferService.HashGetAsync(RiskAnalysisDataTransferKeys.Stage1Hash(runId), projectPath);
             if (string.IsNullOrEmpty(cloneJson))
             {
                 _logger.LogWarning("專案 {ProjectPath} 無 Stage 1 clone 記錄，跳過", projectPath);
@@ -165,7 +165,7 @@ public class AnalyzePRDiffsTask : ITask
         };
 
         await _dataTransferService.HashSetAsync(
-            RiskAnalysisRedisKeys.Stage2Hash(runId),
+            RiskAnalysisDataTransferKeys.Stage2Hash(runId),
             projectPath,
             projectDiffResult.ToJson());
 

@@ -62,7 +62,7 @@ public class CloneRepositoriesTask : ITask
         var runId = _now.UtcNow.ToString("yyyyMMddHHmmss");
         _logger.LogInformation("開始 Stage 1: Clone Repositories, RunId={RunId}", runId);
 
-        await _dataTransferService.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, runId);
+        await _dataTransferService.SetAsync(RiskAnalysisDataTransferKeys.CurrentRunIdKey, runId);
 
         var cloneTasks = new List<(string ProjectPath, string CloneUrl)>();
 
@@ -109,7 +109,7 @@ public class CloneRepositoriesTask : ITask
             var stageData = new { LocalPath = localPath, Status = status };
 
             await _dataTransferService.HashSetAsync(
-                RiskAnalysisRedisKeys.Stage1Hash(runId),
+                RiskAnalysisDataTransferKeys.Stage1Hash(runId),
                 projectPath,
                 stageData.ToJson());
 

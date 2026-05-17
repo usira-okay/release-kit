@@ -78,12 +78,12 @@ public class AnalyzePRDiffsTaskTests
 
     private void SetupRunId(string? runId = RunId) =>
         _dataTransferServiceMock
-            .Setup(x => x.GetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey))
+            .Setup(x => x.GetAsync(RiskAnalysisDataTransferKeys.CurrentRunIdKey))
             .ReturnsAsync(runId);
 
     private void SetupStage1(string projectPath, string localPath, string status = "Success") =>
         _dataTransferServiceMock
-            .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), projectPath))
+            .Setup(x => x.HashGetAsync(RiskAnalysisDataTransferKeys.Stage1Hash(RunId), projectPath))
             .ReturnsAsync(new { LocalPath = localPath, Status = status }.ToJson());
 
     private void SetupGitLabPrs(Dictionary<string, List<MergeRequestOutput>> data) =>
@@ -154,7 +154,7 @@ public class AnalyzePRDiffsTaskTests
             x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _dataTransferServiceMock.Verify(
-            x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
+            x => x.HashSetAsync(RiskAnalysisDataTransferKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -201,7 +201,7 @@ public class AnalyzePRDiffsTaskTests
             Times.Never);
         // 仍寫入空 diff 結果
         _dataTransferServiceMock.Verify(
-            x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
+            x => x.HashSetAsync(RiskAnalysisDataTransferKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -229,7 +229,7 @@ public class AnalyzePRDiffsTaskTests
             Times.Once);
         _dataTransferServiceMock.Verify(
             x => x.HashSetAsync(
-                RiskAnalysisRedisKeys.Stage2Hash(RunId),
+                RiskAnalysisDataTransferKeys.Stage2Hash(RunId),
                 ProjectPath,
                 It.Is<string>(v => v.Contains(CommitSha))),
             Times.Once);
@@ -255,7 +255,7 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert — 仍寫入空 diff 結果
         _dataTransferServiceMock.Verify(
-            x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
+            x => x.HashSetAsync(RiskAnalysisDataTransferKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -325,7 +325,7 @@ public class AnalyzePRDiffsTaskTests
         });
         SetupStage1(ProjectPath, LocalPath);
         _dataTransferServiceMock
-            .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), bbProject))
+            .Setup(x => x.HashGetAsync(RiskAnalysisDataTransferKeys.Stage1Hash(RunId), bbProject))
             .ReturnsAsync(new { LocalPath = bbLocal, Status = "Success" }.ToJson());
         _gitServiceMock
             .Setup(x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -337,10 +337,10 @@ public class AnalyzePRDiffsTaskTests
 
         // Assert — 兩個專案都寫入 Stage 2
         _dataTransferServiceMock.Verify(
-            x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
+            x => x.HashSetAsync(RiskAnalysisDataTransferKeys.Stage2Hash(RunId), ProjectPath, It.IsAny<string>()),
             Times.Once);
         _dataTransferServiceMock.Verify(
-            x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), bbProject, It.IsAny<string>()),
+            x => x.HashSetAsync(RiskAnalysisDataTransferKeys.Stage2Hash(RunId), bbProject, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -355,7 +355,7 @@ public class AnalyzePRDiffsTaskTests
         });
         // Stage1 中無此專案的記錄
         _dataTransferServiceMock
-            .Setup(x => x.HashGetAsync(RiskAnalysisRedisKeys.Stage1Hash(RunId), ProjectPath))
+            .Setup(x => x.HashGetAsync(RiskAnalysisDataTransferKeys.Stage1Hash(RunId), ProjectPath))
             .ReturnsAsync((string?)null);
         var task = CreateTask();
 
@@ -367,7 +367,7 @@ public class AnalyzePRDiffsTaskTests
             x => x.GetCommitStatAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _dataTransferServiceMock.Verify(
-            x => x.HashSetAsync(RiskAnalysisRedisKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
+            x => x.HashSetAsync(RiskAnalysisDataTransferKeys.Stage2Hash(RunId), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 }

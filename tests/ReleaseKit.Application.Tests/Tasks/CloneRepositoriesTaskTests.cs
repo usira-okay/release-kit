@@ -102,7 +102,7 @@ public class CloneRepositoriesTaskTests
 
         // Assert
         _dataTransferServiceMock.Verify(x =>
-            x.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, ExpectedRunId, null),
+            x.SetAsync(RiskAnalysisDataTransferKeys.CurrentRunIdKey, ExpectedRunId, null),
             Times.Once);
     }
 
@@ -176,7 +176,7 @@ public class CloneRepositoriesTaskTests
         // Assert - GitLab project result stored
         _dataTransferServiceMock.Verify(x =>
             x.HashSetAsync(
-                RiskAnalysisRedisKeys.Stage1Hash(ExpectedRunId),
+                RiskAnalysisDataTransferKeys.Stage1Hash(ExpectedRunId),
                 "group/project-a",
                 It.Is<string>(v => v.Contains("Success") && v.Contains("/repos"))),
             Times.Once);
@@ -199,7 +199,7 @@ public class CloneRepositoriesTaskTests
         // Assert - 仍寫入失敗狀態（不拋出例外）
         _dataTransferServiceMock.Verify(x =>
             x.HashSetAsync(
-                RiskAnalysisRedisKeys.Stage1Hash(ExpectedRunId),
+                RiskAnalysisDataTransferKeys.Stage1Hash(ExpectedRunId),
                 It.IsAny<string>(),
                 It.Is<string>(v => v.Contains("Failed"))),
             Times.AtLeastOnce);
@@ -245,7 +245,7 @@ public class CloneRepositoriesTaskTests
 
         // Assert
         _dataTransferServiceMock.Verify(x =>
-            x.SetAsync(RiskAnalysisRedisKeys.CurrentRunIdKey, ExpectedRunId, null),
+            x.SetAsync(RiskAnalysisDataTransferKeys.CurrentRunIdKey, ExpectedRunId, null),
             Times.Once);
         _gitServiceMock.Verify(x =>
             x.CloneOrPullAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
