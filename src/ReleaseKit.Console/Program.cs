@@ -33,8 +33,8 @@ var host = Host.CreateDefaultBuilder(args)
         // 註冊設定選項
         services.AddConfigurationOptions(context.Configuration);
 
-        // 註冊實體檔案資料傳遞服務
-        services.AddFileStorageServices(context.Configuration);
+        // 註冊資料傳遞服務
+        services.AddDataTransferServices(context.Configuration);
 
         // 註冊應用程式服務
         services.AddApplicationServices(context.Configuration);

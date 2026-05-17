@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ReleaseKit.Application.Tasks;
 using ReleaseKit.Common.Configuration;
 using ReleaseKit.Common.Constants;
+using ReleaseKit.Console.Factories;
 using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
@@ -12,6 +13,7 @@ using ReleaseKit.Infrastructure.Copilot;
 using ReleaseKit.Infrastructure.FileStorage;
 using ReleaseKit.Infrastructure.Git;
 using ReleaseKit.Infrastructure.GoogleSheets;
+using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.Time;
 
 namespace ReleaseKit.Console.Extensions;
@@ -22,22 +24,14 @@ namespace ReleaseKit.Console.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 註冊實體檔案資料傳遞服務
+    /// 註冊可切換的資料傳遞服務
     /// </summary>
-    public static IServiceCollection AddFileStorageServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddDataTransferServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var fileStorageBasePath = configuration["FileStorage:BasePath"]
-            ?? throw new InvalidOperationException("FileStorage:BasePath 組態設定不得為空");
-        var normalizedBasePath = Path.GetFullPath(fileStorageBasePath);
-        Directory.CreateDirectory(normalizedBasePath);
-
-        // 註冊實體檔案資料傳遞服務
+        services.AddSingleton<IRedisConnectionFactory, RedisConnectionFactory>();
+        services.AddSingleton<DataTransferServiceFactory>();
         services.AddSingleton<IDataTransferService>(sp =>
-        {
-            var now = sp.GetRequiredService<INow>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FileDataTransferService>>();
-            return new FileDataTransferService(normalizedBasePath, now, logger);
-        });
+            sp.GetRequiredService<DataTransferServiceFactory>().Create());
 
         return services;
     }

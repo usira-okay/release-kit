@@ -67,6 +67,37 @@ $ dotnet run -- fetch-gitlab-pr extra-arg
 
 ### 設定項目
 
+#### DataTransfer 設定
+
+用於決定任務間資料傳遞要使用 Redis 或實體檔案。
+
+```json
+{
+  "DataTransfer": {
+    "Provider": "FileSystem"
+  },
+  "FileStorage": {
+    "BasePath": "/tmp/release-kit-data"
+  },
+  "Redis": {
+    "ConnectionString": "localhost:6379",
+    "InstanceName": "ReleaseKit:"
+  }
+}
+```
+
+- **Provider**: 僅支援 `FileSystem` 或 `Redis`
+- 當 **Provider** 為 `FileSystem` 時，必須設定 **FileStorage:BasePath**
+- 當 **Provider** 為 `Redis` 時，必須設定 **Redis:ConnectionString** 與 **Redis:InstanceName**
+
+**環境變數設定範例：**
+```bash
+DataTransfer__Provider="Redis" \
+Redis__ConnectionString="localhost:6379" \
+Redis__InstanceName="ReleaseKit:" \
+./ReleaseKit.Console fetch-gitlab-pr
+```
+
 #### GitLab 設定
 
 用於連接 GitLab API 並拉取 Pull Request 資訊。

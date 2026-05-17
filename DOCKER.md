@@ -12,7 +12,8 @@
 Docker Compose 環境包含以下服務：
 
 1. **Seq** - 結構化日誌伺服器，用於收集與查詢應用程式日誌
-2. **Release-Kit** - 主要 Console 應用程式（透過掛載目錄保存資料）
+2. **Redis** - 可選的資料傳遞後端
+3. **Release-Kit** - 主要 Console 應用程式（可依設定使用 Redis 或檔案）
 
 ## 快速開始
 
@@ -24,6 +25,7 @@ docker-compose up -d
 
 此指令會：
 - 啟動 Seq 日誌服務（Port 5341）
+- 啟動 Redis 服務（Port 6379）
 - 建置並啟動 Release-Kit Console 應用程式
 
 ### 2. 查看日誌
@@ -74,12 +76,18 @@ docker-compose down -v
 docker exec -it release-kit-app find /data/release-kit -maxdepth 3 -type f
 ```
 
+### Redis 資料傳遞服務
+
+- **連線位址**: localhost:6379
+- **用途**: 當 `DataTransfer:Provider=Redis` 時保存任務中繼資料
+- **資料持久化**: 透過 Docker Volume `redis-data` 保存
+
 ### Release-Kit 應用程式
 
 應用程式會自動執行以下測試：
 1. 載入組態設定
-2. 驗證實體檔案資料目錄
-3. 執行資料讀寫流程
+2. 依 `DataTransfer:Provider` 選擇 Redis 或檔案後端
+3. 驗證對應的資料讀寫流程
 4. 將日誌輸出至 Console 與 Seq
 
 ## 環境變數配置
@@ -89,7 +97,10 @@ docker exec -it release-kit-app find /data/release-kit -maxdepth 3 -type f
 ```yaml
 environment:
   - ASPNETCORE_ENVIRONMENT=Development
+  - DataTransfer__Provider=FileSystem
   - FileStorage__BasePath=/data/release-kit
+  - Redis__ConnectionString=redis:6379
+  - Redis__InstanceName=ReleaseKit:
   - Seq__ServerUrl=http://seq:80
   - Seq__ApiKey=your-api-key
 ```
@@ -99,7 +110,10 @@ environment:
 | 變數名稱 | 預設值 | 說明 |
 |---------|-------|------|
 | `ASPNETCORE_ENVIRONMENT` | Development | 執行環境 (Development, Qa, Production) |
+| `DataTransfer__Provider` | FileSystem | 資料傳遞後端（`FileSystem` 或 `Redis`） |
 | `FileStorage__BasePath` | /data/release-kit | Release-Kit 資料目錄 |
+| `Redis__ConnectionString` | redis:6379 | Redis 連線字串 |
+| `Redis__InstanceName` | ReleaseKit: | Redis 鍵值前綴 |
 | `Seq__ServerUrl` | http://seq:80 | Seq 伺服器位址 |
 | `Seq__ApiKey` | (空) | Seq API 金鑰（可選） |
 
@@ -116,10 +130,10 @@ volumes:
 
 ### 僅啟動基礎設施服務
 
-如果要在本機執行 Release-Kit，但使用 Docker 的 Seq：
+如果要在本機執行 Release-Kit，但使用 Docker 的 Seq 與 Redis：
 
 ```bash
-docker-compose up -d seq
+docker-compose up -d seq redis
 ```
 
 然後在本機執行：
@@ -145,7 +159,7 @@ docker-compose up -d --build
 
 ## 常見問題
 
-### Q: 如何清除 Release-Kit 資料檔？
+### Q: 如何清除檔案模式的資料檔？
 
 ```bash
 docker-compose down
@@ -162,6 +176,12 @@ docker run --rm -v release-kit_release-kit-data:/source -v "$(pwd):/backup" alpi
   tar czf /backup/release-kit-data-$(date +%Y%m%d).tgz -C /source .
 ```
 
+### Q: 如何清除 Redis 資料？
+
+```bash
+docker exec -it release-kit-redis redis-cli FLUSHALL
+```
+
 ### Q: 如何重設 Seq 日誌？
 
 最簡單的方式是刪除 Seq 資料卷：
@@ -172,7 +192,7 @@ docker volume rm release-kit_seq-data
 docker-compose up -d
 ```
 
-### Q: 應用程式無法寫入資料目錄或連接 Seq？
+### Q: 應用程式無法寫入資料目錄、連接 Redis 或連接 Seq？
 
 確認服務已啟動：
 ```bash
@@ -182,6 +202,7 @@ docker-compose ps
 檢查服務日誌：
 ```bash
 docker-compose logs seq
+docker-compose logs redis
 docker-compose logs release-kit
 ```
 
@@ -199,7 +220,7 @@ services:
 ## 生產環境建議
 
 1. **啟用 Seq API Key**: 在 Seq Web UI 中建立 API Key，並在環境變數中設定
-2. **資料卷備份**: 定期備份 `seq-data` 與 `release-kit-data` 資料卷
+2. **資料卷備份**: 定期備份 `seq-data`、`release-kit-data` 與 `redis-data` 資料卷
 4. **資源限制**: 在 `docker-compose.yml` 中加入 CPU 與記憶體限制
 5. **網路隔離**: 使用自訂網路與防火牆規則限制存取
 
@@ -225,6 +246,17 @@ services:
 environment:
   - Seq__ServerUrl=https://your-seq-server.com
   - Seq__ApiKey=your-api-key
+```
+
+### 使用外部 Redis
+
+如果要連接至現有的 Redis 實例，可移除 docker-compose.yml 中的 redis 服務，並修改環境變數：
+
+```yaml
+environment:
+  - DataTransfer__Provider=Redis
+  - Redis__ConnectionString=your-redis-host:6379
+  - Redis__InstanceName=ReleaseKit:
 ```
 
 ## 疑難排解

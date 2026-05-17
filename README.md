@@ -7,7 +7,7 @@ Release-Kit 是一個 .NET 10 Console 應用程式，用於從多個開發平台
 - 支援多平台整合：GitLab、Bitbucket、Azure DevOps
 - 自動解析 Work Item ID
 - 同步至 Google Sheets
-- 實體檔案資料傳遞
+- 可切換 Redis / 實體檔案資料傳遞
 - Seq 結構化日誌
 
 ## 快速開始
@@ -25,6 +25,7 @@ docker-compose up -d
 #### 必要條件
 
 - .NET 10 SDK
+- Redis（選用，當 `DataTransfer:Provider=Redis` 時）
 - Seq（可選）
 
 #### 建置與執行
@@ -82,8 +83,15 @@ release-kit/
       "Default": "Information"
     }
   },
+  "DataTransfer": {
+    "Provider": "FileSystem"
+  },
   "FileStorage": {
     "BasePath": "/tmp/release-kit-data"
+  },
+  "Redis": {
+    "ConnectionString": "localhost:6379",
+    "InstanceName": "ReleaseKit:"
   },
   "Seq": {
     "ServerUrl": "http://localhost:5341",
@@ -92,9 +100,15 @@ release-kit/
 }
 ```
 
+- `DataTransfer:Provider`：可設為 `Redis` 或 `FileSystem`
+- 當使用 `FileSystem` 時，需設定 `FileStorage:BasePath`
+- 當使用 `Redis` 時，需設定 `Redis:ConnectionString` 與 `Redis:InstanceName`
+
 環境變數可覆寫組態設定，例如：
 
 ```bash
+export DataTransfer__Provider="Redis"
+export Redis__ConnectionString="localhost:6379"
 export FileStorage__BasePath="/path/to/release-kit-data"
 export Seq__ServerUrl="https://your-seq-server.com"
 ```

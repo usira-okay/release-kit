@@ -13,6 +13,19 @@ services:
       - release-kit-network
     restart: unless-stopped
 
+  # Redis 資料傳遞服務
+  redis:
+    image: redis:7-alpine
+    container_name: release-kit-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - release-kit-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
   # Release-Kit Console 應用程式
   release-kit:
     build:
@@ -21,7 +34,10 @@ services:
     container_name: release-kit-app
     environment:
       - ASPNETCORE_ENVIRONMENT=docker
+      - DataTransfer__Provider=FileSystem
       - FileStorage__BasePath=/data/release-kit
+      - Redis__ConnectionString=redis:6379
+      - Redis__InstanceName=ReleaseKit:
       - Seq__ServerUrl=http://seq:80
     networks:
       - release-kit-network
@@ -36,3 +52,4 @@ networks:
 volumes:
   seq-data:
   release-kit-data:
+  redis-data:
