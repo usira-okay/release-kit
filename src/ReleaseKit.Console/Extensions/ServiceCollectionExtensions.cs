@@ -9,12 +9,10 @@ using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Copilot;
+using ReleaseKit.Infrastructure.FileStorage;
 using ReleaseKit.Infrastructure.Git;
 using ReleaseKit.Infrastructure.GoogleSheets;
-
-using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.Time;
-using StackExchange.Redis;
 
 namespace ReleaseKit.Console.Extensions;
 
@@ -24,31 +22,21 @@ namespace ReleaseKit.Console.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 註冊 Redis 相關服務
+    /// 註冊實體檔案資料傳遞服務
     /// </summary>
-    public static IServiceCollection AddRedisServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddFileStorageServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var redisConnectionString = configuration["Redis:ConnectionString"] 
-            ?? throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
-        var redisInstanceName = configuration["Redis:InstanceName"] 
-            ?? throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
+        var fileStorageBasePath = configuration["FileStorage:BasePath"]
+            ?? throw new InvalidOperationException("FileStorage:BasePath 組態設定不得為空");
+        var normalizedBasePath = Path.GetFullPath(fileStorageBasePath);
+        Directory.CreateDirectory(normalizedBasePath);
 
-        // 註冊 IConnectionMultiplexer，使用指數級重試機制
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
-        {
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IConnectionMultiplexer>>();
-            var configOptions = ConfigurationOptions.Parse(redisConnectionString);
-            configOptions.AbortOnConnectFail = false; // 允許應用程式啟動即使 Redis 尚未就緒
-
-            return ConnectionMultiplexerExtensions.ConnectWithRetry(configOptions, logger);
-        });
-
-        // 註冊 Redis 服務
+        // 註冊實體檔案資料傳遞服務
         services.AddSingleton<IRedisService>(sp =>
         {
-            var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
-            return new RedisService(connectionMultiplexer, logger, redisInstanceName);
+            var now = sp.GetRequiredService<INow>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FileDataTransferService>>();
+            return new FileDataTransferService(normalizedBasePath, now, logger);
         });
 
         return services;
