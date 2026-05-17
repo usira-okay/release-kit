@@ -10,9 +10,9 @@ namespace ReleaseKit.Application.Tasks;
 /// 使用 AI 增強 Release 標題任務
 /// </summary>
 /// <remarks>
-/// 從 Redis 讀取整合後的 Release 資料，收集各項目的候選標題，
+/// 從 資料交換儲存體 讀取整合後的 Release 資料，收集各項目的候選標題，
 /// 透過 <see cref="ITitleEnhancer"/> 產生更有意義的標題，
-/// 並將增強結果與原始資料一起寫入新的 Redis Key。
+/// 並將增強結果與原始資料一起寫入新的 資料交換儲存體 Key。
 /// </remarks>
 public class EnhanceTitlesWithCopilotTask : ITask
 {
@@ -23,7 +23,7 @@ public class EnhanceTitlesWithCopilotTask : ITask
     /// <summary>
     /// 初始化 <see cref="EnhanceTitlesWithCopilotTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="dataTransferService">Redis 服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 服務</param>
     /// <param name="titleEnhancer">標題增強服務</param>
     /// <param name="logger">日誌記錄器</param>
     public EnhanceTitlesWithCopilotTask(
@@ -46,11 +46,11 @@ public class EnhanceTitlesWithCopilotTask : ITask
         // 清除舊的增強標題資料
         if (await _dataTransferService.FieldExistsAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles);
+            _logger.LogInformation("清除 資料交換儲存體 中的舊資料，Hash: {HashKey} Field: {Field}", DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles);
             await _dataTransferService.DeleteFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles);
         }
 
-        // 1. 從 Redis 讀取整合資料
+        // 1. 從 資料交換儲存體 讀取整合資料
         var consolidatedResult = await LoadConsolidatedDataAsync();
         if (consolidatedResult == null)
         {
@@ -73,7 +73,7 @@ public class EnhanceTitlesWithCopilotTask : ITask
         // 4. 組合結果
         var enhancedResult = BuildEnhancedResult(consolidatedResult, allEntries, enhancedTitles);
 
-        // 5. 寫入 Redis
+        // 5. 寫入 資料交換儲存體
         var json = enhancedResult.ToJson();
         await _dataTransferService.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, json);
 
@@ -82,16 +82,16 @@ public class EnhanceTitlesWithCopilotTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取整合後的 Release 資料
+    /// 從 資料交換儲存體 讀取整合後的 Release 資料
     /// </summary>
     private async Task<ConsolidatedReleaseResult?> LoadConsolidatedDataAsync()
     {
         var json = await _dataTransferService.GetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
         if (json is null)
         {
-            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無整合 Release 資料，請先執行 ConsolidateReleaseData 指令",
+            _logger.LogError("資料交換儲存體 Hash {HashKey} Field {Field} 中無整合 Release 資料，請先執行 ConsolidateReleaseData 指令",
                 DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
-            throw new InvalidOperationException($"Redis Hash {DataTransferKeys.ReleaseDataHash} Field {DataTransferKeys.Fields.Consolidated} 中無整合 Release 資料");
+            throw new InvalidOperationException($"資料交換儲存體 Hash {DataTransferKeys.ReleaseDataHash} Field {DataTransferKeys.Fields.Consolidated} 中無整合 Release 資料");
         }
 
         if (string.IsNullOrEmpty(json))

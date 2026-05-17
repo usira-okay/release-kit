@@ -8,14 +8,14 @@ namespace ReleaseKit.Infrastructure.Tests.Redis;
 /// <summary>
 /// Redis 服務單元測試
 /// </summary>
-public class RedisServiceTests
+public class RedisDataTransferServiceTests
 {
     private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer;
     private readonly Mock<IDatabase> _mockDatabase;
     private readonly Mock<ILogger<RedisDataTransferService>> _mockLogger;
     private readonly RedisDataTransferService _dataTransferService;
 
-    public RedisServiceTests()
+    public RedisDataTransferServiceTests()
     {
         _mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
         _mockDatabase = new Mock<IDatabase>();
@@ -198,13 +198,13 @@ public class RedisServiceTests
     }
 
     [Fact]
-    public async Task HashSetAsync_ShouldReturnTrue_WhenSetSucceeds()
+    public async Task SetFieldAsync_ShouldReturnTrue_WhenSetSucceeds()
     {
         // Arrange
         var hashKey = "test-hash";
         var field = "test-field";
         var value = "test-value";
-        _mockDatabase.Setup(x => x.SetFieldAsync(
+        _mockDatabase.Setup(x => x.HashSetAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.Is<RedisValue>(v => v.ToString() == value),
@@ -217,7 +217,7 @@ public class RedisServiceTests
 
         // Assert
         Assert.True(result);
-        _mockDatabase.Verify(x => x.SetFieldAsync(
+        _mockDatabase.Verify(x => x.HashSetAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.Is<RedisValue>(v => v.ToString() == value),
@@ -226,13 +226,13 @@ public class RedisServiceTests
     }
 
     [Fact]
-    public async Task HashGetAsync_ShouldReturnValue_WhenFieldExists()
+    public async Task GetFieldAsync_ShouldReturnValue_WhenFieldExists()
     {
         // Arrange
         var hashKey = "test-hash";
         var field = "test-field";
         var expectedValue = "test-value";
-        _mockDatabase.Setup(x => x.GetFieldAsync(
+        _mockDatabase.Setup(x => x.HashGetAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
@@ -246,12 +246,12 @@ public class RedisServiceTests
     }
 
     [Fact]
-    public async Task HashGetAsync_ShouldReturnNull_WhenFieldDoesNotExist()
+    public async Task GetFieldAsync_ShouldReturnNull_WhenFieldDoesNotExist()
     {
         // Arrange
         var hashKey = "test-hash";
         var field = "non-existent-field";
-        _mockDatabase.Setup(x => x.GetFieldAsync(
+        _mockDatabase.Setup(x => x.HashGetAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
@@ -265,12 +265,12 @@ public class RedisServiceTests
     }
 
     [Fact]
-    public async Task HashDeleteAsync_ShouldReturnTrue_WhenFieldIsDeleted()
+    public async Task DeleteFieldAsync_ShouldReturnTrue_WhenFieldIsDeleted()
     {
         // Arrange
         var hashKey = "test-hash";
         var field = "test-field";
-        _mockDatabase.Setup(x => x.DeleteFieldAsync(
+        _mockDatabase.Setup(x => x.HashDeleteAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
@@ -281,19 +281,19 @@ public class RedisServiceTests
 
         // Assert
         Assert.True(result);
-        _mockDatabase.Verify(x => x.DeleteFieldAsync(
+        _mockDatabase.Verify(x => x.HashDeleteAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()), Times.Once);
     }
 
     [Fact]
-    public async Task HashExistsAsync_ShouldReturnTrue_WhenFieldExists()
+    public async Task FieldExistsAsync_ShouldReturnTrue_WhenFieldExists()
     {
         // Arrange
         var hashKey = "test-hash";
         var field = "test-field";
-        _mockDatabase.Setup(x => x.FieldExistsAsync(
+        _mockDatabase.Setup(x => x.HashExistsAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))
@@ -307,12 +307,12 @@ public class RedisServiceTests
     }
 
     [Fact]
-    public async Task HashExistsAsync_ShouldReturnFalse_WhenFieldDoesNotExist()
+    public async Task FieldExistsAsync_ShouldReturnFalse_WhenFieldDoesNotExist()
     {
         // Arrange
         var hashKey = "test-hash";
         var field = "non-existent-field";
-        _mockDatabase.Setup(x => x.FieldExistsAsync(
+        _mockDatabase.Setup(x => x.HashExistsAsync(
             It.Is<RedisKey>(k => k.ToString() == "Test:test-hash"),
             It.Is<RedisValue>(f => f.ToString() == field),
             It.IsAny<CommandFlags>()))

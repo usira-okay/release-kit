@@ -301,7 +301,7 @@ public class BitbucketRepository : ISourceControlRepository
         var retryCount = 0;
         while (true)
         {
-            var response = await httpClient.GetValueAsync(url, cancellationToken);
+            var response = await httpClient.GetAsync(url, cancellationToken);
 
             if (response.StatusCode != HttpStatusCode.TooManyRequests || retryCount >= RateLimitMaxRetries)
             {

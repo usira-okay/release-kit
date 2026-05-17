@@ -12,9 +12,9 @@ namespace ReleaseKit.Application.Tasks;
 /// 整合 Release 資料任務
 /// </summary>
 /// <remarks>
-/// 從 Redis 讀取已過濾的 PR 資料（Bitbucket/GitLab ByUser）與 Work Item 資料（UserStories），
+/// 從 資料交換儲存體 讀取已過濾的 PR 資料（Bitbucket/GitLab ByUser）與 Work Item 資料（UserStories），
 /// 透過 PR ID 配對後，依專案路徑分組、依團隊顯示名稱與 Work Item ID 排序，
-/// 並將整合結果存入新的 Redis Key。
+/// 並將整合結果存入新的 資料交換儲存體 Key。
 /// </remarks>
 public class ConsolidateReleaseDataTask : ITask
 {
@@ -26,7 +26,7 @@ public class ConsolidateReleaseDataTask : ITask
     /// <summary>
     /// 初始化 <see cref="ConsolidateReleaseDataTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="dataTransferService">Redis 服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 服務</param>
     /// <param name="options">整合任務配置選項</param>
     /// <param name="logger">日誌記錄器</param>
     public ConsolidateReleaseDataTask(
@@ -49,18 +49,18 @@ public class ConsolidateReleaseDataTask : ITask
         // 清除舊的整合 Release 資料
         if (await _dataTransferService.FieldExistsAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
+            _logger.LogInformation("清除 資料交換儲存體 中的舊資料，Hash: {HashKey} Field: {Field}", DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
             await _dataTransferService.DeleteFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
         }
 
-        // 1. 從 Redis 讀取 PR 資料
+        // 1. 從 資料交換儲存體 讀取 PR 資料
         var prLookup = await LoadPullRequestsAsync();
         if (prLookup == null)
         {
             return;
         }
 
-        // 2. 從 Redis 讀取 Work Item 資料
+        // 2. 從 資料交換儲存體 讀取 Work Item 資料
         var userStoryResult = await LoadUserStoriesAsync();
         if (userStoryResult.WorkItems.Count == 0)
         {
@@ -70,7 +70,7 @@ public class ConsolidateReleaseDataTask : ITask
         // 3. 整合資料
         var consolidated = ConsolidateData(prLookup, userStoryResult, _options.Value.TeamMapping);
 
-        // 5. 序列化並寫入 Redis
+        // 5. 序列化並寫入 資料交換儲存體
         var json = consolidated.ToJson();
         await _dataTransferService.SetFieldAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated, json);
 
@@ -79,7 +79,7 @@ public class ConsolidateReleaseDataTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取 Bitbucket 與 GitLab ByUser PR 資料，並建立以 (PrId, ProjectName) 為 Key 的查詢字典
+    /// 從 資料交換儲存體 讀取 Bitbucket 與 GitLab ByUser PR 資料，並建立以 (PrId, ProjectName) 為 Key 的查詢字典
     /// </summary>
     private async Task<Dictionary<(string PrId, string ProjectName), List<(MergeRequestOutput PR, string ProjectName)>>?> LoadPullRequestsAsync()
     {
@@ -89,8 +89,8 @@ public class ConsolidateReleaseDataTask : ITask
         // 若兩個平台的 PR 資料均不存在（欄位不存在），拋出例外
         if (bitbucketJson is null && gitLabJson is null)
         {
-            _logger.LogError("Bitbucket 與 GitLab 的 PR 資料均不存在於 Redis，請先執行 FilterPullRequestsByUser 指令");
-            throw new InvalidOperationException("Bitbucket 與 GitLab 的 PR 資料均不存在於 Redis");
+            _logger.LogError("Bitbucket 與 GitLab 的 PR 資料均不存在於 資料交換儲存體，請先執行 FilterPullRequestsByUser 指令");
+            throw new InvalidOperationException("Bitbucket 與 GitLab 的 PR 資料均不存在於 資料交換儲存體");
         }
 
         var bitbucketResult = bitbucketJson?.ToTypedObject<FetchResult>();
@@ -146,7 +146,7 @@ public class ConsolidateReleaseDataTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取 UserStories Work Item 資料
+    /// 從 資料交換儲存體 讀取 UserStories Work Item 資料
     /// </summary>
     private async Task<UserStoryFetchResult> LoadUserStoriesAsync()
     {
@@ -155,9 +155,9 @@ public class ConsolidateReleaseDataTask : ITask
         // 若欄位不存在，拋出例外
         if (json is null)
         {
-            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無 Work Item 資料，請先執行 GetUserStory 指令",
+            _logger.LogError("資料交換儲存體 Hash {HashKey} Field {Field} 中無 Work Item 資料，請先執行 GetUserStory 指令",
                 DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItemsUserStories);
-            throw new InvalidOperationException($"Redis Hash {DataTransferKeys.AzureDevOpsHash} Field {DataTransferKeys.Fields.WorkItemsUserStories} 中無 Work Item 資料");
+            throw new InvalidOperationException($"資料交換儲存體 Hash {DataTransferKeys.AzureDevOpsHash} Field {DataTransferKeys.Fields.WorkItemsUserStories} 中無 Work Item 資料");
         }
 
         var result = json.ToTypedObject<UserStoryFetchResult>();

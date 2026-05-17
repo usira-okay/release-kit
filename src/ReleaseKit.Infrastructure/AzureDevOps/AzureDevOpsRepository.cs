@@ -35,7 +35,7 @@ public class AzureDevOpsRepository : IAzureDevOpsRepository
         var httpClient = _httpClientFactory.CreateClient(HttpClientNames.AzureDevOps);
         var url = $"_apis/wit/workitems/{workItemId}?$expand=all&api-version=7.0";
 
-        var response = await httpClient.GetValueAsync(url);
+        var response = await httpClient.GetAsync(url);
 
         if (!response.IsSuccessStatusCode)
         {

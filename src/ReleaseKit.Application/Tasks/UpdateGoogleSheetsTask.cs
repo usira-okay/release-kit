@@ -9,7 +9,7 @@ using ReleaseKit.Domain.Abstractions;
 namespace ReleaseKit.Application.Tasks;
 
 /// <summary>
-/// 更新 Google Sheets 資訊任務，從 Redis 讀取整合資料並同步至 Google Sheet
+/// 更新 Google Sheets 資訊任務，從 資料交換儲存體 讀取整合資料並同步至 Google Sheet
 /// </summary>
 public class UpdateGoogleSheetsTask : ITask
 {
@@ -21,7 +21,7 @@ public class UpdateGoogleSheetsTask : ITask
     /// <summary>
     /// 初始化 <see cref="UpdateGoogleSheetsTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="dataTransferService">Redis 服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 服務</param>
     /// <param name="googleSheetService">Google Sheet 服務</param>
     /// <param name="options">Google Sheet 設定選項</param>
     /// <param name="logger">日誌記錄器</param>
@@ -95,7 +95,7 @@ public class UpdateGoogleSheetsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取整合資料，若無資料則回傳 null。
+    /// 從 資料交換儲存體 讀取整合資料，若無資料則回傳 null。
     /// 優先使用 enhance-titles 的結果，若無資料則退回 consolidate-release-data 的結果。
     /// </summary>
     private async Task<ConsolidatedReleaseResult?> ReadConsolidatedDataAsync()
@@ -121,21 +121,21 @@ public class UpdateGoogleSheetsTask : ITask
 
         if (consolidatedJson is null)
         {
-            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無整合資料，請先執行 ConsolidateReleaseData 指令",
+            _logger.LogError("資料交換儲存體 Hash {HashKey} Field {Field} 中無整合資料，請先執行 ConsolidateReleaseData 指令",
                 DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
-            throw new InvalidOperationException($"Redis Hash {DataTransferKeys.ReleaseDataHash} Field {DataTransferKeys.Fields.Consolidated} 中無整合資料");
+            throw new InvalidOperationException($"資料交換儲存體 Hash {DataTransferKeys.ReleaseDataHash} Field {DataTransferKeys.Fields.Consolidated} 中無整合資料");
         }
 
         if (string.IsNullOrEmpty(consolidatedJson))
         {
-            _logger.LogInformation("Redis 中沒有整合資料，結束同步");
+            _logger.LogInformation("資料交換儲存體 中沒有整合資料，結束同步");
             return null;
         }
 
         var result = consolidatedJson.ToTypedObject<ConsolidatedReleaseResult>();
         if (result?.Projects == null || result.Projects.Count == 0)
         {
-            _logger.LogInformation("Redis 中沒有整合資料，結束同步");
+            _logger.LogInformation("資料交換儲存體 中沒有整合資料，結束同步");
             return null;
         }
 

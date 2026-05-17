@@ -11,8 +11,8 @@ namespace ReleaseKit.Application.Tasks;
 /// Stage 2：分析 PR/MR Diff
 /// </summary>
 /// <remarks>
-/// 從 Redis 讀取 Stage 1 clone 結果與 PR 資料，對每個成功 clone 的專案執行
-/// git diff --shortstat 與 --name-status，並將 <see cref="ProjectDiffResult"/> 寫入 Stage 2 Redis Hash。
+/// 從 資料交換儲存體 讀取 Stage 1 clone 結果與 PR 資料，對每個成功 clone 的專案執行
+/// git diff --shortstat 與 --name-status，並將 <see cref="ProjectDiffResult"/> 寫入 Stage 2 資料交換儲存體 Hash。
 /// 僅儲存輕量 metadata（CommitSha、異動檔案清單、行數統計），不儲存完整 diff 內容。
 /// </remarks>
 public class AnalyzePRDiffsTask : ITask
@@ -43,7 +43,7 @@ public class AnalyzePRDiffsTask : ITask
         if (string.IsNullOrEmpty(runId))
         {
             _logger.LogError("找不到 RunId，請先執行 CloneRepositories 指令");
-            throw new InvalidOperationException("Redis 中無 RunId 資料，請先執行 CloneRepositories 指令");
+            throw new InvalidOperationException("資料交換儲存體 中無 RunId 資料，請先執行 CloneRepositories 指令");
         }
 
         _logger.LogInformation("開始 Stage 2: 分析 PR Diffs, RunId={RunId}", runId);
@@ -66,7 +66,7 @@ public class AnalyzePRDiffsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 載入 GitLab 與 Bitbucket 過濾後的 PR 資料，以專案路徑為 Key 合併
+    /// 從 資料交換儲存體 載入 GitLab 與 Bitbucket 過濾後的 PR 資料，以專案路徑為 Key 合併
     /// </summary>
     private async Task<Dictionary<string, List<MergeRequestOutput>>> LoadAllMergeRequestsAsync()
     {

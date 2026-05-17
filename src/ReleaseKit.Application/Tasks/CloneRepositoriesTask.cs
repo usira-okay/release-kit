@@ -30,7 +30,7 @@ public class CloneRepositoriesTask : ITask
     /// 初始化 <see cref="CloneRepositoriesTask"/> 類別的新執行個體
     /// </summary>
     /// <param name="gitService">Git 操作服務</param>
-    /// <param name="dataTransferService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 快取服務</param>
     /// <param name="now">時間服務</param>
     /// <param name="gitLabOptions">GitLab 設定選項</param>
     /// <param name="bitbucketOptions">Bitbucket 設定選項</param>
@@ -88,7 +88,7 @@ public class CloneRepositoriesTask : ITask
     }
 
     /// <summary>
-    /// Clone 或 Pull 單一專案，並將結果寫入 Redis
+    /// Clone 或 Pull 單一專案，並將結果寫入 資料交換儲存體
     /// </summary>
     /// <param name="projectPath">專案路徑</param>
     /// <param name="cloneUrl">Clone URL</param>

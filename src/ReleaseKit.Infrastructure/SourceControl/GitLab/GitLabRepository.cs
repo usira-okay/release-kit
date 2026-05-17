@@ -55,7 +55,7 @@ public class GitLabRepository : ISourceControlRepository
                       $"page={page}&" +
                       $"per_page={perPage}";
 
-            var response = await httpClient.GetValueAsync(url, cancellationToken);
+            var response = await httpClient.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -115,7 +115,7 @@ public class GitLabRepository : ISourceControlRepository
                          $"to={HttpUtility.UrlEncode(targetBranch)}&" +
                          $"straight=false";
 
-        var compareResponse = await httpClient.GetValueAsync(compareUrl, cancellationToken);
+        var compareResponse = await httpClient.GetAsync(compareUrl, cancellationToken);
 
         if (!compareResponse.IsSuccessStatusCode)
         {
@@ -190,7 +190,7 @@ public class GitLabRepository : ISourceControlRepository
                 url += $"&search={HttpUtility.UrlEncode(pattern)}";
             }
 
-            var response = await httpClient.GetValueAsync(url, cancellationToken);
+            var response = await httpClient.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -248,7 +248,7 @@ public class GitLabRepository : ISourceControlRepository
 
         var url = $"/api/v4/projects/{encodedProjectPath}/repository/commits/{commitSha}/merge_requests";
 
-        var response = await httpClient.GetValueAsync(url, cancellationToken);
+        var response = await httpClient.GetAsync(url, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {

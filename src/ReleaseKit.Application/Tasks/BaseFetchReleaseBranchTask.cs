@@ -28,7 +28,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
     /// </summary>
     /// <param name="repository">原始碼控制倉儲</param>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="dataTransferService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 快取服務</param>
     /// <param name="platformOptions">平台配置選項</param>
     protected BaseFetchReleaseBranchTask(
         ISourceControlRepository repository,
@@ -48,12 +48,12 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
     protected abstract string PlatformName { get; }
 
     /// <summary>
-    /// 取得 Redis Hash 鍵值
+    /// 取得 資料交換儲存體 Hash 鍵值
     /// </summary>
     protected abstract string DataTransferGroupKey { get; }
 
     /// <summary>
-    /// 取得 Redis Hash 欄位名稱
+    /// 取得 資料交換儲存體 Hash 欄位名稱
     /// </summary>
     protected abstract string DataTransferFieldKey { get; }
 
@@ -69,10 +69,10 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
     {
         _logger.LogInformation("開始執行 {Platform} Release Branch 拉取任務", PlatformName);
 
-        // 檢查並清除 Redis 中的舊資料
+        // 檢查並清除 資料交換儲存體 中的舊資料
         if (await _dataTransferService.FieldExistsAsync(DataTransferGroupKey, DataTransferFieldKey))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {DataTransferGroupKey} Field: {DataTransferFieldKey}", DataTransferGroupKey, DataTransferFieldKey);
+            _logger.LogInformation("清除 資料交換儲存體 中的舊資料，Hash: {DataTransferGroupKey} Field: {DataTransferFieldKey}", DataTransferGroupKey, DataTransferFieldKey);
             await _dataTransferService.DeleteFieldAsync(DataTransferGroupKey, DataTransferFieldKey);
         }
 
@@ -154,7 +154,7 @@ public abstract class BaseFetchReleaseBranchTask<TOptions, TProjectOptions> : IT
         var json = sortedBranchGroups.ToJson();
         Console.WriteLine(json);
 
-        // 存入 Redis
+        // 存入 資料交換儲存體
         await _dataTransferService.SetFieldAsync(DataTransferGroupKey, DataTransferFieldKey, json);
 
         _logger.LogInformation(

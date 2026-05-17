@@ -18,7 +18,7 @@ public class FetchGitLabPullRequestsTask : BaseFetchPullRequestsTask<GitLabOptio
     /// </summary>
     /// <param name="serviceProvider">服務提供者</param>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="dataTransferService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 快取服務</param>
     /// <param name="gitLabOptions">GitLab 配置選項</param>
     /// <param name="fetchModeOptions">拉取模式配置選項</param>
     public FetchGitLabPullRequestsTask(

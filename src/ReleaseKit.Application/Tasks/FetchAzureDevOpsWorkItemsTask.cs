@@ -22,7 +22,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="dataTransferService">Redis 服務</param>
+    /// <param name="dataTransferService">資料交換儲存體 服務</param>
     /// <param name="azureDevOpsRepository">Azure DevOps Repository</param>
     public FetchAzureDevOpsWorkItemsTask(
         ILogger<FetchAzureDevOpsWorkItemsTask> logger,
@@ -45,8 +45,8 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         // 清除舊的 Azure DevOps Work Item 資料
         await _dataTransferService.DeleteFieldAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems);
 
-        // 從 Redis 讀取 PR 資料
-        var allPullRequests = await LoadPullRequestsFromRedisAsync();
+        // 從 資料交換儲存體 讀取 PR 資料
+        var allPullRequests = await LoadPullRequestsFrom資料交換儲存體Async();
         
         if (allPullRequests.Count == 0)
         {
@@ -81,7 +81,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             FailureCount = failureCount
         };
 
-        // 寫入 Redis
+        // 寫入 資料交換儲存體
         await _dataTransferService.SetFieldAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems, result.ToJson());
 
         _logger.LogInformation(
@@ -90,13 +90,13 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 載入 PR 資料
+    /// 從 資料交換儲存體 載入 PR 資料
     /// </summary>
-    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsFromRedisAsync()
+    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsFrom資料交換儲存體Async()
     {
         var allPullRequests = new List<(MergeRequestOutput PR, string ProjectName)>();
 
-        // 定義要讀取的 Redis Hash
+        // 定義要讀取的 資料交換儲存體 Hash
         var redisKeys = new[]
         {
             (HashKey: DataTransferKeys.GitLabHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "GitLab"),
@@ -127,14 +127,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
-                _logger.LogWarning("Redis Hash {HashKey} Field {Field} 不存在或為空", hashKey, field);
+                _logger.LogWarning("資料交換儲存體 Hash {HashKey} Field {Field} 不存在或為空", hashKey, field);
             }
         }
 
         if (!anySourceFound)
         {
-            _logger.LogError("所有平台的 PR 資料均不存在於 Redis，請先執行 FilterPullRequestsByUser 指令");
-            throw new InvalidOperationException("所有平台的 PR 資料均不存在於 Redis");
+            _logger.LogError("所有平台的 PR 資料均不存在於 資料交換儲存體，請先執行 FilterPullRequestsByUser 指令");
+            throw new InvalidOperationException("所有平台的 PR 資料均不存在於 資料交換儲存體");
         }
 
         return allPullRequests;

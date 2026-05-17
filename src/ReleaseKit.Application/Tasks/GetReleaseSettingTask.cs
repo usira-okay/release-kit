@@ -11,8 +11,8 @@ namespace ReleaseKit.Application.Tasks;
 /// 產生 Release Setting 設定任務
 /// </summary>
 /// <remarks>
-/// 從 Redis 讀取前置指令產生的 release branch 資訊，
-/// 依規則產生 GitLab 與 Bitbucket 的專案設定，並寫入 Redis。
+/// 從 資料交換儲存體 讀取前置指令產生的 release branch 資訊，
+/// 依規則產生 GitLab 與 Bitbucket 的專案設定，並寫入 資料交換儲存體。
 /// </remarks>
 public class GetReleaseSettingTask : ITask
 {
@@ -76,28 +76,28 @@ public class GetReleaseSettingTask : ITask
         var json = output.ToJson();
         Console.WriteLine(json);
 
-        // 清除舊資料並寫入 Redis
+        // 清除舊資料並寫入 資料交換儲存體
         if (await _dataTransferService.ExistsValueAsync(DataTransferKeys.ReleaseSetting))
         {
             var deleted = await _dataTransferService.DeleteValueAsync(DataTransferKeys.ReleaseSetting);
             if (deleted)
             {
-                _logger.LogInformation("已清除 Redis 中的舊 Release Setting 資料");
+                _logger.LogInformation("已清除 資料交換儲存體 中的舊 Release Setting 資料");
             }
             else
             {
-                _logger.LogWarning("Redis 中的舊 Release Setting 資料刪除失敗，Key: {Key}", DataTransferKeys.ReleaseSetting);
+                _logger.LogWarning("資料交換儲存體 中的舊 Release Setting 資料刪除失敗，Key: {Key}", DataTransferKeys.ReleaseSetting);
             }
         }
 
         var isWritten = await _dataTransferService.SetValueAsync(DataTransferKeys.ReleaseSetting, json);
         if (!isWritten)
         {
-            _logger.LogWarning("Release Setting 寫入 Redis 失敗，Key: {Key}", DataTransferKeys.ReleaseSetting);
-            throw new InvalidOperationException($"寫入 Redis 失敗，Key: {DataTransferKeys.ReleaseSetting}");
+            _logger.LogWarning("Release Setting 寫入 資料交換儲存體 失敗，Key: {Key}", DataTransferKeys.ReleaseSetting);
+            throw new InvalidOperationException($"寫入 資料交換儲存體 失敗，Key: {DataTransferKeys.ReleaseSetting}");
         }
 
-        _logger.LogInformation("Release Setting 已寫入 Redis，Key: {Key}", DataTransferKeys.ReleaseSetting);
+        _logger.LogInformation("Release Setting 已寫入 資料交換儲存體，Key: {Key}", DataTransferKeys.ReleaseSetting);
 
         _logger.LogInformation(
             "Release Setting 產生完成，GitLab 專案數: {GitLabCount}，Bitbucket 專案數: {BitbucketCount}",
@@ -106,7 +106,7 @@ public class GetReleaseSettingTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取 release branch 資料
+    /// 從 資料交換儲存體 讀取 release branch 資料
     /// </summary>
     private async Task<Dictionary<string, List<string>>?> ReadReleaseBranchDataAsync(
         string hashKey, string field, string platformName)
