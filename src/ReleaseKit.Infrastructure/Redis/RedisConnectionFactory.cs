@@ -18,6 +18,8 @@ public class RedisConnectionFactory : IRedisConnectionFactory
         var configOptions = ConfigurationOptions.Parse(connectionString);
         configOptions.AbortOnConnectFail = false;
 
+        // IDataTransferService 透過既有同步 DI 流程建立，這裡需同步取得連線，
+        // 避免把非同步初始化成本擴散到所有既有任務與相依介面。
         return ConnectWithRetryAsync(configOptions, logger).GetAwaiter().GetResult();
     }
 
