@@ -12,24 +12,24 @@ namespace ReleaseKit.Application.Tasks;
 /// 取得 User Story 層級的 Work Item 任務
 /// </summary>
 /// <remarks>
-/// 將 Redis 中低於 User Story 層級的 Azure Work Item（如 Bug、Task）遞迴轉換為其對應的 User Story，
-/// 並存入新的 Redis Key（`AzureDevOps:WorkItems:UserStories`）。
+/// 將 資料傳遞存放區中低於 User Story 層級的 Azure Work Item（如 Bug、Task）遞迴轉換為其對應的 User Story，
+/// 並存入資料傳遞存放區（`AzureDevOps:WorkItems-UserStories`）。
 /// </remarks>
 public class GetUserStoryTask : ITask
 {
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly ILogger<GetUserStoryTask> _logger;
     private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
     private const int DefaultMaxDepth = 10;
 
     public GetUserStoryTask(
         IAzureDevOpsRepository azureDevOpsRepository,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         ILogger<GetUserStoryTask> logger)
     {
         _azureDevOpsRepository = azureDevOpsRepository;
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _logger = logger;
         _workItemCache = new Dictionary<int, Result<WorkItem>>();
     }
@@ -39,21 +39,21 @@ public class GetUserStoryTask : ITask
         _logger.LogInformation("開始取得 User Story 層級的 Work Item");
 
         // 清除舊的 User Story 資料
-        if (await _redisService.HashExistsAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories))
+        if (await _dataTransferService.GroupExistsAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItemsUserStories))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {HashKey} Field: {Field}", RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
-            await _redisService.HashDeleteAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories);
+            _logger.LogInformation("清除 資料傳遞存放區中的舊資料，Hash: {HashKey} Field: {Field}", DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItemsUserStories);
+            await _dataTransferService.GroupDeleteAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItemsUserStories);
         }
 
-        // 1. 從 Redis 讀取原始 Work Item 資料
-        var workItemData = await LoadWorkItemsFromRedisAsync();
+        // 1. 從資料傳遞存放區讀取原始 Work Item 資料
+        var workItemData = await LoadWorkItemsAsync();
         if (workItemData == null || workItemData.WorkItems.Count == 0)
         {
-            _logger.LogWarning("Redis 中無 Work Item 資料，不寫入空結果");
+            _logger.LogWarning("資料傳遞存放區中無 Work Item 資料，不寫入空結果");
             return;
         }
 
-        _logger.LogInformation("從 Redis 讀取到 {Count} 筆 Work Item", workItemData.WorkItems.Count);
+        _logger.LogInformation("從資料傳遞存放區讀取到 {Count} 筆 Work Item", workItemData.WorkItems.Count);
 
         // 2. 處理每個 Work Item
         var userStoryWorkItems = new List<UserStoryWorkItemOutput>();
@@ -83,7 +83,7 @@ public class GetUserStoryTask : ITask
             OriginalFetchFailedCount = userStoryWorkItems.Count(w => w.ResolutionStatus == UserStoryResolutionStatus.OriginalFetchFailed)
         };
 
-        // 4. 寫入 Redis
+        // 4. 寫入資料傳遞存放區
         await SaveResultAsync(result);
 
         _logger.LogInformation("完成 User Story 解析。總數: {Total}, 已是 User Story: {Already}, 透過遞迴找到: {Found}, 未找到: {NotFound}, 原始失敗: {Failed}",
@@ -95,16 +95,16 @@ public class GetUserStoryTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取 Work Item 資料
+    /// 從資料傳遞存放區讀取 Work Item 資料
     /// </summary>
-    private async Task<WorkItemFetchResult?> LoadWorkItemsFromRedisAsync()
+    private async Task<WorkItemFetchResult?> LoadWorkItemsAsync()
     {
-        var json = await _redisService.HashGetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
+        var json = await _dataTransferService.GroupGetAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems);
         if (json is null)
         {
-            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無 Work Item 資料，請先執行 FetchAzureDevOpsWorkItems 指令",
-                RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
-            throw new InvalidOperationException($"Redis Hash {RedisKeys.AzureDevOpsHash} Field {RedisKeys.Fields.WorkItems} 中無 Work Item 資料");
+            _logger.LogError("資料傳遞存放區 {HashKey} Field {Field} 中無 Work Item 資料，請先執行 FetchAzureDevOpsWorkItems 指令",
+                DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems);
+            throw new InvalidOperationException($"資料傳遞存放區 {DataTransferKeys.AzureDevOpsHash} Field {DataTransferKeys.Fields.WorkItems} 中無 Work Item 資料");
         }
 
         if (string.IsNullOrWhiteSpace(json))
@@ -316,11 +316,11 @@ public class GetUserStoryTask : ITask
     }
 
     /// <summary>
-    /// 儲存結果至 Redis
+    /// 儲存結果至資料傳遞存放區
     /// </summary>
     private async Task SaveResultAsync(UserStoryFetchResult result)
     {
         var json = result.ToJson();
-        await _redisService.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItemsUserStories, json);
+        await _dataTransferService.GroupSetAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItemsUserStories, json);
     }
 }

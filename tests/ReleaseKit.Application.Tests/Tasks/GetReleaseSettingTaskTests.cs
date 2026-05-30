@@ -13,14 +13,14 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class GetReleaseSettingTaskTests
 {
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<INow> _nowMock;
     private readonly Mock<ILogger<GetReleaseSettingTask>> _loggerMock;
     private string? _capturedJson;
 
     public GetReleaseSettingTaskTests()
     {
-        _redisServiceMock = new Mock<IRedisService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _nowMock = new Mock<INow>();
         _loggerMock = new Mock<ILogger<GetReleaseSettingTask>>();
 
@@ -28,9 +28,9 @@ public class GetReleaseSettingTaskTests
         _nowMock.Setup(x => x.UtcNow).Returns(new DateTimeOffset(2025, 4, 25, 0, 0, 0, TimeSpan.Zero));
 
         // 預設 Redis 行為
-        _redisServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-        _redisServiceMock
-            .Setup(x => x.SetAsync(RedisKeys.ReleaseSetting, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+        _dataTransferServiceMock.Setup(x => x.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+        _dataTransferServiceMock
+            .Setup(x => x.SetAsync(DataTransferKeys.ReleaseSetting, It.IsAny<string>(), It.IsAny<TimeSpan?>()))
             .Callback<string, string, TimeSpan?>((_, json, _) => _capturedJson = json)
             .ReturnsAsync(true);
     }
@@ -38,7 +38,7 @@ public class GetReleaseSettingTaskTests
     private GetReleaseSettingTask CreateTask()
     {
         return new GetReleaseSettingTask(
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             _nowMock.Object,
             _loggerMock.Object);
     }
@@ -58,9 +58,9 @@ public class GetReleaseSettingTaskTests
     public async Task ExecuteAsync_當兩個平台都無前置資料_應產生空設定並寫入Redis()
     {
         // Arrange
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -72,8 +72,8 @@ public class GetReleaseSettingTaskTests
         var result = GetCapturedResult();
         Assert.Empty(result.GitLab.Projects);
         Assert.Empty(result.Bitbucket.Projects);
-        _redisServiceMock.Verify(
-            x => x.SetAsync(RedisKeys.ReleaseSetting, It.IsAny<string>(), It.IsAny<TimeSpan?>()),
+        _dataTransferServiceMock.Verify(
+            x => x.SetAsync(DataTransferKeys.ReleaseSetting, It.IsAny<string>(), It.IsAny<TimeSpan?>()),
             Times.Once);
     }
 
@@ -86,9 +86,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250401", new List<string> { "group/project-a", "group/project-b" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -117,9 +117,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250401", new List<string> { "workspace/repo-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
 
         var task = CreateTask();
@@ -146,9 +146,9 @@ public class GetReleaseSettingTaskTests
             { "NotFound", new List<string> { "group/project-b" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -174,9 +174,9 @@ public class GetReleaseSettingTaskTests
             { "release/hotfix-123", new List<string> { "group/project-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -200,9 +200,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250101", new List<string> { "group/project-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -229,9 +229,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250125", new List<string> { "group/project-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -258,9 +258,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250124", new List<string> { "group/project-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -284,9 +284,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250230", new List<string> { "group/project-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -313,9 +313,9 @@ public class GetReleaseSettingTaskTests
             { "release/20250125", new List<string> { "group/project-a" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(branchData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync((string?)null);
 
         var task = CreateTask();
@@ -346,9 +346,9 @@ public class GetReleaseSettingTaskTests
             { "NotFound", new List<string> { "workspace/repo-b" } }
         };
 
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(gitLabData.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.ReleaseBranches))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.ReleaseBranches))
             .ReturnsAsync(bitbucketData.ToJson());
 
         var task = CreateTask();

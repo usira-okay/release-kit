@@ -21,7 +21,7 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
 {
     private readonly ISourceControlRepository _repository;
     private readonly ILogger _logger;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly FetchModeOptions _fetchModeOptions;
 
     /// <summary>
@@ -34,19 +34,19 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     /// </summary>
     /// <param name="repository">原始碼控制倉儲</param>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="platformOptions">平台配置選項</param>
     /// <param name="fetchModeOptions">拉取模式配置選項</param>
     protected BaseFetchPullRequestsTask(
         ISourceControlRepository repository,
         ILogger logger,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         TOptions platformOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
     {
         _repository = repository;
         _logger = logger;
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         PlatformOptions = platformOptions;
         _fetchModeOptions = fetchModeOptions.Value;
     }
@@ -62,14 +62,14 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     protected abstract SourceControlPlatform Platform { get; }
 
     /// <summary>
-    /// 取得 Redis Hash 鍵值
+    /// 取得 資料傳遞群組鍵值
     /// </summary>
-    protected abstract string RedisHashKey { get; }
+    protected abstract string DataTransferGroupKey { get; }
 
     /// <summary>
-    /// 取得 Redis Hash 欄位名稱
+    /// 取得 資料傳遞群組欄位名稱
     /// </summary>
-    protected abstract string RedisHashField { get; }
+    protected abstract string DataTransferGroupField { get; }
 
     /// <summary>
     /// 取得專案清單
@@ -91,11 +91,11 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
     {
         _logger.LogInformation("開始執行 {Platform} Pull Request 拉取任務", PlatformName);
 
-        // 檢查並清除 Redis 中的舊資料
-        if (await _redisService.HashExistsAsync(RedisHashKey, RedisHashField))
+        // 檢查並清除 資料傳遞存放區中的舊資料
+        if (await _dataTransferService.GroupExistsAsync(DataTransferGroupKey, DataTransferGroupField))
         {
-            _logger.LogInformation("清除 Redis 中的舊資料，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
-            await _redisService.HashDeleteAsync(RedisHashKey, RedisHashField);
+            _logger.LogInformation("清除 資料傳遞存放區中的舊資料，Hash: {DataTransferGroupKey} Field: {DataTransferGroupField}", DataTransferGroupKey, DataTransferGroupField);
+            await _dataTransferService.GroupDeleteAsync(DataTransferGroupKey, DataTransferGroupField);
         }
 
         // 並行處理每個專案（透過 SemaphoreSlim 限制最大並行數）
@@ -127,15 +127,15 @@ public abstract class BaseFetchPullRequestsTask<TOptions, TProjectOptions> : ITa
         var json = fetchResult.ToJson();
         System.Console.WriteLine(json);
 
-        // 將結果存入 Redis
-        var saveResult = await _redisService.HashSetAsync(RedisHashKey, RedisHashField, json);
+        // 將結果存入資料傳遞存放區
+        var saveResult = await _dataTransferService.GroupSetAsync(DataTransferGroupKey, DataTransferGroupField, json);
         if (saveResult)
         {
-            _logger.LogInformation("成功將資料存入 Redis，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
+            _logger.LogInformation("成功將資料存入 資料傳遞存放區，Hash: {DataTransferGroupKey} Field: {DataTransferGroupField}", DataTransferGroupKey, DataTransferGroupField);
         }
         else
         {
-            _logger.LogWarning("將資料存入 Redis 失敗，Hash: {RedisHashKey} Field: {RedisHashField}", RedisHashKey, RedisHashField);
+            _logger.LogWarning("將資料存入資料傳遞存放區 失敗，Hash: {DataTransferGroupKey} Field: {DataTransferGroupField}", DataTransferGroupKey, DataTransferGroupField);
         }
 
         var totalPRs = projectResults.Sum(r => r.PullRequests.Count);

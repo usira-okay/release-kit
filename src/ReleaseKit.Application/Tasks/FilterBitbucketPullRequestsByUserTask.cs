@@ -10,8 +10,8 @@ namespace ReleaseKit.Application.Tasks;
 /// 過濾 Bitbucket Pull Request 依使用者任務
 /// </summary>
 /// <remarks>
-/// 從 Redis Key `Bitbucket:PullRequests` 讀取資料，依 UserMapping 的 BitbucketUserId 過濾，
-/// 將結果寫入 Redis Key `Bitbucket:PullRequests:ByUser`。
+/// 從資料傳遞存放區 `Bitbucket:PullRequests` 讀取資料，依 UserMapping 的 BitbucketUserId 過濾，
+/// 將結果寫入資料傳遞存放區 Key `Bitbucket:PullRequests-ByUser`。
 /// </remarks>
 public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUserTask
 {
@@ -19,30 +19,30 @@ public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUse
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="userMappingOptions">使用者對應設定</param>
     public FilterBitbucketPullRequestsByUserTask(
         ILogger<FilterBitbucketPullRequestsByUserTask> logger,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IOptions<UserMappingOptions> userMappingOptions)
         : base(
             logger,
-            redisService,
+            dataTransferService,
             ExtractBitbucketUserIdToDisplayName(userMappingOptions.Value))
     {
     }
 
     /// <inheritdoc />
-    protected override string SourceRedisHashKey => RedisKeys.BitbucketHash;
+    protected override string SourceGroupKey => DataTransferKeys.BitbucketHash;
 
     /// <inheritdoc />
-    protected override string SourceRedisHashField => RedisKeys.Fields.PullRequests;
+    protected override string SourceGroupField => DataTransferKeys.Fields.PullRequests;
 
     /// <inheritdoc />
-    protected override string TargetRedisHashKey => RedisKeys.BitbucketHash;
+    protected override string TargetGroupKey => DataTransferKeys.BitbucketHash;
 
     /// <inheritdoc />
-    protected override string TargetRedisHashField => RedisKeys.Fields.PullRequestsByUser;
+    protected override string TargetGroupField => DataTransferKeys.Fields.PullRequestsByUser;
 
     /// <inheritdoc />
     protected override string PlatformName => "Bitbucket";

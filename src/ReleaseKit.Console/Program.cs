@@ -33,8 +33,8 @@ var host = Host.CreateDefaultBuilder(args)
         // 註冊設定選項
         services.AddConfigurationOptions(context.Configuration);
 
-        // 註冊 Redis 服務
-        services.AddRedisServices(context.Configuration);
+        // 依設定選擇資料傳遞服務（Redis 或 FileSystem）
+        services.AddDataTransferServices(context.Configuration);
 
         // 註冊應用程式服務
         services.AddApplicationServices(context.Configuration);

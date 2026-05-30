@@ -9,11 +9,11 @@ using ReleaseKit.Domain.Abstractions;
 namespace ReleaseKit.Application.Tasks;
 
 /// <summary>
-/// 更新 Google Sheets 資訊任務，從 Redis 讀取整合資料並同步至 Google Sheet
+/// 更新 Google Sheets 資訊任務，從資料傳遞存放區讀取整合資料並同步至 Google Sheet
 /// </summary>
 public class UpdateGoogleSheetsTask : ITask
 {
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly IGoogleSheetService _googleSheetService;
     private readonly GoogleSheetOptions _options;
     private readonly ILogger<UpdateGoogleSheetsTask> _logger;
@@ -21,17 +21,17 @@ public class UpdateGoogleSheetsTask : ITask
     /// <summary>
     /// 初始化 <see cref="UpdateGoogleSheetsTask"/> 類別的新執行個體
     /// </summary>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="googleSheetService">Google Sheet 服務</param>
     /// <param name="options">Google Sheet 設定選項</param>
     /// <param name="logger">日誌記錄器</param>
     public UpdateGoogleSheetsTask(
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IGoogleSheetService googleSheetService,
         IOptions<GoogleSheetOptions> options,
         ILogger<UpdateGoogleSheetsTask> logger)
     {
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _googleSheetService = googleSheetService;
         _options = options.Value;
         _logger = logger;
@@ -95,13 +95,13 @@ public class UpdateGoogleSheetsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 讀取整合資料，若無資料則回傳 null。
+    /// 從資料傳遞存放區讀取整合資料，若無資料則回傳 null。
     /// 優先使用 enhance-titles 的結果，若無資料則退回 consolidate-release-data 的結果。
     /// </summary>
     private async Task<ConsolidatedReleaseResult?> ReadConsolidatedDataAsync()
     {
-        var enhancedJson = await _redisService.HashGetAsync(
-            RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles);
+        var enhancedJson = await _dataTransferService.GroupGetAsync(
+            DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles);
 
         if (!string.IsNullOrEmpty(enhancedJson))
         {
@@ -116,26 +116,26 @@ public class UpdateGoogleSheetsTask : ITask
         _logger.LogInformation("enhance-titles 無資料，退回使用 consolidate-release-data 的整合資料");
 
 
-        var consolidatedJson = await _redisService.HashGetAsync(
-            RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
+        var consolidatedJson = await _dataTransferService.GroupGetAsync(
+            DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
 
         if (consolidatedJson is null)
         {
-            _logger.LogError("Redis Hash {HashKey} Field {Field} 中無整合資料，請先執行 ConsolidateReleaseData 指令",
-                RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated);
-            throw new InvalidOperationException($"Redis Hash {RedisKeys.ReleaseDataHash} Field {RedisKeys.Fields.Consolidated} 中無整合資料");
+            _logger.LogError("資料傳遞存放區 {HashKey} Field {Field} 中無整合資料，請先執行 ConsolidateReleaseData 指令",
+                DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated);
+            throw new InvalidOperationException($"資料傳遞存放區 {DataTransferKeys.ReleaseDataHash} Field {DataTransferKeys.Fields.Consolidated} 中無整合資料");
         }
 
         if (string.IsNullOrEmpty(consolidatedJson))
         {
-            _logger.LogInformation("Redis 中沒有整合資料，結束同步");
+            _logger.LogInformation("資料傳遞存放區中沒有整合資料，結束同步");
             return null;
         }
 
         var result = consolidatedJson.ToTypedObject<ConsolidatedReleaseResult>();
         if (result?.Projects == null || result.Projects.Count == 0)
         {
-            _logger.LogInformation("Redis 中沒有整合資料，結束同步");
+            _logger.LogInformation("資料傳遞存放區中沒有整合資料，結束同步");
             return null;
         }
 

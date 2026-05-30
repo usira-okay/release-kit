@@ -4,7 +4,7 @@ namespace ReleaseKit.Application.Common;
 /// Work Item User Story 解析結果彙整 DTO
 /// </summary>
 /// <remarks>
-/// 包含所有解析結果與統計資訊，用於序列化為 JSON 輸出至 Redis。
+/// 包含所有解析結果與統計資訊，用於序列化為 JSON 輸出至資料傳遞存放區。
 /// </remarks>
 public sealed record UserStoryFetchResult
 {

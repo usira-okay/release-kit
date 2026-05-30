@@ -13,12 +13,12 @@ using ReleaseKit.Domain.ValueObjects;
 namespace ReleaseKit.Application.Tests.Tasks;
 
 /// <summary>
-/// Redis 整合測試
+/// 資料傳遞整合測試
 /// </summary>
-public class RedisIntegrationTests
+public class DataTransferIntegrationTests
 {
     [Fact]
-    public async Task FetchGitLabPullRequestsTask_ShouldClearOldRedisData_WhenDataExists()
+    public async Task FetchGitLabPullRequestsTask_ShouldClearOldData_WhenDataExists()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -31,13 +31,13 @@ public class RedisIntegrationTests
         var loggerMock = new Mock<ILogger<FetchGitLabPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
         
-        // Mock Redis service - 設定有舊資料存在
-        var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        // Mock 資料傳遞服務 - 設定有舊資料存在
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        dataTransferServiceMock.Setup(x => x.GroupDeleteAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -46,7 +46,7 @@ public class RedisIntegrationTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
@@ -54,16 +54,16 @@ public class RedisIntegrationTests
         await task.ExecuteAsync();
 
         // Assert - 驗證檢查並刪除舊資料
-        redisServiceMock.Verify(
-            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests),
+        dataTransferServiceMock.Verify(
+            x => x.GroupExistsAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests),
             Times.Once);
-        redisServiceMock.Verify(
-            x => x.HashDeleteAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests),
+        dataTransferServiceMock.Verify(
+            x => x.GroupDeleteAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests),
             Times.Once);
     }
 
     [Fact]
-    public async Task FetchGitLabPullRequestsTask_ShouldNotDeleteRedisData_WhenNoDataExists()
+    public async Task FetchGitLabPullRequestsTask_ShouldNotDeleteData_WhenNoDataExists()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -76,11 +76,11 @@ public class RedisIntegrationTests
         var loggerMock = new Mock<ILogger<FetchGitLabPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
         
-        // Mock Redis service - 設定沒有舊資料
-        var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests))
+        // Mock 資料傳遞服務 - 設定沒有舊資料
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -89,7 +89,7 @@ public class RedisIntegrationTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
@@ -97,16 +97,16 @@ public class RedisIntegrationTests
         await task.ExecuteAsync();
 
         // Assert - 驗證沒有嘗試刪除資料
-        redisServiceMock.Verify(
-            x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests),
+        dataTransferServiceMock.Verify(
+            x => x.GroupExistsAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests),
             Times.Once);
-        redisServiceMock.Verify(
-            x => x.HashDeleteAsync(It.IsAny<string>(), It.IsAny<string>()),
+        dataTransferServiceMock.Verify(
+            x => x.GroupDeleteAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task FetchGitLabPullRequestsTask_ShouldSaveDataToRedis_AfterFetch()
+    public async Task FetchGitLabPullRequestsTask_ShouldSaveData_AfterFetch()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -159,11 +159,11 @@ public class RedisIntegrationTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<MergeRequest>>.Success(mockMergeRequests));
         
-        // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
+        // Mock 資料傳遞服務
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()))
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests, It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
@@ -172,24 +172,24 @@ public class RedisIntegrationTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證資料已存入 Redis
-        redisServiceMock.Verify(
-            x => x.HashSetAsync(
-                RedisKeys.GitLabHash,
-                RedisKeys.Fields.PullRequests,
+        // Assert - 驗證資料已存入資料傳遞存放區
+        dataTransferServiceMock.Verify(
+            x => x.GroupSetAsync(
+                DataTransferKeys.GitLabHash,
+                DataTransferKeys.Fields.PullRequests,
                 It.Is<string>(json => json.Contains("Test MR"))),
             Times.Once);
     }
 
     [Fact]
-    public async Task FetchBitbucketPullRequestsTask_ShouldClearOldRedisData_WhenDataExists()
+    public async Task FetchBitbucketPullRequestsTask_ShouldClearOldData_WhenDataExists()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -202,13 +202,13 @@ public class RedisIntegrationTests
         var loggerMock = new Mock<ILogger<FetchBitbucketPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
         
-        // Mock Redis service - 設定有舊資料存在
-        var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
+        // Mock 資料傳遞服務 - 設定有舊資料存在
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests))
+        dataTransferServiceMock.Setup(x => x.GroupDeleteAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests))
             .ReturnsAsync(true);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -217,7 +217,7 @@ public class RedisIntegrationTests
         var task = new FetchBitbucketPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             bitbucketOptions,
             fetchModeOptions);
 
@@ -225,16 +225,16 @@ public class RedisIntegrationTests
         await task.ExecuteAsync();
 
         // Assert - 驗證檢查並刪除舊資料
-        redisServiceMock.Verify(
-            x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests),
+        dataTransferServiceMock.Verify(
+            x => x.GroupExistsAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests),
             Times.Once);
-        redisServiceMock.Verify(
-            x => x.HashDeleteAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests),
+        dataTransferServiceMock.Verify(
+            x => x.GroupDeleteAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests),
             Times.Once);
     }
 
     [Fact]
-    public async Task FetchBitbucketPullRequestsTask_ShouldSaveDataToRedis_AfterFetch()
+    public async Task FetchBitbucketPullRequestsTask_ShouldSaveData_AfterFetch()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -287,11 +287,11 @@ public class RedisIntegrationTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<MergeRequest>>.Success(mockMergeRequests));
         
-        // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
+        // Mock 資料傳遞服務
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()))
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests, It.IsAny<string>()))
             .ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
@@ -300,24 +300,24 @@ public class RedisIntegrationTests
         var task = new FetchBitbucketPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             bitbucketOptions,
             fetchModeOptions);
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證資料已存入 Redis
-        redisServiceMock.Verify(
-            x => x.HashSetAsync(
-                RedisKeys.BitbucketHash,
-                RedisKeys.Fields.PullRequests,
+        // Assert - 驗證資料已存入資料傳遞存放區
+        dataTransferServiceMock.Verify(
+            x => x.GroupSetAsync(
+                DataTransferKeys.BitbucketHash,
+                DataTransferKeys.Fields.PullRequests,
                 It.Is<string>(json => json.Contains("Test PR"))),
             Times.Once);
     }
 
     [Fact]
-    public async Task FetchGitLabPullRequestsTask_ShouldUseCorrectRedisKey()
+    public async Task FetchGitLabPullRequestsTask_ShouldUseCorrectKey()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -326,10 +326,10 @@ public class RedisIntegrationTests
         
         var loggerMock = new Mock<ILogger<FetchGitLabPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
         
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -337,24 +337,24 @@ public class RedisIntegrationTests
         var task = new FetchGitLabPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             gitLabOptions,
             fetchModeOptions);
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證使用正確的 Redis Hash Key 與 Field
-        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Once);
+        // Assert - 驗證使用正確的 資料傳遞存放區 Key 與 Field
+        dataTransferServiceMock.Verify(x => x.GroupExistsAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests), Times.Once);
+        dataTransferServiceMock.Verify(x => x.GroupSetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests, It.IsAny<string>()), Times.Once);
         
         // 確保沒有使用 Bitbucket 的 Hash Key
-        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests), Times.Never);
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Never);
+        dataTransferServiceMock.Verify(x => x.GroupExistsAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests), Times.Never);
+        dataTransferServiceMock.Verify(x => x.GroupSetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests, It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task FetchBitbucketPullRequestsTask_ShouldUseCorrectRedisKey()
+    public async Task FetchBitbucketPullRequestsTask_ShouldUseCorrectKey()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -363,10 +363,10 @@ public class RedisIntegrationTests
         
         var loggerMock = new Mock<ILogger<FetchBitbucketPullRequestsTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var dataTransferServiceMock = new Mock<IDataTransferService>();
         
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        dataTransferServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        dataTransferServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
         
         services.AddKeyedSingleton("Bitbucket", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -374,19 +374,19 @@ public class RedisIntegrationTests
         var task = new FetchBitbucketPullRequestsTask(
             serviceProvider,
             loggerMock.Object,
-            redisServiceMock.Object,
+            dataTransferServiceMock.Object,
             bitbucketOptions,
             fetchModeOptions);
 
         // Act
         await task.ExecuteAsync();
 
-        // Assert - 驗證使用正確的 Redis Hash Key 與 Field
-        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests), Times.Once);
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Once);
+        // Assert - 驗證使用正確的 資料傳遞存放區 Key 與 Field
+        dataTransferServiceMock.Verify(x => x.GroupExistsAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests), Times.Once);
+        dataTransferServiceMock.Verify(x => x.GroupSetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequests, It.IsAny<string>()), Times.Once);
         
         // 確保沒有使用 GitLab 的 Hash Key
-        redisServiceMock.Verify(x => x.HashExistsAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests), Times.Never);
-        redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequests, It.IsAny<string>()), Times.Never);
+        dataTransferServiceMock.Verify(x => x.GroupExistsAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests), Times.Never);
+        dataTransferServiceMock.Verify(x => x.GroupSetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequests, It.IsAny<string>()), Times.Never);
     }
 }
