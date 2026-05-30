@@ -23,7 +23,7 @@ namespace ReleaseKit.Console.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 依設定值 DataTransfer:Provider 選擇並注冊資料傳遞服務
+    /// 依設定值 DataTransfer:Provider 選擇並註冊資料傳遞服務
     /// </summary>
     public static IServiceCollection AddDataTransferServices(
         this IServiceCollection services, IConfiguration configuration)
