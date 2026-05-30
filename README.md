@@ -44,24 +44,24 @@ dotnet run -- <task-name>
 dotnet run -- <task-name>
 ```
 
-| #   | 指令                             | 說明                                                                                                                            |
-| --- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `fetch-gitlab-release-branch`    | 取得 GitLab 各專案最新的 Release Branch 名稱，結果存入 Redis                                                                    |
-| 2   | `fetch-bitbucket-release-branch` | 取得 Bitbucket 各專案最新的 Release Branch 名稱，結果存入 Redis                                                                 |
-| 3   | `fetch-gitlab-pr`                | 從 GitLab API 拉取各專案的 Pull Request（Merge Request）資訊，支援時間區間與 Branch 差異模式，結果存入 Redis                    |
-| 4   | `filter-gitlab-pr-by-user`       | 依 UserMapping 設定中的 GitLabUserId 過濾已拉取的 GitLab PR，僅保留團隊成員的 PR，結果存入 Redis                                |
-| 5   | `fetch-bitbucket-pr`             | 從 Bitbucket API 拉取各專案的 Pull Request 資訊，支援時間區間與 Branch 差異模式，結果存入 Redis                                 |
-| 6   | `filter-bitbucket-pr-by-user`    | 依 UserMapping 設定中的 BitbucketUserId 過濾已拉取的 Bitbucket PR，僅保留團隊成員的 PR，結果存入 Redis                          |
-| 7   | `fetch-azure-workitems`          | 從已過濾的 PR 來源分支名稱中解析 Work Item ID（VSTS 格式），並透過 Azure DevOps API 查詢各 Work Item 的詳細資訊，結果存入 Redis |
-| 8   | `get-user-story`                 | 將低於 User Story 層級的 Work Item（如 Bug、Task）遞迴查詢其 Parent，直到找到對應的 User Story 層級項目，結果存入 Redis         |
-| 9   | `consolidate-release-data`       | 整合 PR 資料與 Work Item 資料，以 Work Item 為主體配對 PR、依專案分組並排序，產出結構化的 Release 資料，結果存入 Redis          |
-| 10  | `enhance-titles`                 | 使用 AI（GitHub Copilot）增強各 Release 項目的標題，從候選標題中產生更具可讀性的描述，結果存入 Redis                            |
-| 11  | `update-googlesheet`             | 從 Redis 讀取增強後的整合資料，同步至 Google Sheet（增量更新模式，比對現有資料僅更新差異）                                      |
+| #   | 指令                          | 說明                                                                                                                            |
+| --- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `fetch-gitlab-pr`             | 從 GitLab API 拉取各專案的 Pull Request（Merge Request）資訊，支援時間區間與 Branch 差異模式，結果存入 Redis                    |
+| 2   | `filter-gitlab-pr-by-user`    | 依 UserMapping 設定中的 GitLabUserId 過濾已拉取的 GitLab PR，僅保留團隊成員的 PR，結果存入 Redis                                |
+| 3   | `fetch-bitbucket-pr`          | 從 Bitbucket API 拉取各專案的 Pull Request 資訊，支援時間區間與 Branch 差異模式，結果存入 Redis                                 |
+| 4   | `filter-bitbucket-pr-by-user` | 依 UserMapping 設定中的 BitbucketUserId 過濾已拉取的 Bitbucket PR，僅保留團隊成員的 PR，結果存入 Redis                          |
+| 5   | `fetch-azure-workitems`       | 從已過濾的 PR 來源分支名稱中解析 Work Item ID（VSTS 格式），並透過 Azure DevOps API 查詢各 Work Item 的詳細資訊，結果存入 Redis |
+| 6   | `get-user-story`              | 將低於 User Story 層級的 Work Item（如 Bug、Task）遞迴查詢其 Parent，直到找到對應的 User Story 層級項目，結果存入 Redis         |
+| 7   | `consolidate-release-data`    | 整合 PR 資料與 Work Item 資料，以 Work Item 為主體配對 PR、依專案分組並排序，產出結構化的 Release 資料，結果存入 Redis          |
+| 8   | `enhance-titles`              | 使用 AI（GitHub Copilot）增強各 Release 項目的標題，從候選標題中產生更具可讀性的描述，結果存入 Redis                            |
+| 9   | `update-googlesheet`          | 從 Redis 讀取增強後的整合資料，同步至 Google Sheet（增量更新模式，比對現有資料僅更新差異）                                      |
 
 **輔助指令**
 
 | 指令 | 說明 |
 |------|------|
+| `fetch-gitlab-release-branch`    | 取得 GitLab 各專案最新的 Release Branch 名稱，結果存入 Redis                                                                    |
+| `fetch-bitbucket-release-branch` | 取得 Bitbucket 各專案最新的 Release Branch 名稱，結果存入 Redis                                                                 |
 | `get-release-setting` | 從 Redis 讀取各平台的 Release Branch 資訊，依規則判斷 FetchMode（BranchDiff 或 DateTimeRange），產生各專案的拉取設定並寫入 Redis |
 
 #### 指令執行範本
@@ -101,8 +101,6 @@ dotnet run -- update-googlesheet
 
 > **注意**: 指令之間有相依關係，必須依照上述順序執行。每個步驟的輸出會存入 Redis，作為下一個步驟的輸入。
 
-詳細說明請參考 [Console 使用指南](src/ReleaseKit.Console/README.md)
-
 ## 專案結構
 
 ```
@@ -125,8 +123,8 @@ release-kit/
 
 ```json
 {
-  "Logging": {
-    "LogLevel": {
+  "Serilog": {
+    "MinimumLevel": {
       "Default": "Information"
     }
   },
@@ -164,7 +162,7 @@ dotnet test src/release-kit.sln
 
 ### 架構原則
 
-本專案遵循 [開發憲法](.specify/memory/constitution.md) 定義的原則：
+本專案遵循 [AGENTS.md](AGENTS.md) 定義的原則：
 
 - TDD（測試驅動開發）
 - DDD（領域驅動設計）與 CQRS
@@ -173,9 +171,8 @@ dotnet test src/release-kit.sln
 
 ## 文件
 
-- [Console 使用指南](src/ReleaseKit.Console/README.md) - 命令列參數與組態設定
 - [Docker 使用指南](DOCKER.md) - Docker Compose 執行說明
-- [開發憲法](.specify/memory/constitution.md) - 專案開發規範
+- [AGENTS.md](AGENTS.md) - 專案開發規範
 
 ## 授權
 
