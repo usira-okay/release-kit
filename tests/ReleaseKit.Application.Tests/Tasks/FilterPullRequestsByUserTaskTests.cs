@@ -196,7 +196,7 @@ public class FilterPullRequestsByUserTaskTests
     }
     
     /// <summary>
-    /// T005: GitLab 過濾後寫入資料傳遞存放區 測試 - 驗證結果寫入 GitLab:PullRequests:ByUser 且格式為 FetchResult
+    /// T005: GitLab 過濾後寫入資料傳遞存放區 測試 - 驗證結果寫入 GitLab:PullRequests-ByUser 且格式為 FetchResult
     /// </summary>
     [Fact]
     public async Task FilterGitLabPullRequestsByUser_ShouldWriteToCorrectRedisKey_WhenFilterComplete()
@@ -364,7 +364,7 @@ public class FilterPullRequestsByUserTaskTests
     }
     
     /// <summary>
-    /// T009: Bitbucket 過濾後寫入資料傳遞存放區 測試 - 驗證結果寫入 Bitbucket:PullRequests:ByUser 且格式為 FetchResult
+    /// T009: Bitbucket 過濾後寫入資料傳遞存放區 測試 - 驗證結果寫入 Bitbucket:PullRequests-ByUser 且格式為 FetchResult
     /// </summary>
     [Fact]
     public async Task FilterBitbucketPullRequestsByUser_ShouldWriteToCorrectRedisKey_WhenFilterComplete()

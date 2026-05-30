@@ -13,7 +13,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 /// <remarks>
 /// 將 資料傳遞存放區中低於 User Story 層級的 Azure Work Item（如 Bug、Task）遞迴轉換為其對應的 User Story，
-/// 並存入資料傳遞存放區（`AzureDevOps:WorkItems:UserStories`）。
+/// 並存入資料傳遞存放區（`AzureDevOps:WorkItems-UserStories`）。
 /// </remarks>
 public class GetUserStoryTask : ITask
 {

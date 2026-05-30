@@ -172,4 +172,31 @@ public class FileSystemDataTransferServiceTests : IDisposable
         Assert.True(result);
         Assert.Equal("data", await _service.GetAsync("ttl-key"));
     }
+
+    [Fact]
+    public async Task GroupSetAndGet_WithColonInFieldName_ShouldRoundtrip()
+    {
+        // 含有 `:` 的 field name（例如舊 Redis 慣例），應可正常寫入與讀取
+        const string field = "PullRequests:ByUser";
+        await _service.GroupSetAsync("GitLab", field, "payload");
+
+        var value = await _service.GroupGetAsync("GitLab", field);
+
+        Assert.Equal("payload", value);
+    }
+
+    [Fact]
+    public async Task GroupSetAsync_WithColonInFieldName_ShouldNotCreateFileWithColon()
+    {
+        // 實際存到磁碟的路徑不能包含 `:`（Windows 不允許）
+        const string field = "PullRequests:ByUser";
+        await _service.GroupSetAsync("GitLab", field, "payload");
+
+        var groupDir = Path.Combine(_tempDir, "GitLab");
+        var filesWithColon = Directory.GetFiles(groupDir)
+            .Where(f => Path.GetFileName(f).Contains(':'))
+            .ToList();
+
+        Assert.Empty(filesWithColon);
+    }
 }

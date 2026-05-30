@@ -11,7 +11,7 @@ namespace ReleaseKit.Application.Tasks;
 /// </summary>
 /// <remarks>
 /// 從資料傳遞存放區 `GitLab:PullRequests` 讀取資料，依 UserMapping 的 GitLabUserId 過濾，
-/// 將結果寫入資料傳遞存放區 Key `GitLab:PullRequests:ByUser`。
+/// 將結果寫入資料傳遞存放區 Key `GitLab:PullRequests-ByUser`。
 /// </remarks>
 public class FilterGitLabPullRequestsByUserTask : BaseFilterPullRequestsByUserTask
 {

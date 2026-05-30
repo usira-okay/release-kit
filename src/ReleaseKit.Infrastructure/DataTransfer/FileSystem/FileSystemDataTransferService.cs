@@ -161,10 +161,15 @@ public class FileSystemDataTransferService : IDataTransferService
         return Task.FromResult<IReadOnlyDictionary<string, string>>(result);
     }
 
-    private string GetKeyPath(string key) => Path.Combine(_fileDirectory, key);
+    private string GetKeyPath(string key) => Path.Combine(_fileDirectory, SanitizePathSegment(key));
 
     private string GetGroupFieldPath(string groupKey, string field) =>
-        Path.Combine(_fileDirectory, groupKey, field);
+        Path.Combine(_fileDirectory, SanitizePathSegment(groupKey), SanitizePathSegment(field));
+
+    /// <summary>
+    /// 將路徑片段中 Windows 不合法的字元（如 <c>:</c>）替換為 <c>-</c>，確保跨平台相容性。
+    /// </summary>
+    private static string SanitizePathSegment(string segment) => segment.Replace(':', '-');
 
     private static void EnsureDirectoryExists(string directory)
     {
