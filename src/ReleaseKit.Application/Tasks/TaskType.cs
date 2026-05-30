@@ -63,15 +63,5 @@ public enum TaskType
     /// <summary>
     /// 產生 Release Setting 設定
     /// </summary>
-    GetReleaseSetting,
-
-    /// <summary>
-    /// Clone/Pull 所有專案 Repo
-    /// </summary>
-    CloneRepositories,
-
-    /// <summary>
-    /// 分析 PR Diff 資訊
-    /// </summary>
-    AnalyzePRDiffs
+    GetReleaseSetting
 }
