@@ -12,7 +12,7 @@ namespace ReleaseKit.Application.Tasks;
 /// <remarks>
 /// 從資料傳遞存放區讀取整合後的 Release 資料，收集各項目的候選標題，
 /// 透過 <see cref="ITitleEnhancer"/> 產生更有意義的標題，
-/// 並將增強結果與原始資料一起寫入新的 Redis Key。
+/// 並將增強結果與原始資料一起寫入資料傳遞存放區。
 /// </remarks>
 public class EnhanceTitlesWithCopilotTask : ITask
 {

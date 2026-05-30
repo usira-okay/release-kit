@@ -14,7 +14,7 @@ namespace ReleaseKit.Application.Tasks;
 /// <remarks>
 /// 從資料傳遞存放區讀取已過濾的 PR 資料（Bitbucket/GitLab ByUser）與 Work Item 資料（UserStories），
 /// 透過 PR ID 配對後，依專案路徑分組、依團隊顯示名稱與 Work Item ID 排序，
-/// 並將整合結果存入新的 Redis Key。
+/// 並將整合結果存入資料傳遞存放區。
 /// </remarks>
 public class ConsolidateReleaseDataTask : ITask
 {

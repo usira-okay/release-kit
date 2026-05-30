@@ -10,7 +10,7 @@ namespace ReleaseKit.Application.Tasks;
 /// 過濾 Bitbucket Pull Request 依使用者任務
 /// </summary>
 /// <remarks>
-/// 從 Redis Key `Bitbucket:PullRequests` 讀取資料，依 UserMapping 的 BitbucketUserId 過濾，
+/// 從資料傳遞存放區 `Bitbucket:PullRequests` 讀取資料，依 UserMapping 的 BitbucketUserId 過濾，
 /// 將結果寫入資料傳遞存放區 Key `Bitbucket:PullRequests:ByUser`。
 /// </remarks>
 public class FilterBitbucketPullRequestsByUserTask : BaseFilterPullRequestsByUserTask

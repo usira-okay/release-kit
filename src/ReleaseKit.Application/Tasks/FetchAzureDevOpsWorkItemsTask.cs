@@ -90,14 +90,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     }
 
     /// <summary>
-    /// 從 Redis 載入 PR 資料
+    /// 從資料傳遞存放區載入 PR 資料
     /// </summary>
     private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsAsync()
     {
         var allPullRequests = new List<(MergeRequestOutput PR, string ProjectName)>();
 
         // 定義要讀取的 資料傳遞存放區
-        var redisKeys = new[]
+        var platformKeys = new[]
         {
             (HashKey: DataTransferKeys.GitLabHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "GitLab"),
             (HashKey: DataTransferKeys.BitbucketHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "Bitbucket")
@@ -106,7 +106,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         var anySourceFound = false;
 
         // 迴圈處理所有平台
-        foreach (var (hashKey, field, platform) in redisKeys)
+        foreach (var (hashKey, field, platform) in platformKeys)
         {
             var json = await _dataTransferService.GroupGetAsync(hashKey, field);
             if (json is not null)

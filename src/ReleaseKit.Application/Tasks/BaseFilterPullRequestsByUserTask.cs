@@ -9,8 +9,8 @@ namespace ReleaseKit.Application.Tasks;
 /// 過濾 Pull Request 依使用者的抽象基底任務
 /// </summary>
 /// <remarks>
-/// 封裝從資料傳遞存放區讀取 PR 資料、依使用者 ID 清單過濾、並寫回 Redis 的共用邏輯。
-/// 子類別需提供來源 Redis Key、目標 Redis Key、平台名稱與使用者 ID 清單。
+/// 封裝從資料傳遞存放區讀取 PR 資料、依使用者 ID 清單過濾、並寫回資料傳遞存放區的共用邏輯。
+/// 子類別需提供來源群組鍵値、目標群組鍵値、平台名稱與使用者 ID 清單。
 /// </remarks>
 public abstract class BaseFilterPullRequestsByUserTask : ITask
 {
@@ -22,7 +22,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     /// <summary>
     /// 資料傳遞服務
     /// </summary>
-    protected readonly IDataTransferService RedisService;
+    protected readonly IDataTransferService DataTransferService;
 
     /// <summary>
     /// 使用者 ID 與 DisplayName 的對應字典
@@ -41,7 +41,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
         IReadOnlyDictionary<string, string> userIdToDisplayName)
     {
         Logger = logger;
-        RedisService = dataTransferService;
+        DataTransferService = dataTransferService;
         UserIdToDisplayName = userIdToDisplayName;
     }
 
@@ -77,15 +77,15 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
     {
         Logger.LogInformation("開始過濾 {Platform} PR 資料，依使用者清單過濾", PlatformName);
 
-        // 清除目標 Redis 資料
-        if (await RedisService.GroupExistsAsync(TargetGroupKey, TargetGroupField))
+        // 清除目標資料
+        if (await DataTransferService.GroupExistsAsync(TargetGroupKey, TargetGroupField))
         {
             Logger.LogInformation("清除 資料傳遞存放區中的舊資料，Hash: {HashKey} Field: {Field}", TargetGroupKey, TargetGroupField);
-            await RedisService.GroupDeleteAsync(TargetGroupKey, TargetGroupField);
+            await DataTransferService.GroupDeleteAsync(TargetGroupKey, TargetGroupField);
         }
 
         // 1. 從資料傳遞存放區讀取 PR 資料
-        var sourceJson = await RedisService.GroupGetAsync(SourceGroupKey, SourceGroupField);
+        var sourceJson = await DataTransferService.GroupGetAsync(SourceGroupKey, SourceGroupField);
         if (sourceJson is null)
         {
             Logger.LogError("資料傳遞存放區 {HashKey} Field {Field} 中無 PR 資料，請先執行前置指令", SourceGroupKey, SourceGroupField);
@@ -145,7 +145,7 @@ public abstract class BaseFilterPullRequestsByUserTask : ITask
 
         // 5. 寫入目標 資料傳遞存放區
         var targetJson = filteredFetchResult.ToJson();
-        await RedisService.GroupSetAsync(TargetGroupKey, TargetGroupField, targetJson);
+        await DataTransferService.GroupSetAsync(TargetGroupKey, TargetGroupField, targetJson);
 
         Logger.LogInformation("過濾完成，結果已寫入 資料傳遞存放區 {HashKey} Field {Field}", TargetGroupKey, TargetGroupField);
 
