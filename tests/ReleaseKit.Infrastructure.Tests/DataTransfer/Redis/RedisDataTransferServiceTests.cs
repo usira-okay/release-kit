@@ -121,6 +121,23 @@ public class RedisDataTransferServiceTests
     }
 
     [Fact]
+    public async Task GroupSetAsync_ShouldReturnTrue_WhenUpdatingExistingField()
+    {
+        _mockDatabase
+            .Setup(x => x.HashSetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "Test:GroupA"),
+                It.Is<RedisValue>(f => f.ToString() == "field1"),
+                It.Is<RedisValue>(v => v.ToString() == "updated"),
+                It.IsAny<When>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(false);
+
+        var result = await _service.GroupSetAsync("GroupA", "field1", "updated");
+
+        Assert.True(result);
+    }
+
+    [Fact]
     public async Task GroupGetAsync_ShouldReturnValue_WhenFieldExists()
     {
         _mockDatabase

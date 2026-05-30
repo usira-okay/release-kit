@@ -75,9 +75,9 @@ public class RedisDataTransferService : IDataTransferService
     public async Task<bool> GroupSetAsync(string groupKey, string field, string value)
     {
         var fullKey = GetFullKey(groupKey);
-        var result = await _database.HashSetAsync(fullKey, field, value);
-        _logger.LogInformation("DataTransfer GROUP-SET: {Key} {Field} = {Value}, Result: {Result}", fullKey, field, value, result);
-        return result;
+        await _database.HashSetAsync(fullKey, field, value);
+        _logger.LogInformation("DataTransfer GROUP-SET: {Key} {Field} = {Value}", fullKey, field, value);
+        return true;
     }
 
     /// <summary>
