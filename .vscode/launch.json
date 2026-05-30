@@ -7,7 +7,7 @@
             "preLaunchTask": "dotnet: build",
             "program": "${workspaceFolder}/src/ReleaseKit.Console/bin/Debug/net10.0/ReleaseKit.Console.dll",
             "args": [
-                "fetch-gitlab-pr"
+                // "fetch-gitlab-pr"
                 // "fetch-bitbucket-pr"
                 // "fetch-gitlab-release-branch"
                 // "fetch-bitbucket-release-branch"
