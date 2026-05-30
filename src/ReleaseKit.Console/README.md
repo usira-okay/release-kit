@@ -20,48 +20,66 @@ dotnet run -- <task-name>
 
 ### 可用的任務
 
-1. **fetch-gitlab-pr** - 拉取 GitLab Pull Request 資訊
-2. **fetch-bitbucket-pr** - 拉取 Bitbucket Pull Request 資訊
-3. **fetch-azure-workitems** - 拉取 Azure DevOps Work Item 資訊
-4. **update-googlesheet** - 更新 Google Sheets 資訊
+| #   | 指令                             | 說明                                                                                         |
+| --- | -------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | `fetch-gitlab-release-branch`    | 取得 GitLab 各專案最新的 Release Branch 名稱，結果存入 Redis                                 |
+| 2   | `fetch-bitbucket-release-branch` | 取得 Bitbucket 各專案最新的 Release Branch 名稱，結果存入 Redis                              |
+| 3   | `fetch-gitlab-pr`                | 從 GitLab API 拉取各專案的 Pull Request（Merge Request）資訊，支援時間區間與 Branch 差異模式 |
+| 4   | `filter-gitlab-pr-by-user`       | 依 UserMapping 設定中的 GitLabUserId 過濾已拉取的 GitLab PR，僅保留團隊成員的 PR             |
+| 5   | `fetch-bitbucket-pr`             | 從 Bitbucket API 拉取各專案的 Pull Request 資訊，支援時間區間與 Branch 差異模式              |
+| 6   | `filter-bitbucket-pr-by-user`    | 依 UserMapping 設定中的 BitbucketUserId 過濾已拉取的 Bitbucket PR，僅保留團隊成員的 PR       |
+| 7   | `fetch-azure-workitems`          | 從已過濾的 PR 來源分支中解析 Work Item ID，並透過 Azure DevOps API 查詢詳細資訊              |
+| 8   | `get-user-story`                 | 將低於 User Story 層級的 Work Item（如 Bug、Task）遞迴查詢 Parent 至 User Story 層級         |
+| 9   | `consolidate-release-data`       | 整合 PR 與 Work Item 資料，以 Work Item 為主體配對 PR、依專案分組排序                        |
+| 10  | `enhance-titles`                 | 使用 AI（GitHub Copilot）增強各 Release 項目的標題，產生更具可讀性的描述                     |
+| 11  | `update-googlesheet`             | 從 Redis 讀取增強後的整合資料，同步至 Google Sheet（增量更新模式）                           |
 
-### 使用範例
+**輔助指令**
+
+| 指令                  | 說明                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `get-release-setting` | 從 Redis 讀取各平台 Release Branch 資訊，依規則判斷 FetchMode（BranchDiff 或 DateTimeRange），產生拉取設定並寫入 Redis |
+
+### 指令執行範本
+
+以下為產出完整 Release Notes 的標準指令執行順序：
 
 ```bash
-# 拉取 GitLab PR 資訊
-dotnet run -- fetch-gitlab-pr
+# Step 1: 取得各平台最新 Release Branch
+dotnet run -- fetch-gitlab-release-branch
+dotnet run -- fetch-bitbucket-release-branch
 
-# 拉取 Bitbucket PR 資訊
+# Step 2: 拉取各平台 PR 資訊
+dotnet run -- fetch-gitlab-pr
 dotnet run -- fetch-bitbucket-pr
 
-# 拉取 Azure DevOps Work Item 資訊
+# Step 3: 依使用者過濾 PR
+dotnet run -- filter-gitlab-pr-by-user
+dotnet run -- filter-bitbucket-pr-by-user
+
+# Step 4: 從 PR 解析並拉取 Azure DevOps Work Item
 dotnet run -- fetch-azure-workitems
 
-# 更新 Google Sheets 資訊
+# Step 5: 將 Work Item 轉換至 User Story 層級
+dotnet run -- get-user-story
+
+# Step 6: 整合 Release 資料
+dotnet run -- consolidate-release-data
+
+# Step 7: 使用 AI 增強標題
+dotnet run -- enhance-titles
+
+# Step 8: 同步至 Google Sheet
 dotnet run -- update-googlesheet
 ```
+
+> **注意**: 指令之間有相依關係，必須依照上述順序執行。每個步驟的輸出會存入 Redis，作為下一個步驟的輸入。
 
 ### 限制
 
 - 每次只能執行**單一任務**
 - 任務名稱**不區分大小寫**
 - 若未提供任務名稱或提供無效的任務名稱，將顯示錯誤訊息
-
-### 錯誤處理
-
-```bash
-# 未提供任務名稱
-$ dotnet run
-錯誤: 請指定要執行的任務。使用方式: ReleaseKit.Console <task-name>
-
-# 提供無效的任務名稱
-$ dotnet run -- invalid-task
-錯誤: 不支援的任務: 'invalid-task'。有效的任務: fetch-gitlab-pr, fetch-bitbucket-pr, fetch-azure-workitems, update-googlesheet
-
-# 提供多個參數
-$ dotnet run -- fetch-gitlab-pr extra-arg
-錯誤: 每次只允許執行單一任務。使用方式: ReleaseKit.Console <task-name>
-```
 
 ## 組態設定
 
