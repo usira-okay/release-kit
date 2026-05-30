@@ -9,9 +9,9 @@ using ReleaseKit.Console.Parsers;
 using ReleaseKit.Console.Services;
 using ReleaseKit.Domain.Abstractions;
 using ReleaseKit.Infrastructure.Copilot;
+using ReleaseKit.Infrastructure.DataTransfer.FileSystem;
+using ReleaseKit.Infrastructure.DataTransfer.Redis;
 using ReleaseKit.Infrastructure.GoogleSheets;
-
-using ReleaseKit.Infrastructure.Redis;
 using ReleaseKit.Infrastructure.Time;
 using StackExchange.Redis;
 
@@ -23,31 +23,58 @@ namespace ReleaseKit.Console.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 註冊 Redis 相關服務
+    /// 依設定值 DataTransfer:Provider 選擇並注冊資料傳遞服務
     /// </summary>
-    public static IServiceCollection AddRedisServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddDataTransferServices(
+        this IServiceCollection services, IConfiguration configuration)
     {
-        var redisConnectionString = configuration["Redis:ConnectionString"] 
+        var provider = configuration["DataTransfer:Provider"]
+            ?? throw new InvalidOperationException("DataTransfer:Provider 組態設定不得為空");
+
+        return provider switch
+        {
+            "Redis"      => services.AddRedisDataTransfer(configuration),
+            "FileSystem" => services.AddFileSystemDataTransfer(configuration),
+            _            => throw new InvalidOperationException($"不支援的資料傳遞方式: {provider}")
+        };
+    }
+
+    private static IServiceCollection AddRedisDataTransfer(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        var redisConnectionString = configuration["Redis:ConnectionString"]
             ?? throw new InvalidOperationException("Redis:ConnectionString 組態設定不得為空");
-        var redisInstanceName = configuration["Redis:InstanceName"] 
+        var redisInstanceName = configuration["Redis:InstanceName"]
             ?? throw new InvalidOperationException("Redis:InstanceName 組態設定不得為空");
 
-        // 註冊 IConnectionMultiplexer，使用指數級重試機制
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IConnectionMultiplexer>>();
             var configOptions = ConfigurationOptions.Parse(redisConnectionString);
-            configOptions.AbortOnConnectFail = false; // 允許應用程式啟動即使 Redis 尚未就緒
-
+            configOptions.AbortOnConnectFail = false;
             return ConnectionMultiplexerExtensions.ConnectWithRetry(configOptions, logger);
         });
 
-        // 註冊 Redis 服務
-        services.AddSingleton<IRedisService>(sp =>
+        services.AddSingleton<IDataTransferService>(sp =>
         {
             var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisService>>();
-            return new RedisService(connectionMultiplexer, logger, redisInstanceName);
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RedisDataTransferService>>();
+            return new RedisDataTransferService(connectionMultiplexer, logger, redisInstanceName);
+        });
+
+        return services;
+    }
+
+    private static IServiceCollection AddFileSystemDataTransfer(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        var fileDirectory = configuration["DataTransfer:FileDirectory"]
+            ?? throw new InvalidOperationException("DataTransfer:FileDirectory 組態設定不得為空");
+
+        services.AddSingleton<IDataTransferService>(sp =>
+        {
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FileSystemDataTransferService>>();
+            return new FileSystemDataTransferService(fileDirectory, logger);
         });
 
         return services;
