@@ -17,17 +17,17 @@ public class FetchBitbucketReleaseBranchTask : BaseFetchReleaseBranchTask<Bitbuc
     /// </summary>
     /// <param name="serviceProvider">服務提供者</param>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="bitbucketOptions">Bitbucket 配置選項</param>
     public FetchBitbucketReleaseBranchTask(
         IServiceProvider serviceProvider,
         ILogger<FetchBitbucketReleaseBranchTask> logger,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IOptions<BitbucketOptions> bitbucketOptions)
         : base(
             serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("Bitbucket"),
             logger,
-            redisService,
+            dataTransferService,
             bitbucketOptions.Value)
     {
     }
@@ -36,10 +36,10 @@ public class FetchBitbucketReleaseBranchTask : BaseFetchReleaseBranchTask<Bitbuc
     protected override string PlatformName => "Bitbucket";
 
     /// <inheritdoc />
-    protected override string RedisHashKey => RedisKeys.BitbucketHash;
+    protected override string DataTransferGroupKey => DataTransferKeys.BitbucketHash;
 
     /// <inheritdoc />
-    protected override string RedisHashField => RedisKeys.Fields.ReleaseBranches;
+    protected override string DataTransferGroupField => DataTransferKeys.Fields.ReleaseBranches;
 
     /// <inheritdoc />
     protected override IEnumerable<BitbucketProjectOptions> GetProjects() => PlatformOptions.Projects;

@@ -13,20 +13,20 @@ namespace ReleaseKit.Application.Tests.Tasks;
 /// </summary>
 public class EnhanceTitlesWithCopilotTaskTests
 {
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<ITitleEnhancer> _titleEnhancerMock;
     private readonly Mock<ILogger<EnhanceTitlesWithCopilotTask>> _loggerMock;
     private string? _capturedRedisJson;
 
     public EnhanceTitlesWithCopilotTaskTests()
     {
-        _redisServiceMock = new Mock<IRedisService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _titleEnhancerMock = new Mock<ITitleEnhancer>();
         _loggerMock = new Mock<ILogger<EnhanceTitlesWithCopilotTask>>();
 
-        // 捕捉寫入 Redis 的 JSON
-        _redisServiceMock.Setup(x => x.HashSetAsync(
-                RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()))
+        // 捕捉寫入資料傳遞存放區 的 JSON
+        _dataTransferServiceMock.Setup(x => x.GroupSetAsync(
+                DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()))
             .Callback<string, string, string>((_, _, json) => _capturedRedisJson = json)
             .ReturnsAsync(true);
     }
@@ -34,14 +34,14 @@ public class EnhanceTitlesWithCopilotTaskTests
     private EnhanceTitlesWithCopilotTask CreateTask()
     {
         return new EnhanceTitlesWithCopilotTask(
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             _titleEnhancerMock.Object,
             _loggerMock.Object);
     }
 
     private void SetupConsolidatedData(ConsolidatedReleaseResult? result)
     {
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.Consolidated))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.Consolidated))
             .ReturnsAsync(result?.ToJson());
     }
 
@@ -114,7 +114,7 @@ public class EnhanceTitlesWithCopilotTaskTests
     // ===== 無資料情境 =====
 
     /// <summary>
-    /// 當 Redis 中整合資料欄位不存在時，應拋出 InvalidOperationException
+    /// 當 資料傳遞存放區中整合資料欄位不存在時，應拋出 InvalidOperationException
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_WithNoConsolidatedData_ShouldThrowInvalidOperationException()
@@ -126,9 +126,9 @@ public class EnhanceTitlesWithCopilotTaskTests
         // Act & Assert - 整合資料欄位不存在時應拋出 InvalidOperationException
         await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
-        // Assert - 不應寫入 Redis
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
+        // Assert - 不應寫入資料傳遞存放區
+        _dataTransferServiceMock.Verify(
+            x => x.GroupSetAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Never);
         _titleEnhancerMock.Verify(
             x => x.EnhanceTitlesAsync(It.IsAny<IReadOnlyList<IReadOnlyList<string>>>()),
@@ -136,7 +136,7 @@ public class EnhanceTitlesWithCopilotTaskTests
     }
 
     /// <summary>
-    /// 當整合資料的 Projects 為空時，應跳過處理且不寫入 Redis
+    /// 當整合資料的 Projects 為空時，應跳過處理且不寫入資料傳遞存放區
     /// </summary>
     [Fact]
     public async Task ExecuteAsync_WithEmptyProjects_ShouldSkipAndNotWriteRedis()
@@ -153,8 +153,8 @@ public class EnhanceTitlesWithCopilotTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.GroupSetAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Never);
     }
 
@@ -274,7 +274,7 @@ public class EnhanceTitlesWithCopilotTaskTests
         Assert.Equal("Add payment module", titles[1]);
     }
 
-    // ===== 結果寫入 Redis =====
+    // ===== 結果寫入資料傳遞存放區 =====
 
     /// <summary>
     /// 應將增強標題與原始資料一起寫入新的 Redis Key
@@ -297,8 +297,8 @@ public class EnhanceTitlesWithCopilotTaskTests
         await task.ExecuteAsync();
 
         // Assert
-        _redisServiceMock.Verify(
-            x => x.HashSetAsync(RedisKeys.ReleaseDataHash, RedisKeys.Fields.EnhancedTitles, It.IsAny<string>()),
+        _dataTransferServiceMock.Verify(
+            x => x.GroupSetAsync(DataTransferKeys.ReleaseDataHash, DataTransferKeys.Fields.EnhancedTitles, It.IsAny<string>()),
             Times.Once);
 
         Assert.NotNull(_capturedRedisJson);

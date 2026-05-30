@@ -14,7 +14,7 @@ namespace ReleaseKit.Application.Tasks;
 public class FetchAzureDevOpsWorkItemsTask : ITask
 {
     private readonly ILogger<FetchAzureDevOpsWorkItemsTask> _logger;
-    private readonly IRedisService _redisService;
+    private readonly IDataTransferService _dataTransferService;
     private readonly IAzureDevOpsRepository _azureDevOpsRepository;
     private readonly Dictionary<int, Result<WorkItem>> _workItemCache;
 
@@ -22,15 +22,15 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// 建構子
     /// </summary>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="azureDevOpsRepository">Azure DevOps Repository</param>
     public FetchAzureDevOpsWorkItemsTask(
         ILogger<FetchAzureDevOpsWorkItemsTask> logger,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IAzureDevOpsRepository azureDevOpsRepository)
     {
         _logger = logger;
-        _redisService = redisService;
+        _dataTransferService = dataTransferService;
         _azureDevOpsRepository = azureDevOpsRepository;
         _workItemCache = new Dictionary<int, Result<WorkItem>>();
     }
@@ -43,10 +43,10 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         _logger.LogInformation("開始拉取 Azure DevOps Work Item 資訊");
 
         // 清除舊的 Azure DevOps Work Item 資料
-        await _redisService.HashDeleteAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems);
+        await _dataTransferService.GroupDeleteAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems);
 
-        // 從 Redis 讀取 PR 資料
-        var allPullRequests = await LoadPullRequestsFromRedisAsync();
+        // 從資料傳遞存放區讀取 PR 資料
+        var allPullRequests = await LoadPullRequestsAsync();
         
         if (allPullRequests.Count == 0)
         {
@@ -81,8 +81,8 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             FailureCount = failureCount
         };
 
-        // 寫入 Redis
-        await _redisService.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, result.ToJson());
+        // 寫入資料傳遞存放區
+        await _dataTransferService.GroupSetAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems, result.ToJson());
 
         _logger.LogInformation(
             "完成 Work Item 查詢：總計 {Total} 個，成功 {Success} 個，失敗 {Failure} 個", 
@@ -92,15 +92,15 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
     /// <summary>
     /// 從 Redis 載入 PR 資料
     /// </summary>
-    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsFromRedisAsync()
+    private async Task<List<(MergeRequestOutput PR, string ProjectName)>> LoadPullRequestsAsync()
     {
         var allPullRequests = new List<(MergeRequestOutput PR, string ProjectName)>();
 
-        // 定義要讀取的 Redis Hash
+        // 定義要讀取的 資料傳遞存放區
         var redisKeys = new[]
         {
-            (HashKey: RedisKeys.GitLabHash, Field: RedisKeys.Fields.PullRequestsByUser, Platform: "GitLab"),
-            (HashKey: RedisKeys.BitbucketHash, Field: RedisKeys.Fields.PullRequestsByUser, Platform: "Bitbucket")
+            (HashKey: DataTransferKeys.GitLabHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "GitLab"),
+            (HashKey: DataTransferKeys.BitbucketHash, Field: DataTransferKeys.Fields.PullRequestsByUser, Platform: "Bitbucket")
         };
 
         var anySourceFound = false;
@@ -108,7 +108,7 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
         // 迴圈處理所有平台
         foreach (var (hashKey, field, platform) in redisKeys)
         {
-            var json = await _redisService.HashGetAsync(hashKey, field);
+            var json = await _dataTransferService.GroupGetAsync(hashKey, field);
             if (json is not null)
             {
                 anySourceFound = true;
@@ -127,14 +127,14 @@ public class FetchAzureDevOpsWorkItemsTask : ITask
             }
             else
             {
-                _logger.LogWarning("Redis Hash {HashKey} Field {Field} 不存在或為空", hashKey, field);
+                _logger.LogWarning("資料傳遞存放區 {HashKey} Field {Field} 不存在或為空", hashKey, field);
             }
         }
 
         if (!anySourceFound)
         {
-            _logger.LogError("所有平台的 PR 資料均不存在於 Redis，請先執行 FilterPullRequestsByUser 指令");
-            throw new InvalidOperationException("所有平台的 PR 資料均不存在於 Redis");
+            _logger.LogError("所有平台的 PR 資料均不存在於 資料傳遞存放區，請先執行 FilterPullRequestsByUser 指令");
+            throw new InvalidOperationException("所有平台的 PR 資料均不存在於資料傳遞存放區");
         }
 
         return allPullRequests;

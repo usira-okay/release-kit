@@ -18,19 +18,19 @@ public class FetchBitbucketPullRequestsTask : BaseFetchPullRequestsTask<Bitbucke
     /// </summary>
     /// <param name="serviceProvider">服務提供者</param>
     /// <param name="logger">日誌記錄器</param>
-    /// <param name="redisService">Redis 快取服務</param>
+    /// <param name="dataTransferService">資料傳遞服務</param>
     /// <param name="bitbucketOptions">Bitbucket 配置選項</param>
     /// <param name="fetchModeOptions">拉取模式配置選項</param>
     public FetchBitbucketPullRequestsTask(
         IServiceProvider serviceProvider,
         ILogger<FetchBitbucketPullRequestsTask> logger,
-        IRedisService redisService,
+        IDataTransferService dataTransferService,
         IOptions<BitbucketOptions> bitbucketOptions,
         IOptions<FetchModeOptions> fetchModeOptions)
         : base(
             serviceProvider.GetRequiredKeyedService<ISourceControlRepository>("Bitbucket"),
             logger,
-            redisService,
+            dataTransferService,
             bitbucketOptions.Value,
             fetchModeOptions)
     {
@@ -43,10 +43,10 @@ public class FetchBitbucketPullRequestsTask : BaseFetchPullRequestsTask<Bitbucke
     protected override SourceControlPlatform Platform => SourceControlPlatform.Bitbucket;
 
     /// <inheritdoc />
-    protected override string RedisHashKey => RedisKeys.BitbucketHash;
+    protected override string DataTransferGroupKey => DataTransferKeys.BitbucketHash;
 
     /// <inheritdoc />
-    protected override string RedisHashField => RedisKeys.Fields.PullRequests;
+    protected override string DataTransferGroupField => DataTransferKeys.Fields.PullRequests;
 
     /// <inheritdoc />
     protected override int MaxConcurrentProjects => 5;

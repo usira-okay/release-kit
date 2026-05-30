@@ -18,13 +18,13 @@ namespace ReleaseKit.Application.Tests.Tasks;
 public class FetchAzureDevOpsWorkItemsTaskTests
 {
     private readonly Mock<ILogger<FetchAzureDevOpsWorkItemsTask>> _loggerMock;
-    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<IDataTransferService> _dataTransferServiceMock;
     private readonly Mock<IAzureDevOpsRepository> _azureDevOpsRepositoryMock;
 
     public FetchAzureDevOpsWorkItemsTaskTests()
     {
         _loggerMock = new Mock<ILogger<FetchAzureDevOpsWorkItemsTask>>();
-        _redisServiceMock = new Mock<IRedisService>();
+        _dataTransferServiceMock = new Mock<IDataTransferService>();
         _azureDevOpsRepositoryMock = new Mock<IAzureDevOpsRepository>();
     }
 
@@ -192,7 +192,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
         // Assert
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
-        _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
+        _dataTransferServiceMock.Verify(x => x.GroupSetAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -378,9 +378,9 @@ public class FetchAzureDevOpsWorkItemsTaskTests
         // Act & Assert - 應拋出 InvalidOperationException
         await Assert.ThrowsAsync<InvalidOperationException>(() => task.ExecuteAsync());
 
-        // Assert - 不應呼叫 Azure DevOps API 及寫入 Redis
+        // Assert - 不應呼叫 Azure DevOps API 及寫入資料傳遞存放區
         _azureDevOpsRepositoryMock.Verify(x => x.GetWorkItemAsync(It.IsAny<int>()), Times.Never);
-        _redisServiceMock.Verify(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
+        _dataTransferServiceMock.Verify(x => x.GroupSetAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems, It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -445,7 +445,7 @@ public class FetchAzureDevOpsWorkItemsTaskTests
     {
         return new FetchAzureDevOpsWorkItemsTask(
             _loggerMock.Object,
-            _redisServiceMock.Object,
+            _dataTransferServiceMock.Object,
             _azureDevOpsRepositoryMock.Object);
     }
 
@@ -503,30 +503,30 @@ public class FetchAzureDevOpsWorkItemsTaskTests
 
     private void SetupRedis(FetchResult? gitLabData, FetchResult? bitbucketData = null)
     {
-        _redisServiceMock.Setup(x => x.HashDeleteAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems))
+        _dataTransferServiceMock.Setup(x => x.GroupDeleteAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems))
             .ReturnsAsync(true);
         
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.GitLabHash, RedisKeys.Fields.PullRequestsByUser))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.GitLabHash, DataTransferKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(gitLabData?.ToJson());
-        _redisServiceMock.Setup(x => x.HashGetAsync(RedisKeys.BitbucketHash, RedisKeys.Fields.PullRequestsByUser))
+        _dataTransferServiceMock.Setup(x => x.GroupGetAsync(DataTransferKeys.BitbucketHash, DataTransferKeys.Fields.PullRequestsByUser))
             .ReturnsAsync(bitbucketData?.ToJson());
         
         string? capturedJson = null;
-        _redisServiceMock.Setup(x => x.HashSetAsync(RedisKeys.AzureDevOpsHash, RedisKeys.Fields.WorkItems, It.IsAny<string>()))
+        _dataTransferServiceMock.Setup(x => x.GroupSetAsync(DataTransferKeys.AzureDevOpsHash, DataTransferKeys.Fields.WorkItems, It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => capturedJson = json)
             .ReturnsAsync(true);
     }
 
     private void VerifyRedisWrite(Action<WorkItemFetchResult> assert)
     {
-        _redisServiceMock.Verify(x => x.HashSetAsync(
-            RedisKeys.AzureDevOpsHash,
-            RedisKeys.Fields.WorkItems,
+        _dataTransferServiceMock.Verify(x => x.GroupSetAsync(
+            DataTransferKeys.AzureDevOpsHash,
+            DataTransferKeys.Fields.WorkItems,
             It.IsAny<string>()), Times.Once);
         
         // Get captured JSON from the last call
-        _redisServiceMock.Invocations
-            .Where(i => i.Method.Name == nameof(IRedisService.HashSetAsync))
+        _dataTransferServiceMock.Invocations
+            .Where(i => i.Method.Name == nameof(IDataTransferService.GroupSetAsync))
             .Select(i => i.Arguments[2] as string)
             .Where(json => json != null)
             .ToList()

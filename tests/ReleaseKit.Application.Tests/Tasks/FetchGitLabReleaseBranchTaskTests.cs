@@ -28,9 +28,9 @@ public class FetchGitLabReleaseBranchTaskTests
         var repositoryMock = new Mock<ISourceControlRepository>();
 
         // Mock Redis service
-        var redisServiceMock = new Mock<IRedisService>();
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        var redisServiceMock = new Mock<IDataTransferService>();
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
 
@@ -80,7 +80,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定 project1 有 release branch
         repositoryMock
@@ -92,8 +92,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project2", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260201" }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -109,7 +109,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => json.Contains("release/20260201") && json.Contains("group/project1") && json.Contains("group/project2"))),
@@ -135,15 +135,15 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定專案沒有 release branch（回傳空清單）
         repositoryMock
             .Setup(x => x.GetBranchesAsync("group/project-no-release", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -159,7 +159,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => json.Contains("NotFound") && json.Contains("group/project-no-release"))),
@@ -185,7 +185,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定專案有多個 release branch，應取最新的（字母排序最大）
         repositoryMock
@@ -197,8 +197,8 @@ public class FetchGitLabReleaseBranchTaskTests
                 "release/20260210"  // 最新
             }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -214,7 +214,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 應該只有最新的 release/20260210
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => json.Contains("release/20260210") && !json.Contains("release/20260101") && !json.Contains("release/20260115"))),
@@ -240,15 +240,15 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定 GetBranchesAsync 失敗
         repositoryMock
             .Setup(x => x.GetBranchesAsync("group/project-error", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Failed to get branches")));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -264,7 +264,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 失敗的專案應該歸入 NotFound
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => json.Contains("NotFound") && json.Contains("group/project-error"))),
@@ -290,7 +290,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定所有專案都有相同的最新 release branch
         var sameBranch = "release/20260210";
@@ -298,8 +298,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync(It.IsAny<string>(), "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { sameBranch }.AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -315,7 +315,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 所有專案應該歸在同一組
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
@@ -345,7 +345,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // project-old: 有舊版本 release branch
         repositoryMock
@@ -367,8 +367,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project-error", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Failure(Error.SourceControl.ApiError("Error")));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -384,7 +384,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - 混合情境應該正確分組
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
@@ -410,7 +410,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         repositoryMock
             .Setup(x => x.GetBranchesAsync("group/project1", "release/", It.IsAny<CancellationToken>()))
@@ -420,8 +420,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .Setup(x => x.GetBranchesAsync("group/project2", "release/", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
         services.AddKeyedSingleton("GitLab", repositoryMock.Object);
         var serviceProvider = services.BuildServiceProvider();
@@ -437,7 +437,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         // Assert - JSON 結構應該符合預期格式: { "branch": ["proj1", "proj2"], "NotFound": ["proj3"] }
         redisServiceMock.Verify(
-            x => x.HashSetAsync(
+            x => x.GroupSetAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<string>(json => 
@@ -469,7 +469,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 設定不同的 release branch
         repositoryMock
@@ -483,8 +483,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string> { "release/20260115" }.AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
@@ -526,7 +526,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // project-with-branch: 有 release branch
         repositoryMock
@@ -539,8 +539,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
@@ -582,7 +582,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         repositoryMock
             .Setup(x => x.GetBranchesAsync("group/project-old", "release/", It.IsAny<CancellationToken>()))
@@ -598,8 +598,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
@@ -646,7 +646,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 標準 release/yyyyMMdd 格式
         repositoryMock
@@ -670,8 +670,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
@@ -726,7 +726,7 @@ public class FetchGitLabReleaseBranchTaskTests
 
         var loggerMock = new Mock<ILogger<FetchGitLabReleaseBranchTask>>();
         var repositoryMock = new Mock<ISourceControlRepository>();
-        var redisServiceMock = new Mock<IRedisService>();
+        var redisServiceMock = new Mock<IDataTransferService>();
 
         // 不同大小寫的 release/yyyyMMdd 格式
         repositoryMock
@@ -745,8 +745,8 @@ public class FetchGitLabReleaseBranchTaskTests
             .ReturnsAsync(Result<IReadOnlyList<string>>.Success(new List<string>().AsReadOnly()));
 
         string? savedJson = null;
-        redisServiceMock.Setup(x => x.HashExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
-        redisServiceMock.Setup(x => x.HashSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        redisServiceMock.Setup(x => x.GroupExistsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+        redisServiceMock.Setup(x => x.GroupSetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string, string>((hashKey, field, json) => savedJson = json)
             .ReturnsAsync(true);
 
